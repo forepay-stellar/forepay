@@ -131,3 +131,46 @@ transaction here, and only then repoint anything at it.
 `stellar` CLI **27.0.0** against testnet on **protocol 29** (`getVersionInfo`, stellar-core 29.0.0).
 Every call above worked, but the mismatch is real and the contract crate should pin
 `soroban-sdk = "29"` — see issue #1.
+
+---
+
+## The advance contract (issue #8)
+
+Not deployed yet — #15 does that, after the logic lands in #9 to #13. Recorded here so the
+build is reproducible from the first commit rather than reconstructed later.
+
+| | |
+| --- | --- |
+| Crate | `sc/advance` (`forepay-advance`) |
+| SDK | `soroban-sdk 29` — testnet is protocol 29, and the SDK major tracks the protocol major |
+| Target | `wasm32v1-none` |
+| Built with | `stellar contract build` (the SDK refuses a bare `cargo build`, requiring stellar-cli ≥ 25.2.0) |
+| Skeleton wasm | 6,848 bytes, `sha256 63f1cbff8fc154e6f21359a29d504286c181eb2075d4409e30e58e15212dd565` |
+
+That hash is the **skeleton only** and will change with every ticket from #9 onward. The
+per-host-triple hash table that #14 sets up is the one that matters for release; this row
+exists so the first build is on the record.
+
+### Upgradeable, behind a timelock
+
+`propose_upgrade` → wait 24 hours → `execute_upgrade`, with `cancel_upgrade` in between and
+`renounce_upgradeability` as a one-way door once the demo is frozen.
+
+A bare admin upgrade would reduce the contract's whole security argument to "trust the admin
+key". The delay is what gives anyone watching a chance to notice. The delay is a constant
+rather than an admin-settable value, because an admin who can shorten the delay has no delay.
+
+### Verified on StellarExpert
+
+`.github/workflows/release.yml` runs `stellar-expert/soroban-build-workflow` on any `v*` tag.
+It compiles and optimises the contract, publishes a GitHub release with the artifacts and
+their SHA256 hashes, and sends the hash, repo and commit to StellarExpert — which then shows
+a link from the deployed contract to the exact commit it came from.
+
+To cut a verified release:
+
+```bash
+git tag v0.1.0 && git push origin v0.1.0
+```
+
+Do this **after** #15 deploys, so the verified hash is the one actually on chain.
