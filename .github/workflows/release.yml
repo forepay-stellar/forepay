@@ -1,0 +1,38 @@
+# Source verification for the advance contract (Forepay #8).
+#
+# What this buys: once a release runs, StellarExpert shows a link from the deployed
+# contract to the exact GitHub commit it was built from, so anyone can check that the
+# wasm on chain is the source in this repository. A contract nobody can check is a
+# contract people have to trust, which is the opposite of what Forepay is arguing.
+#
+# The workflow compiles and optimises the contract, publishes a GitHub release with
+# the build artifacts and their SHA256 hashes, and sends the hash, repo and commit to
+# StellarExpert. Triggered by pushing a tag:
+#
+#     git tag v0.1.0 && git push origin v0.1.0
+#
+# Note for #1: this is release-and-verify only, not the test CI. Those are separate
+# jobs on purpose — tests run on every push, verification runs on a tag.
+name: Release and verify
+
+on:
+  push:
+    tags:
+      - "v*"
+
+# Required by the reusable workflow to create a release and an attestation.
+permissions:
+  id-token: write
+  contents: write
+  attestations: write
+
+jobs:
+  advance-contract:
+    uses: stellar-expert/soroban-build-workflow/.github/workflows/release.yml@main
+    with:
+      release_name: ${{ github.ref_name }}
+      release_description: "Forepay advance contract — zkTLS-proven revenue sized into a USDC advance"
+      relative_path: '["sc/advance"]'
+      package: "forepay-advance"
+    secrets:
+      release_token: ${{ secrets.GITHUB_TOKEN }}
