@@ -1,0 +1,20 @@
+[package]
+name = "reclaim-claim"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Canonicalise a Reclaim claim into the 32 bytes its attestor signed (Forepay #3)"
+
+# no_std by default: this crate is destined for the advance contract's wasm.
+# `std` is enabled only by the test harness, to read the fixture and run keccak
+# on the host. Inside Soroban the hash comes from env.crypto().keccak256().
+[features]
+default = []
+std = []
+
+[dependencies]
+tiny-keccak = { version = "2.0", features = ["keccak"], default-features = false }
+
+[dev-dependencies]
+serde_json = "1"
+hex = "0.4"

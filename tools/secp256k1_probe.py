@@ -107,6 +107,50 @@ def address_of(priv: int) -> bytes:
     return keccak256(pub[0].to_bytes(32, "big") + pub[1].to_bytes(32, "big"))[12:]
 
 
+def decompress(x, odd):
+    """Lift an x-coordinate back to a curve point with the given y parity."""
+    y = pow((x * x * x + 7) % P, (P + 1) // 4, P)
+    if (y & 1) != odd:
+        y = P - y
+    return (x, y)
+
+
+def recover(digest: bytes, r: int, s: int, rec_id: int):
+    """Public key recovery: Q = r^-1 (sR - zG). Mirrors secp256k1_recover."""
+    z = int.from_bytes(digest, "big")
+    x = r + (rec_id >> 1) * N
+    R = decompress(x, rec_id & 1)
+    rinv = inv(r, N)
+    Q = add(mul((s * rinv) % N, R), mul((N - (z * rinv) % N) % N))
+    return Q
+
+
+def address_of_point(Q) -> bytes:
+    return keccak256(Q[0].to_bytes(32, "big") + Q[1].to_bytes(32, "big"))[12:]
+
+
+def canonical_stringify(o) -> str:
+    """JSON with object keys sorted, no whitespace — Reclaim's canonicalStringify."""
+    import json
+    return json.dumps(o, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def identifier_of(provider: str, parameters: str, context: str) -> str:
+    """keccak256(provider \n parameters \n canonical(context)), lowercase 0x hex."""
+    if context:
+        context = canonical_stringify(__import__("json").loads(context))
+    return "0x" + keccak256(f"{provider}\n{parameters}\n{context}".encode()).hex()
+
+
+def sign_data_for_claim(identifier: str, owner: str, timestamp_s: int, epoch: int) -> str:
+    return f"{identifier}\n{owner.lower()}\n{timestamp_s}\n{epoch}"
+
+
+def eip191_digest(sign_data: str) -> bytes:
+    msg = f"\x19Ethereum Signed Message:\n{len(sign_data)}{sign_data}"
+    return keccak256(msg.encode())
+
+
 if __name__ == "__main__":
     # Self-test against published vectors, then print the issue #2 probe values.
     assert keccak256(b"").hex() == "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
