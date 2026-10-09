@@ -1,0 +1,40 @@
+{
+  "_comment": [
+    "A REAL Reclaim proof carrying a signature from the production attestor",
+    "0x244897572368eadf65bfbc5aec98d8e5443a9072 — the same witness registered in the",
+    "epoch of the deployed Stellar verifier CA3EMXR6JOOTNP44T3OAJFMMMGKRRETDJKBLZP2RU3SIY4SDFAH54DU5.",
+    "",
+    "Source: github.com/thisisashugupta/text-swap-bot/sampleProof.ts, a published sample.",
+    "It is a Twitter/socialdata claim, not AdSense — the payload does not matter here.",
+    "What matters is that the attestor signature is genuine, which makes this the only",
+    "fixture that can prove our canonicalisation byte for byte without an AdSense session.",
+    "",
+    "Forepay issue #3. Do not edit: every expected value below was reproduced from these",
+    "inputs, and a change here silently turns the cross-language test into a tautology."
+  ],
+  "claimInfo": {
+    "provider": "http",
+    "parameters": "{\"body\":\"\",\"headers\":{\"Accept\":\"application/json\",\"User-Agent\":\"reclaim/0.0.1\"},\"method\":\"GET\",\"responseMatches\":[{\"type\":\"regex\",\"value\":\"\\\"full_text\\\"s*:s*\\\"(?<full_text>(?:\\\\\\\\.|[^\\\"\\\\\\\\])*)\\\"\"},{\"type\":\"regex\",\"value\":\"\\\"full_text\\\"\\\\s*:\\\\s*\\\"@locker_money\\\\s+buy token:\\\\s*(?<token>0x[a-fA-F0-9]{40}),\\\\s*amount:\\\\s*(?<amount>\\\\d+)\\\"\"}],\"responseRedactions\":[],\"url\":\"https://api.socialdata.tools/twitter/tweets/1918222084175524136\"}",
+    "context": "{\"extractedParameters\":{\"amount\":\"1\",\"full_text\":\"@locker_money buy token: 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238, amount: 1\",\"token\":\"0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238\"},\"providerHash\":\"0x569b93233185c054ed9fda68b5aef8fda180b6d291180450bf757b11bb52f7df\"}"
+  },
+  "signedClaim": {
+    "claim": {
+      "identifier": "0xfa74afb4038309ce2790eba9bb4514ac2d4e14caa777204aa40afe0a7df52d1e",
+      "owner": "0xaca8fa92b6d68d43d56b5aa07e435e7483c32ad1",
+      "timestampS": 1746175158,
+      "epoch": 1
+    },
+    "signatures": [
+      "0xdd880cc57159987dd4fe53ec9f718f613a0e02d7bc0c215ef9b54019a71910957e5330a8c8022cd11ddad010607585d6361d05e044c1edd035d3b78a99769a1c1c"
+    ]
+  },
+  "expected": {
+    "identifier": "0xfa74afb4038309ce2790eba9bb4514ac2d4e14caa777204aa40afe0a7df52d1e",
+    "signData": "0xfa74afb4038309ce2790eba9bb4514ac2d4e14caa777204aa40afe0a7df52d1e\n0xaca8fa92b6d68d43d56b5aa07e435e7483c32ad1\n1746175158\n1",
+    "messageDigest": "6a66e12464b6c9a577ff50b6750bcf6d1c038c7638c8230e7f5dee3255b41827",
+    "signature64": "dd880cc57159987dd4fe53ec9f718f613a0e02d7bc0c215ef9b54019a71910957e5330a8c8022cd11ddad010607585d6361d05e044c1edd035d3b78a99769a1c",
+    "recoveryId": 1,
+    "recoveredSigner": "244897572368eadf65bfbc5aec98d8e5443a9072",
+    "acceptedOnChainTx": "96a744d71ecada206fd46359fe7e895dd31919c9079f1c731d6b4ccdc8a41cda"
+  }
+}

@@ -1,2 +1,5 @@
 .impeccable/
 .DS_Store
+node_modules/
+target/
+__pycache__/
