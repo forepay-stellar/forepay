@@ -70,9 +70,23 @@ The success path could not be shown on Reclaim's instance — that would need th
 | `add_epoch` (test witness `19e7e376…`) | [`500dc3e3…`](https://stellar.expert/explorer/testnet/tx/500dc3e3954c0b9be76d7d1fbbbe92132ead5109936bb1fe1a4d893a7bbac690) |
 
 The probe witness `19e7e376e7c213b7e7e7e46cc70a5dd086daff2a` derives from the throwaway constant
-`0x1111…1111`, recorded in `tools/secp256k1_probe.py` so the probe is reproducible. **It holds no
-funds and has no authority outside our own probe instance.** It is not a Forepay key and must never
-be used as one.
+`0x1111…1111`, recorded in `tools/secp256k1_probe.py` so the probe is reproducible. It holds no
+funds — it is an Ethereum-style address that exists only as a witness entry — and it is not a
+Forepay key.
+
+> ### ⚠️ The probe instance accepts forged proofs, on purpose
+>
+> Its witness key is **published in this repository**. Anyone who reads `tools/secp256k1_probe.py`
+> can sign anything the probe instance will accept. That is exactly what makes it useful as a test
+> harness, and exactly what makes it dangerous if it is ever mistaken for a real dependency.
+>
+> **Never point the Forepay advance contract at `CASAIKW7…WZURP` as it stands.** Doing so would let
+> any reader of this repo mint themselves an advance against a proof they forged in ten lines of
+> Python.
+>
+> If the fallback below is ever needed, the **first** step is `add_epoch` replacing the test witness
+> with the production attestor `244897572368eadf65bfbc5aec98d8e5443a9072`. Only after that is the
+> instance safe to depend on. Record that transaction here when it happens.
 
 ---
 
@@ -103,8 +117,12 @@ probe instance above is the mitigation — identical code, our ownership, our TT
 
 **Recommendation for #5 and beyond:** verify real AdSense proofs against **Reclaim's** instance,
 since that is the deployment whose witness is the production attestor and that is what makes the
-demonstration meaningful. Keep the probe instance as the fallback: if Reclaim's entries ever lapse
-mid-grant, re-register the production attestor address on ours and keep moving.
+demonstration meaningful.
+
+The probe instance is the fallback, **but only after rotating its witness** — see the warning above.
+If Reclaim's entries ever lapse mid-grant: call `add_epoch` on ours with
+`244897572368eadf65bfbc5aec98d8e5443a9072`, confirm the test witness is gone, record the
+transaction here, and only then repoint anything at it.
 
 ---
 

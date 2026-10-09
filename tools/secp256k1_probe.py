@@ -115,8 +115,13 @@ if __name__ == "__main__":
         == "9d8a62f656a8d1615c1294fd71e9cfb3e4855a4f"
     print("self-test OK (keccak256 + address derivation match published vectors)")
 
-    # Throwaway probe witness. No funds, no authority outside our own probe
-    # instance, never a Forepay key. Committed so the probe is reproducible.
+    # Throwaway probe witness, committed so the probe is reproducible.
+    #
+    # WARNING: because this key is public, the probe verifier instance
+    # (CASAIKW7EOWC3RUBS34IAW6ETXBXI4KOQNMXO66DK7LRBN5MXAWWZURP) will accept a
+    # signature from anyone who reads this file. That is fine for a test
+    # harness and fatal if the advance contract is ever pointed at it. Rotate
+    # the witness to the production attestor first — see docs/deployments.md.
     PROBE_KEY = 0x1111111111111111111111111111111111111111111111111111111111111111
     digest = hashlib.sha256(b"forepay issue #2 probe").digest()
     r, s, rec = sign(digest, PROBE_KEY)
