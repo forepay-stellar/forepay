@@ -113,12 +113,34 @@ async function resolvePublisherId(configured: string, accessToken: string): Prom
   );
 }
 
+/**
+ * Refuse an account that cannot report. AdSense answers reports:generate with a bare
+ * 403 "The caller does not have permission" for an account that is CLOSED or was never
+ * approved, which reads like a token problem and is not one. accounts.get says why.
+ */
+async function assertAccountReady(publisherId: string, accessToken: string): Promise<void> {
+  const acct = (await googleGet(`${ADSENSE_API}/accounts/${publisherId}`, accessToken)) as {
+    state?: string;
+    pendingTasks?: string[];
+  };
+  const pending = acct.pendingTasks?.length ? ` Pending tasks: ${acct.pendingTasks.join(", ")}.` : "";
+  if (acct.state !== "READY") {
+    die(
+      `AdSense account ${publisherId} is ${acct.state ?? "in an unknown state"}, not READY.${pending}\n` +
+        "Google does not serve reports for it, so no proof can be made from it. Use an approved AdSense account " +
+        "(state READY) with earnings in the window.",
+    );
+  }
+  console.log(`  account state: READY${pending}`);
+}
+
 async function main() {
   const env = loadEnv();
   secretToScrub = env.accessToken;
 
   console.log("Forepay #4: AdSense revenue proof\n");
   const publisherId = await resolvePublisherId(env.publisherId, env.accessToken);
+  await assertAccountReady(publisherId, env.accessToken);
   const window = trailingMonths(new Date(), env.months);
   const fmt = (d: { year: number; month: number; day: number }) =>
     `${d.year}-${String(d.month).padStart(2, "0")}-${String(d.day).padStart(2, "0")}`;
