@@ -7,7 +7,7 @@
 //! testnet verifier in transaction `96a744d7…`.
 
 extern crate std;
-use std::{format, string::ToString};
+use std::format;
 
 use super::*;
 
@@ -93,7 +93,10 @@ fn context_in_the_fixture_is_canonical() {
 fn to_hex_prefixed_is_lowercase_and_prefixed() {
     let mut out = [0u8; 66];
     to_hex_prefixed(&[0xabu8; 32], &mut out);
-    assert_eq!(core::str::from_utf8(&out).unwrap(), format!("0x{}", "ab".repeat(32)));
+    assert_eq!(
+        core::str::from_utf8(&out).unwrap(),
+        format!("0x{}", "ab".repeat(32))
+    );
 }
 
 #[test]
@@ -125,7 +128,10 @@ fn a_one_byte_change_anywhere_changes_the_identifier() {
         info["parameters"].as_str().unwrap().as_bytes(),
         tampered_context.as_bytes(),
     );
-    assert_ne!(base, tampered, "the revenue figure must be bound to the identifier");
+    assert_ne!(
+        base, tampered,
+        "the revenue figure must be bound to the identifier"
+    );
 }
 
 #[test]
@@ -137,18 +143,31 @@ fn the_separator_cannot_be_smuggled_across_fields() {
     // They DO collide: the concatenation is ambiguous. Recorded rather than hidden —
     // it is Reclaim's format, not ours, and the mitigation is that `provider` and
     // `parameters` are pinned by the contract rather than taken from the caller.
-    assert_eq!(a, b, "documented ambiguity in Reclaim's concatenation — see #6");
+    assert_eq!(
+        a, b,
+        "documented ambiguity in Reclaim's concatenation — see #6"
+    );
 }
 
 #[test]
 fn canonical_context_can_be_rebuilt_instead_of_parsed() {
     let ctx = br#"{"extractedParameters":{"revenue":"1234.56"},"providerHash":"0xabc"}"#;
-    assert!(canonical_context_matches(ctx, b"revenue", b"1234.56", b"0xabc"));
+    assert!(canonical_context_matches(
+        ctx, b"revenue", b"1234.56", b"0xabc"
+    ));
     // Any difference at all is a refusal.
-    assert!(!canonical_context_matches(ctx, b"revenue", b"1234.57", b"0xabc"));
-    assert!(!canonical_context_matches(ctx, b"revenu", b"1234.56", b"0xabc"));
-    assert!(!canonical_context_matches(ctx, b"revenue", b"1234.56", b"0xabd"));
+    assert!(!canonical_context_matches(
+        ctx, b"revenue", b"1234.57", b"0xabc"
+    ));
+    assert!(!canonical_context_matches(
+        ctx, b"revenu", b"1234.56", b"0xabc"
+    ));
+    assert!(!canonical_context_matches(
+        ctx, b"revenue", b"1234.56", b"0xabd"
+    ));
     // Trailing junk must not be accepted.
     let ctx_extra = br#"{"extractedParameters":{"revenue":"1234.56"},"providerHash":"0xabc"} "#;
-    assert!(!canonical_context_matches(ctx_extra, b"revenue", b"1234.56", b"0xabc"));
+    assert!(!canonical_context_matches(
+        ctx_extra, b"revenue", b"1234.56", b"0xabc"
+    ));
 }

@@ -1,8 +1,8 @@
 [package]
 name = "reclaim-claim"
 version = "0.1.0"
-edition = "2021"
-publish = false
+edition.workspace = true
+publish.workspace = true
 description = "Canonicalise a Reclaim claim into the 32 bytes its attestor signed (Forepay #3)"
 
 # no_std by default: this crate is destined for the advance contract's wasm.

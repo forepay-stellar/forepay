@@ -155,13 +155,27 @@ pub fn canonical_context_matches(
         cursor += part.len();
         true
     };
-    if !eat(br#"{"extractedParameters":{""#) { return false; }
-    if !eat(key) { return false; }
-    if !eat(br#"":""#) { return false; }
-    if !eat(value) { return false; }
-    if !eat(br#""},"providerHash":""#) { return false; }
-    if !eat(provider_hash) { return false; }
-    if !eat(br#""}"#) { return false; }
+    if !eat(br#"{"extractedParameters":{""#) {
+        return false;
+    }
+    if !eat(key) {
+        return false;
+    }
+    if !eat(br#"":""#) {
+        return false;
+    }
+    if !eat(value) {
+        return false;
+    }
+    if !eat(br#""},"providerHash":""#) {
+        return false;
+    }
+    if !eat(provider_hash) {
+        return false;
+    }
+    if !eat(br#""}"#) {
+        return false;
+    }
     cursor == context.len()
 }
 
