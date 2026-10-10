@@ -74,13 +74,22 @@ Real credit underwriting and default recovery, licensing and KYC, mainnet funds,
 
 ## Getting started
 
-Each package lives in its own folder. Setup instructions will be added per package as development progresses.
+Two workspaces: **pnpm** at the root for the TypeScript packages, **Cargo** in `sc/` for the
+contracts. Pinned versions and the reasoning are in [`CLAUDE.md`](CLAUDE.md).
+
+Prerequisites: Node ≥ 22, pnpm 12 (`corepack enable` or `npm i -g pnpm@12.3.4`), rustup
+(the toolchain in `sc/rust-toolchain.toml` installs itself), stellar-cli 28.1.0.
 
 ```bash
-# creator app
-cd fe
+# TypeScript: install once at the root, then run any package
 pnpm install
-pnpm dev
+pnpm --filter fe dev          # creator app
+pnpm check                    # lint + typecheck + test, every package
+
+# Contracts
+cd sc
+cargo test --workspace --all-features
+stellar contract build --package forepay-advance
 ```
 
 ## Links

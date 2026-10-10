@@ -29,7 +29,8 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contracterror, contractevent, contractimpl, contracttype, Address, BytesN, Env,
+    contract, contracterror, contractevent, contractimpl, contracttype, Address, BytesN,
+    ContractExecutable, Env,
 };
 
 /// Storage keys. Append-only: a new variant may be added, none may ever be removed,
@@ -226,7 +227,7 @@ impl AdvanceContract {
         // entry left behind would let the next admin execute a stale proposal.
         env.storage().instance().remove(&DataKey::PendingUpgrade);
         env.deployer()
-            .update_current_contract_wasm(pending.wasm_hash.clone());
+            .update_current_contract(ContractExecutable::Wasm(pending.wasm_hash.clone()));
 
         UpgradeExecuted {
             admin,
@@ -263,7 +264,9 @@ impl AdvanceContract {
         let admin = Self::require_admin(&env)?;
         Self::require_upgradeable(&env)?;
         env.storage().instance().remove(&DataKey::PendingUpgrade);
-        env.storage().instance().set(&DataKey::UpgradeRenounced, &true);
+        env.storage()
+            .instance()
+            .set(&DataKey::UpgradeRenounced, &true);
         Self::bump(&env);
 
         UpgradeabilityRenounced { admin }.publish(&env);
