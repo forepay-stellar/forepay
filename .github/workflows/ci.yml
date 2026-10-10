@@ -1,0 +1,138 @@
+# Test CI for every push and pull request (Forepay #1).
+#
+# Three jobs, one per language, so a red run says which side broke:
+#
+#   contracts   Rust workspace in sc/: fmt, clippy -D warnings, tests, and the
+#               same `stellar contract build` the release workflow runs.
+#   typescript  pnpm workspace (be, fe, landing-page): lint, typecheck, test, build.
+#   tools       tools/secp256k1_probe.py self-test.
+#
+# The Rust and TypeScript claim-digest tests read the SAME fixture
+# (tools/fixtures/real-reclaim-proof.json). That is what stops the contract and
+# the relay drifting apart, and it only holds while BOTH jobs run here.
+#
+# Every third-party action is pinned to a commit SHA, with its tag in a comment:
+# a moved tag cannot change what runs. Bump them together, on purpose.
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  contracts:
+    name: Contracts (Rust)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: sc
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Installs the exact toolchain, components and wasm target from
+      # sc/rust-toolchain.toml, so CI cannot drift from what developers run.
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install
+          rustup show active-toolchain
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: sc
+
+      # Same CLI version the release workflow builds with, so a green build here
+      # is the build StellarExpert will verify.
+      - uses: stellar/stellar-cli@c0f4d0da891bbf214c08b8c5035ae6db80e9a3bd # v28.1.0
+
+      - name: Format
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+
+      - name: Test
+        run: cargo test --workspace --all-features --locked
+
+      # Soroban tests rewrite test_snapshots/ when contract behaviour changes.
+      # A change nobody committed is a change nobody reviewed.
+      - name: Test snapshots are committed
+        run: git diff --exit-code -- .
+
+      # reclaim-claim is linked into the contract, so it must stay no_std. Its
+      # tests run with std on the host, which would hide a std-only regression.
+      - name: reclaim-claim builds for wasm (no_std)
+        run: cargo check -p reclaim-claim --lib --target wasm32v1-none --locked
+
+      - name: Build contract wasm
+        run: |
+          stellar contract build --package forepay-advance --locked
+          wasm=target/wasm32v1-none/release/forepay_advance.wasm
+          {
+            echo "### forepay-advance"
+            echo
+            echo "| size (bytes) | sha256 |"
+            echo "| --- | --- |"
+            echo "| $(stat -c %s "$wasm") | \`$(sha256sum "$wasm" | cut -d' ' -f1)\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  typescript:
+    name: TypeScript (be, fe, landing-page)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Version comes from "packageManager" in the root package.json.
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+  tools:
+    name: Tools (Python)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Stdlib only. The script asserts against published keccak and address
+      # vectors before printing anything, so a broken primitive exits non-zero.
+      - name: secp256k1 probe self-test
+        run: python3 -I tools/secp256k1_probe.py
