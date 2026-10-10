@@ -126,6 +126,25 @@ transaction here, and only then repoint anything at it.
 
 ---
 
+## The feasibility gate (#5)
+
+**Pending:** the gate needs a real AdSense proof from `pnpm -C be prove:adsense` (#4). When it
+exists, `pnpm -C be verify:proof be/proofs/<file>.json --submit` prints the rows that go here.
+
+### Pipeline check, on the #3 fixture (not gate evidence)
+
+`verify:proof` was run end to end on 2026-10-10 against Reclaim's own verifier, with the real
+production-attestor fixture from #3 (a Twitter/socialdata claim, **not AdSense**) and a
+throwaway testnet fee account. It proves the submit path works, nothing about AdSense.
+
+| Step | Result |
+| --- | --- |
+| `verify_proof` on `CA3EMXR6…H54DU5`, genuine digest | **Ok**: [`b1553421…`](https://stellar.expert/explorer/testnet/tx/b1553421bae188c3713d346c8c6713b8465f1f41ce38b7836e2b84e6ed5ba7a4) |
+| Same digest, one byte flipped (simulated) | `Error(Contract, #5) SignatureMismatch` |
+| Signer | `0x244897572368eadf65bfbc5aec98d8e5443a9072` (production attestor) |
+
+---
+
 ## Toolchain note
 
 `stellar` CLI **27.0.0** against testnet on **protocol 29** (`getVersionInfo`, stellar-core 29.0.0).

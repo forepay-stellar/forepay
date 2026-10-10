@@ -25,6 +25,30 @@ import {
   type RevenueWindow,
 } from "./request.js";
 
+const ADSENSE_URL = /^https:\/\/adsense\.googleapis\.com\/v2\/accounts\/(pub-\d{16})\/reports:generate\?/;
+
+/**
+ * Publisher id, window and borrower as written in the claim, or null if the URL is
+ * not an AdSense report. Auditing against these re-checks the claim's shape (the URL
+ * must rebuild byte for byte from them) without trusting it to be the right account:
+ * which account and borrower are acceptable is the caller's decision.
+ */
+export function expectationsFromClaim(proof: RevenueProof) {
+  const url = String((JSON.parse(proof.claimData.parameters) as { url?: string }).url ?? "");
+  const m = ADSENSE_URL.exec(url);
+  if (!m) return null;
+  const q = new URL(url).searchParams;
+  const date = (p: string) => ({
+    year: Number(q.get(`${p}.year`)),
+    month: Number(q.get(`${p}.month`)),
+    day: Number(q.get(`${p}.day`)),
+  });
+  const window: RevenueWindow = { start: date("startDate"), end: date("endDate") };
+  const context = JSON.parse(proof.claimData.context) as { contextAddress?: string };
+  return { publisherId: m[1], window, stellarAddress: String(context.contextAddress ?? "") };
+}
+
+
 /**
  * Reclaim's production attestor: the one witness in the epoch of the deployed testnet
  * verifier `CA3EMXR6…H54DU5` (see docs/deployments.md, issue #2).
