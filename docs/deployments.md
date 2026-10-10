@@ -5,6 +5,40 @@ Testnet only — the Instawards scope excludes mainnet funds.
 
 ---
 
+## Machine-readable record
+
+The API (`be/src/network.ts`) runs against exactly these. A test fails the build if that file
+and this block differ, so update both in the same commit. `advance` stays `null` until #15
+deploys it.
+
+<!-- forepay:deployments -->
+```json
+{
+  "network": "testnet",
+  "networkPassphrase": "Test SDF Network ; September 2015",
+  "rpcUrl": "https://soroban-testnet.stellar.org",
+  "contracts": {
+    "reclaimVerifier": "CA3EMXR6JOOTNP44T3OAJFMMMGKRRETDJKBLZP2RU3SIY4SDFAH54DU5",
+    "usdcSac": "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA",
+    "advance": null
+  }
+}
+```
+
+---
+
+## USDC on testnet
+
+Checked **2026-10-10** by simulating the token interface on the contract (testnet reports protocol 29):
+
+| Call | Result |
+| --- | --- |
+| `name()` on `CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA` | `USDC:GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5` |
+| `symbol()` | `USDC` |
+| `decimals()` | **7**: one USDC is 10,000,000 base units. Sizing (#11) and disbursement (#12) must use this, not 6 |
+
+A SAC transfer to a `G…` account fails without a USDC trustline (#12, #19).
+
 ## The Reclaim verifier (issue #2)
 
 Checked **2026-10-09** against live testnet. Everything below was invoked, not read from a README.
