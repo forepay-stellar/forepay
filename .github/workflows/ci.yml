@@ -57,8 +57,12 @@ jobs:
           workspaces: sc
 
       # Same CLI version the release workflow builds with, so a green build here
-      # is the build StellarExpert will verify.
+      # is the build StellarExpert will verify. `version` is required when the
+      # action is pinned by SHA: without it the action derives the download URL
+      # from its own ref, which is then the SHA, and 404s.
       - uses: stellar/stellar-cli@c0f4d0da891bbf214c08b8c5035ae6db80e9a3bd # v28.1.0
+        with:
+          version: "28.1.0"
 
       - name: Format
         run: cargo fmt --all --check
