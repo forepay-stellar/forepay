@@ -13,3 +13,6 @@ __pycache__/
 # Build output
 *.tsbuildinfo
 .next/
+
+# Proofs produced locally (#4). Committed only deliberately, as evidence, after audit.
+be/proofs/
