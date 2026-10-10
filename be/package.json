@@ -7,7 +7,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test \"src/**/*.test.ts\"",
-    "prove:adsense": "tsx src/cli/prove-adsense.ts"
+    "prove:adsense": "tsx src/cli/prove-adsense.ts",
+    "verify:proof": "tsx src/cli/verify-proof.ts"
   },
   "dependencies": {
     "@noble/curves": "^1.6.0",
