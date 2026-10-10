@@ -20,13 +20,14 @@ import {
 } from "@stellar/stellar-sdk";
 
 import { PRODUCTION_ATTESTOR, recoverSigner } from "../adsense/audit.js";
+import { RECORDED } from "../network.js";
 import { prepareVerification, type ClaimInfo, type SignedClaimData } from "./claim-digest.js";
 
 export const TESTNET = {
-  rpcUrl: "https://soroban-testnet.stellar.org",
-  networkPassphrase: "Test SDF Network ; September 2015",
+  rpcUrl: RECORDED.rpcUrl,
+  networkPassphrase: RECORDED.networkPassphrase,
   /** Reclaim's own deployment, whose epoch holds the production attestor (#2). */
-  verifier: "CA3EMXR6JOOTNP44T3OAJFMMMGKRRETDJKBLZP2RU3SIY4SDFAH54DU5",
+  verifier: RECORDED.contracts.reclaimVerifier,
   /** The verifier's owner. Exists on testnet; usable as a source for simulation only. */
   verifierOwner: "GA5UT3POTPOV6TUQVSRC3ZICLV6LTB6N6TFWL2JXY3NIXXD4TTVSUMH7",
   explorer: "https://stellar.expert/explorer/testnet",
