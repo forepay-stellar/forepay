@@ -20,9 +20,8 @@
  * The access token is never printed. Error messages are scrubbed of it before they
  * reach the terminal.
  */
-import { mkdirSync, statSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { ReclaimClient } from "@reclaimprotocol/zk-fetch";
 
@@ -37,37 +36,17 @@ import {
   withAccessToken,
 } from "../adsense/request.js";
 import { prepareVerification } from "../reclaim/claim-digest.js";
+import { BE_ROOT, die, keepSecret, loadEnv, need, optional } from "./env.js";
 
-const BE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const ENV_FILE = join(BE_ROOT, ".env");
-
-let secretToScrub = "";
-const scrub = (s: string) => (secretToScrub ? s.split(secretToScrub).join("[redacted token]") : s);
-
-function die(msg: string): never {
-  console.error(`\n✖ ${scrub(msg)}`);
-  process.exit(1);
-}
-
-function loadEnv() {
-  let mode: number;
-  try {
-    mode = statSync(ENV_FILE).mode;
-  } catch {
-    die(`no ${ENV_FILE}. Copy be/.env.example to be/.env, fill it in, chmod 600 it.`);
-  }
-  if ((mode & 0o077) !== 0) {
-    die(`${ENV_FILE} is readable by other users (mode ${(mode & 0o777).toString(8)}). Run: chmod 600 be/.env`);
-  }
-  process.loadEnvFile(ENV_FILE);
-  const need = (k: string) => process.env[k]?.trim() || die(`${k} is not set in be/.env`);
+function readConfig() {
+  loadEnv(true);
   return {
     appId: need("RECLAIM_APP_ID"),
-    appSecret: need("RECLAIM_APP_SECRET"),
-    accessToken: need("GOOGLE_ACCESS_TOKEN"),
+    appSecret: keepSecret(need("RECLAIM_APP_SECRET")),
+    accessToken: keepSecret(need("GOOGLE_ACCESS_TOKEN")),
     stellarAddress: need("STELLAR_ADDRESS"),
-    publisherId: process.env.ADSENSE_PUBLISHER_ID?.trim() || "",
-    months: Number(process.env.TRAILING_MONTHS || DEFAULT_TRAILING_MONTHS),
+    publisherId: optional("ADSENSE_PUBLISHER_ID"),
+    months: Number(optional("TRAILING_MONTHS") || DEFAULT_TRAILING_MONTHS),
   };
 }
 
@@ -114,8 +93,7 @@ async function resolvePublisherId(configured: string, accessToken: string): Prom
 }
 
 async function main() {
-  const env = loadEnv();
-  secretToScrub = env.accessToken;
+  const env = readConfig();
 
   console.log("Forepay #4: AdSense revenue proof\n");
   const publisherId = await resolvePublisherId(env.publisherId, env.accessToken);
