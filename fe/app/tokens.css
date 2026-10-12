@@ -1,0 +1,146 @@
+/*
+ * Forepay design tokens (#38).
+ *
+ * Source of truth is the "Design Tokens" page in Figma; every semantic
+ * variable there shows the CSS name it maps to here. Change both together.
+ *
+ * Use the semantic utilities in components (bg-surface, text-fg-muted,
+ * rounded-card, shadow-card, bg-brand-gradient). The --fp-* primitives exist
+ * so a dark theme can later re-point the semantic layer without touching
+ * components; do not reference them directly.
+ */
+
+/* Primitives: raw palette, no utilities generated. */
+:root {
+  --fp-violet-50: #f4eefb;
+  --fp-violet-100: #e4d7fd;
+  --fp-violet-600: #7c3aed;
+  --fp-violet-800: #4b1d95;
+  --fp-fuchsia-600: #c026d3;
+  --fp-pink-400: #f472b6;
+
+  --fp-ink-950: #141018;
+  --fp-ink-600: #6e6875;
+  --fp-ink-400: #a39daa;
+  --fp-ink-200: #e6ddea;
+  --fp-ink-150: #ede6f0;
+  --fp-ink-100: #f1ecf3;
+  --fp-ink-50: #f8f5fa;
+  --fp-canvas: #fcf7fc;
+  --fp-white: #ffffff;
+
+  --fp-emerald-700: #047857;
+  --fp-emerald-600: #059669;
+  --fp-emerald-100: #d1fae5;
+  --fp-mint-300: #6ee7b7;
+
+  --fp-rose-600: #e11d48;
+  --fp-rose-200: #fecdd3;
+  --fp-rose-100: #ffe4e6;
+}
+
+/* Semantic colours: these generate bg-*, text-*, border-*, fill-* utilities. */
+@theme inline {
+  --color-canvas: var(--fp-canvas);
+  --color-surface: var(--fp-white);
+  --color-subtle: var(--fp-ink-50);
+  --color-brand-subtle: var(--fp-violet-50);
+
+  --color-fg: var(--fp-ink-950);
+  --color-fg-muted: var(--fp-ink-600);
+  --color-fg-subtle: var(--fp-ink-400);
+  --color-fg-on-brand: var(--fp-white);
+  --color-brand-strong: var(--fp-violet-800);
+
+  --color-line: var(--fp-ink-150);
+  --color-line-strong: var(--fp-ink-200);
+  --color-divider: var(--fp-ink-100);
+
+  --color-brand: var(--fp-violet-600);
+  /* Primary buttons are black, not brand: the gradient is the only loud colour. */
+  --color-action: var(--fp-ink-950);
+  --color-icon: var(--fp-violet-600);
+  --color-icon-subtle: var(--fp-violet-100);
+
+  /* Emerald means money arrived. Never use it for a neutral action. */
+  --color-success: var(--fp-emerald-600);
+  --color-success-strong: var(--fp-emerald-700);
+  --color-success-subtle: var(--fp-emerald-100);
+  --color-danger: var(--fp-rose-600);
+  --color-danger-muted: var(--fp-rose-200);
+  --color-danger-subtle: var(--fp-rose-100);
+  --color-live: var(--fp-mint-300);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+@theme {
+  /* Radius: rounded-chip, rounded-icon, rounded-input, rounded-tile, rounded-card, rounded-hero. */
+  --radius-chip: 8px;
+  --radius-icon: 14px;
+  --radius-input: 18px;
+  --radius-tile: 22px;
+  --radius-card: 24px;
+  --radius-hero: 28px;
+
+  /* Type scale (Geist). text-display, text-page, text-amount, text-card-title, ... */
+  --text-display: 4rem;
+  --text-display--line-height: 1;
+  --text-display--letter-spacing: -0.03em;
+  --text-display--font-weight: 600;
+
+  --text-page: 2.5rem;
+  --text-page--line-height: 1.1;
+  --text-page--letter-spacing: -0.03em;
+  --text-page--font-weight: 600;
+
+  --text-amount: 2.25rem;
+  --text-amount--line-height: 1.1;
+  --text-amount--letter-spacing: -0.03em;
+  --text-amount--font-weight: 600;
+
+  --text-card-title: 1.125rem;
+  --text-card-title--line-height: 1.3;
+  --text-card-title--letter-spacing: -0.01em;
+  --text-card-title--font-weight: 600;
+
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.5;
+
+  --text-body-sm: 0.875rem;
+  --text-body-sm--line-height: 1.5;
+
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1.4;
+
+  --text-label: 0.75rem;
+  --text-label--line-height: 1.3;
+  --text-label--font-weight: 500;
+
+  /* Status chips: pair with `uppercase`. */
+  --text-overline: 0.6875rem;
+  --text-overline--line-height: 1.3;
+  --text-overline--letter-spacing: 0.08em;
+  --text-overline--font-weight: 600;
+
+  /* Shadows. Black buttons stay flat; only surfaces and the gradient lift. */
+  --shadow-card: 0 8px 24px rgb(91 26 140 / 0.06);
+  --shadow-hero: 0 20px 48px rgb(162 28 175 / 0.35);
+  --shadow-nav: 0 10px 30px rgb(20 16 24 / 0.18);
+  --shadow-glow: 0 14px 32px rgb(162 28 175 / 0.4);
+}
+
+/* Brand gradient: hero card, and the primary button on hover. */
+@utility bg-brand-gradient {
+  background-image: linear-gradient(
+    135deg,
+    var(--fp-violet-600) 0%,
+    var(--fp-fuchsia-600) 55%,
+    var(--fp-pink-400) 100%
+  );
+}
+
+@utility bg-brand-gradient-pressed {
+  background-image: linear-gradient(135deg, #6d28d9 0%, #a21caf 55%, #db2777 100%);
+}
