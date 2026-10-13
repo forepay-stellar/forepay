@@ -148,17 +148,3 @@
   --shadow-nav: 0 10px 30px rgb(20 16 24 / 0.18);
   --shadow-glow: 0 14px 32px rgb(162 28 175 / 0.4);
 }
-
-/* Brand gradient: hero card, and the primary button on hover. */
-@utility bg-brand-gradient {
-  background-image: linear-gradient(
-    135deg,
-    var(--fp-violet-600) 0%,
-    var(--fp-fuchsia-600) 55%,
-    var(--fp-pink-400) 100%
-  );
-}
-
-@utility bg-brand-gradient-pressed {
-  background-image: linear-gradient(135deg, #6d28d9 0%, #a21caf 55%, #db2777 100%);
-}
