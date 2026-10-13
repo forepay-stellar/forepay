@@ -1,11 +1,13 @@
 /*
  * Forepay design tokens (#38).
  *
- * Source of truth is the "Design Tokens" page in Figma; every semantic
- * variable there shows the CSS name it maps to here. Change both together.
+ * Source of truth is the "Design Tokens" page in Figma, frame
+ * "Forepay · Design tokens · Warm" (Semantic collection, mode "Warm"); every
+ * semantic variable there shows the CSS name it maps to here. Change both
+ * together.
  *
  * Use the semantic utilities in components (bg-surface, text-fg-muted,
- * rounded-card, shadow-card, bg-brand-gradient). The --fp-* primitives exist
+ * rounded-card, bg-brand). The --fp-* primitives exist
  * so a dark theme can later re-point the semantic layer without touching
  * components; do not reference them directly.
  */
@@ -55,26 +57,28 @@
 
 /* Semantic colours: these generate bg-*, text-*, border-*, fill-* utilities. */
 @theme inline {
-  --color-canvas: var(--fp-canvas);
+  --color-canvas: var(--fp-apricot-100);
   --color-surface: var(--fp-white);
-  --color-subtle: var(--fp-ink-50);
-  --color-brand-subtle: var(--fp-violet-50);
+  --color-subtle: var(--fp-sand-50);
+  --color-brand-subtle: var(--fp-orange-50);
 
-  --color-fg: var(--fp-ink-950);
-  --color-fg-muted: var(--fp-ink-600);
-  --color-fg-subtle: var(--fp-ink-400);
+  --color-fg: var(--fp-chestnut-900);
+  --color-fg-muted: var(--fp-chestnut-600);
+  --color-fg-subtle: var(--fp-chestnut-400);
   --color-fg-on-brand: var(--fp-white);
-  --color-brand-strong: var(--fp-violet-800);
+  --color-brand-strong: var(--fp-chestnut-900);
 
-  --color-line: var(--fp-ink-150);
-  --color-line-strong: var(--fp-ink-200);
-  --color-divider: var(--fp-ink-100);
+  --color-line: var(--fp-sand-200);
+  --color-line-strong: var(--fp-sand-300);
+  --color-divider: var(--fp-sand-100);
 
-  --color-brand: var(--fp-violet-600);
-  /* Primary buttons are black, not brand: the gradient is the only loud colour. */
-  --color-action: var(--fp-ink-950);
-  --color-icon: var(--fp-violet-600);
-  --color-icon-subtle: var(--fp-violet-100);
+  --color-brand: var(--fp-orange-500);
+  /* Golden Yellow: a second accent, used sparingly (wallet avatar, hero mark). */
+  --color-accent: var(--fp-yellow-500);
+  /* Primary buttons are chestnut, not brand: orange stays for the hero and accents. */
+  --color-action: var(--fp-chestnut-900);
+  --color-icon: var(--fp-orange-500);
+  --color-icon-subtle: var(--fp-apricot-100);
 
   /* Emerald means money arrived. Never use it for a neutral action. */
   --color-success: var(--fp-emerald-600);
