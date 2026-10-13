@@ -37,6 +37,20 @@
   --fp-rose-600: #e11d48;
   --fp-rose-200: #fecdd3;
   --fp-rose-100: #ffe4e6;
+
+  /* Warm palette: Burnt Orange, Golden Yellow, Apricot Cream, Dark Chestnut. */
+  --fp-orange-500: #ec6426;
+  --fp-orange-50: #fff4ec;
+  --fp-yellow-500: #f8a91f;
+  --fp-apricot-100: #fde3cf;
+
+  --fp-chestnut-900: #632713;
+  --fp-chestnut-600: #8a5a45;
+  --fp-chestnut-400: #b48a74;
+  --fp-sand-300: #efd2bd;
+  --fp-sand-200: #f4dfcf;
+  --fp-sand-100: #f8ebe1;
+  --fp-sand-50: #fdf5ee;
 }
 
 /* Semantic colours: these generate bg-*, text-*, border-*, fill-* utilities. */
