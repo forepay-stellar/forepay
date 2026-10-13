@@ -142,9 +142,13 @@
   --text-overline--letter-spacing: 0.08em;
   --text-overline--font-weight: 600;
 
-  /* Shadows. Black buttons stay flat; only surfaces and the gradient lift. */
-  --shadow-card: 0 8px 24px rgb(91 26 140 / 0.06);
-  --shadow-hero: 0 20px 48px rgb(162 28 175 / 0.35);
-  --shadow-nav: 0 10px 30px rgb(20 16 24 / 0.18);
-  --shadow-glow: 0 14px 32px rgb(162 28 175 / 0.4);
+  /*
+   * Shadows. Not used by the warm design, which is flat: surfaces separate by
+   * contrast, white on Apricot Cream. Kept, tinted chestnut, until the audit;
+   * no orange glows.
+   */
+  --shadow-card: 0 8px 24px rgb(99 39 19 / 0.06);
+  --shadow-hero: 0 12px 32px rgb(99 39 19 / 0.12);
+  --shadow-nav: 0 10px 30px rgb(99 39 19 / 0.18);
+  --shadow-glow: 0 10px 24px rgb(99 39 19 / 0.16);
 }
