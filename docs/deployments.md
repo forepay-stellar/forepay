@@ -236,3 +236,58 @@ A nullifier in temporary storage would be deleted when its TTL lapsed, and the p
 spendable again — replay protection with a time limit is not replay protection. A persistent entry
 is archived instead, and the host makes a caller restore it before touching it, so a lapsed
 nullifier cannot silently read as absent.
+
+---
+
+## Upgradeability and verification, both exercised rather than claimed (issue #8 follow-up)
+
+Checked on **2026-10-14** against the development deployment
+`CA3YGQHU42EL2TAOG7NJ5DDT5FLKKQNDWIUFFU6KV7QJHCFGLAGYXLID`. An upgrade path that has never run
+on chain is a claim, not a capability, and a verification workflow that has never run is worse —
+it looks like evidence until the day it is needed.
+
+### Upgradeable — proven on chain
+
+| Call | Result |
+| --- | --- |
+| `is_upgradeable` | `true` |
+| `propose_upgrade` | Success, event `UpgradeProposed`, `executable_at` exactly **86,400 s** ahead — [`5f2f59dd…`](https://stellar.expert/explorer/testnet/tx/5f2f59dd10228060f20b2cae5188a4fde04b1a7e907261a1459f42c13970c8da) |
+| `execute_upgrade` immediately after | **`Error(Contract, #4)` `TimelockNotElapsed`** — refused at simulation |
+| `cancel_upgrade` | Success, event `UpgradeCancelled` |
+| `pending_upgrade` after cancel | `null` |
+
+The delay is real and enforced by the ledger's own clock, not only by a unit test with a mocked
+timestamp. The contract is left with no pending proposal.
+
+`execute_upgrade` after the full 24 hours is the one step not shown here, because it takes 24
+hours. It is covered by `an_upgrade_cannot_be_executed_before_the_timelock_elapses` and the other
+upgrade tests in `sc/advance/src/test.rs`.
+
+### Verified — the workflow was broken, and only running it showed that
+
+The first tagged release (`v0.1.0-dev.1`) **failed**:
+
+```
+An error occurred trying to start process '/usr/bin/bash' with working directory
+'/home/runner/work/forepay/forepay/<sha>/[sc/advance]'. No such file or directory
+```
+
+**The action's README is wrong for the current version.** It shows
+
+```yaml
+relative_path: '["src/my-awesome-contract"]'
+```
+
+but `stellar-expert/soroban-build-workflow`'s `release.yml` declares `relative_path` as
+`type: string` and uses it directly:
+
+```bash
+WORK_DIR="$WORK_DIR/${{ inputs.relative_path }}"
+```
+
+so the JSON-array form makes the runner look for a directory literally named `[sc/advance]`.
+The fix is a plain string, and the comment in `.github/workflows/release.yml` records it so nobody
+"corrects" it back to the README's form.
+
+Worth the dev tag: finding this in Week 4, with the evidence pack due and Deliverable 1 resting on
+a verified contract, would have been an expensive hour.
