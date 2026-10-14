@@ -352,8 +352,12 @@ impl AdvanceContract {
             return Err(Error::ClaimMismatch);
         }
         let n = parts.len();
-        env.storage().instance().set(&DataKey::ParamsTemplate, &parts);
-        env.storage().instance().set(&DataKey::ProviderHash, &provider_hash);
+        env.storage()
+            .instance()
+            .set(&DataKey::ParamsTemplate, &parts);
+        env.storage()
+            .instance()
+            .set(&DataKey::ProviderHash, &provider_hash);
         Self::bump(&env);
 
         ClaimTemplateSet { admin, parts: n }.publish(&env);
@@ -422,11 +426,9 @@ impl AdvanceContract {
         let start_b = claim::string_bytes(&env, &window_start).ok_or(Error::ClaimMismatch)?;
         let end_b = claim::string_bytes(&env, &window_end).ok_or(Error::ClaimMismatch)?;
 
-        let parameters = claim::rebuild_parameters(
-            &parts,
-            &[pub_id_b.clone(), start_b.clone(), end_b.clone()],
-        )
-        .ok_or(Error::ClaimMismatch)?;
+        let parameters =
+            claim::rebuild_parameters(&parts, &[pub_id_b.clone(), start_b.clone(), end_b.clone()])
+                .ok_or(Error::ClaimMismatch)?;
         let context = claim::rebuild_context(
             &env,
             &borrower_b,

@@ -109,7 +109,10 @@ pub fn identifier(env: &Env, parameters: &Bytes, context: &Bytes) -> [u8; 32] {
     buf.append(context);
 
     let mut out = [0u8; 32];
-    env.crypto().keccak256(&buf).to_bytes().copy_into_slice(&mut out);
+    env.crypto()
+        .keccak256(&buf)
+        .to_bytes()
+        .copy_into_slice(&mut out);
     out
 }
 

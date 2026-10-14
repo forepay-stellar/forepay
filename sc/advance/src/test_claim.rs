@@ -27,8 +27,7 @@ const PUB_ID: &str = "pub-1234567890123456";
 const WINDOW_START: &str = "2026-07-01";
 const WINDOW_END: &str = "2026-09-30";
 const REVENUE: &str = "1234.56";
-const PROVIDER_HASH: &str =
-    "0x569b93233185c054ed9fda68b5aef8fda180b6d291180450bf757b11bb52f7df";
+const PROVIDER_HASH: &str = "0x569b93233185c054ed9fda68b5aef8fda180b6d291180450bf757b11bb52f7df";
 const TIMESTAMP_S: u64 = 1_760_000_000;
 const EPOCH: u64 = 1;
 const SIGNATURE_HEX: &str = "41a1b3f92c2cee207d8fde5fd489da05f1d7b18f72af79c33d4cf17697509d7271b51ba7a3d9dd551f2e5aeba4aa1c8716d9945ae74b200c92da34739e80986d";
@@ -61,9 +60,9 @@ impl MockVerifier {
     ) -> Result<(), reclaim::ReclaimError> {
         // crypto_hazmat takes the digest as BytesN<32> rather than a Hash<32>, which is
         // what Reclaim's own contract uses — the digest is built by claim.rs, not here.
-        let pubkey = env
-            .crypto_hazmat()
-            .secp256k1_recover(&message_digest, &signature, recovery_id);
+        let pubkey =
+            env.crypto_hazmat()
+                .secp256k1_recover(&message_digest, &signature, recovery_id);
 
         // Ethereum-style address: keccak256 of the uncompressed key without its 0x04 tag,
         // last 20 bytes. The same derivation Reclaim's contract performs.
