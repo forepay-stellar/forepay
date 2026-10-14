@@ -37,7 +37,13 @@ jobs:
     with:
       release_name: ${{ github.ref_name }}
       release_description: "Forepay advance contract — zkTLS-proven revenue sized into a USDC advance"
-      relative_path: '["sc/advance"]'
+      # A plain string, NOT a JSON array. The action's README shows
+      # relative_path: '["src/my-awesome-contract"]', and that is wrong for the current
+      # version: release.yml declares it `type: string` and uses it directly as
+      # WORK_DIR="$WORK_DIR/${{ inputs.relative_path }}". Passing the array form makes the
+      # runner look for a directory literally named `[sc/advance]` and fail with
+      # "No such file or directory". Verified by running it — see docs/deployments.md.
+      relative_path: "sc/advance"
       package: "forepay-advance"
     secrets:
       release_token: ${{ secrets.GITHUB_TOKEN }}
