@@ -1,0 +1,140 @@
+/*
+ * Forepay design tokens (#38).
+ *
+ * Source of truth is the "Design Tokens" page in Figma, frame
+ * "Forepay · Design tokens · Warm" (Semantic collection, mode "Warm"); every
+ * semantic variable there shows the CSS name it maps to here. Change both
+ * together.
+ *
+ * Use the semantic utilities in components (bg-surface, text-fg-muted,
+ * rounded-card, bg-brand). The --fp-* primitives exist so a dark theme can
+ * later re-point the semantic layer without touching components; do not
+ * reference them directly.
+ */
+
+/* Primitives: raw palette, no utilities generated. */
+:root {
+  --fp-white: #ffffff;
+
+  /* Status. */
+  --fp-emerald-700: #047857;
+  --fp-emerald-600: #059669;
+  --fp-emerald-100: #d1fae5;
+  --fp-mint-300: #6ee7b7;
+
+  --fp-rose-600: #e11d48;
+  --fp-rose-200: #fecdd3;
+  --fp-rose-100: #ffe4e6;
+
+  /* Brand: Burnt Orange, Golden Yellow, Apricot Cream, Dark Chestnut. */
+  --fp-orange-500: #ec6426;
+  --fp-orange-50: #fff4ec;
+  --fp-yellow-500: #f8a91f;
+  --fp-apricot-100: #fde3cf;
+
+  --fp-chestnut-900: #632713;
+  --fp-chestnut-600: #8a5a45;
+  --fp-chestnut-400: #b48a74;
+  --fp-sand-300: #efd2bd;
+  --fp-sand-200: #f4dfcf;
+  --fp-sand-100: #f8ebe1;
+  --fp-sand-50: #fdf5ee;
+}
+
+/* Semantic colours: these generate bg-*, text-*, border-*, fill-* utilities. */
+@theme inline {
+  --color-canvas: var(--fp-apricot-100);
+  --color-surface: var(--fp-white);
+  --color-subtle: var(--fp-sand-50);
+  --color-brand-subtle: var(--fp-orange-50);
+
+  --color-fg: var(--fp-chestnut-900);
+  --color-fg-muted: var(--fp-chestnut-600);
+  --color-fg-subtle: var(--fp-chestnut-400);
+  --color-fg-on-brand: var(--fp-white);
+  --color-brand-strong: var(--fp-chestnut-900);
+
+  --color-line: var(--fp-sand-200);
+  --color-line-strong: var(--fp-sand-300);
+  --color-divider: var(--fp-sand-100);
+
+  --color-brand: var(--fp-orange-500);
+  /* Golden Yellow: a second accent, used sparingly (wallet avatar, hero mark). */
+  --color-accent: var(--fp-yellow-500);
+  /* Primary buttons are chestnut, not brand: orange stays for the hero and accents. */
+  --color-action: var(--fp-chestnut-900);
+  --color-icon: var(--fp-orange-500);
+  --color-icon-subtle: var(--fp-apricot-100);
+
+  /* Emerald means money arrived. Never use it for a neutral action. */
+  --color-success: var(--fp-emerald-600);
+  --color-success-strong: var(--fp-emerald-700);
+  --color-success-subtle: var(--fp-emerald-100);
+  --color-danger: var(--fp-rose-600);
+  --color-danger-muted: var(--fp-rose-200);
+  --color-danger-subtle: var(--fp-rose-100);
+  --color-live: var(--fp-mint-300);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+@theme {
+  /* Radius: rounded-chip, rounded-icon, rounded-input, rounded-tile, rounded-card, rounded-hero. */
+  --radius-chip: 8px;
+  --radius-icon: 14px;
+  --radius-input: 18px;
+  --radius-tile: 22px;
+  --radius-card: 24px;
+  --radius-hero: 28px;
+
+  /* Type scale (Geist). text-display, text-page, text-amount, text-card-title, ... */
+  --text-display: 4rem;
+  --text-display--line-height: 1;
+  --text-display--letter-spacing: -0.03em;
+  --text-display--font-weight: 600;
+
+  --text-page: 2.5rem;
+  --text-page--line-height: 1.1;
+  --text-page--letter-spacing: -0.03em;
+  --text-page--font-weight: 600;
+
+  --text-amount: 2.25rem;
+  --text-amount--line-height: 1.1;
+  --text-amount--letter-spacing: -0.03em;
+  --text-amount--font-weight: 600;
+
+  --text-card-title: 1.125rem;
+  --text-card-title--line-height: 1.3;
+  --text-card-title--letter-spacing: -0.01em;
+  --text-card-title--font-weight: 600;
+
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.5;
+
+  --text-body-sm: 0.875rem;
+  --text-body-sm--line-height: 1.5;
+
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1.4;
+
+  --text-label: 0.75rem;
+  --text-label--line-height: 1.3;
+  --text-label--font-weight: 500;
+
+  /* Status chips: pair with `uppercase`. */
+  --text-overline: 0.6875rem;
+  --text-overline--line-height: 1.3;
+  --text-overline--letter-spacing: 0.08em;
+  --text-overline--font-weight: 600;
+
+  /*
+   * Shadows. Not used by the warm design, which is flat: surfaces separate by
+   * contrast, white on Apricot Cream. Kept, tinted chestnut, until the audit;
+   * no orange glows.
+   */
+  --shadow-card: 0 8px 24px rgb(99 39 19 / 0.06);
+  --shadow-hero: 0 12px 32px rgb(99 39 19 / 0.12);
+  --shadow-nav: 0 10px 30px rgb(99 39 19 / 0.18);
+  --shadow-glow: 0 10px 24px rgb(99 39 19 / 0.16);
+}
