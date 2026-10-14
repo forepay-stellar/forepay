@@ -27,6 +27,16 @@
 //! * **Error codes are never renumbered.** Add to the reserved blocks; never reuse.
 
 #![no_std]
+// `verify_claim` and `verify_and_reserve` take ten arguments, and `#[contractimpl]`
+// expands them again into a generated client, so a per-function allow does not reach the
+// macro's output.
+//
+// A struct would be better — two adjacent `String` parameters that mean different things
+// (`window_start`, `window_end`) are easy to transpose. Not changing it today: the
+// interface was frozen hours ago in docs/interface.md §8 and @Lin1er and @AncungAulia were
+// told to build against it. #12 assembles `request_advance` and is the right moment to
+// bundle the claim fields into one type, as a single coordinated change rather than two.
+#![allow(clippy::too_many_arguments)]
 
 use soroban_sdk::{
     contract, contracterror, contractevent, contractimpl, contracttype, Address, Bytes, BytesN,
@@ -58,6 +68,8 @@ pub enum DataKey {
     ParamsTemplate,
     /// Reclaim's provider hash for the AdSense provider, as it appears in the context.
     ProviderHash,
+    /// One spent nullifier. **Persistent on purpose** — see `nullifier_of`.
+    Nullifier(BytesN<32>),
 }
 
 /// A claim whose signature has been checked against Reclaim's verifier.
@@ -141,6 +153,10 @@ pub enum Error {
     /// Reclaim's `verify_proof` refused the digest. Either the signature is not from a
     /// current witness, or one of the rebuilt fields differs from what was signed.
     VerifierRejected = 14,
+
+    // --- 20-29: nullifier registry (#10) ---
+    /// This publisher and window have already funded an advance.
+    NullifierSpent = 20,
 }
 
 /// How old an attestor signature may be, measured against ledger time (#6 §6).
@@ -182,6 +198,13 @@ pub struct ClaimTemplateSet {
     #[topic]
     pub admin: Address,
     pub parts: u32,
+}
+
+#[contractevent]
+pub struct NullifierSpent {
+    #[topic]
+    pub borrower: Address,
+    pub nullifier: BytesN<32>,
 }
 
 #[contract]
@@ -386,7 +409,6 @@ impl AdvanceContract {
     /// The borrower is taken from the `Address` argument and hashed into the context, so
     /// a proof bound to one account cannot be spent by another (#18): change the address
     /// and the digest changes with it.
-    #[allow(clippy::too_many_arguments)]
     pub fn verify_claim(
         env: Env,
         borrower: Address,
@@ -470,6 +492,94 @@ impl AdvanceContract {
             window_end,
             timestamp_s,
         })
+    }
+
+    // ------------------------------------------------ nullifiers (#10)
+
+    /// The nullifier for a publisher and window. Public so a front end can tell a
+    /// creator "this period has already been borrowed against" before they prove
+    /// anything, rather than after.
+    pub fn nullifier_for(
+        env: Env,
+        pub_id: String,
+        window_start: String,
+        window_end: String,
+    ) -> Result<BytesN<32>, Error> {
+        let pub_id = claim::string_bytes(&env, &pub_id).ok_or(Error::ClaimMismatch)?;
+        let start = claim::string_bytes(&env, &window_start).ok_or(Error::ClaimMismatch)?;
+        let end = claim::string_bytes(&env, &window_end).ok_or(Error::ClaimMismatch)?;
+        claim::nullifier_of(&env, &pub_id, &start, &end)
+            .try_into()
+            .map_err(|_| Error::ClaimMismatch)
+    }
+
+    /// Has this publisher and window already funded an advance?
+    pub fn is_spent(env: Env, nullifier: BytesN<32>) -> bool {
+        env.storage()
+            .persistent()
+            .has(&DataKey::Nullifier(nullifier))
+    }
+
+    /// Verify a claim and reserve its nullifier, atomically.
+    ///
+    /// **Transitional.** #11 adds sizing, #12 the disbursement and #13 the ledger, at
+    /// which point this becomes `request_advance` as frozen in `docs/interface.md` §8.
+    /// It is a separate name today because a function called `request_advance` that
+    /// reserves without paying would be a lie on a live network.
+    ///
+    /// The order is the security property: verify, **then** check the nullifier, **then**
+    /// write it — all before any money moves in #12. Check-then-act with a transfer in
+    /// between is the classic race, and the write has to be on the same invocation that
+    /// later pays, or two transactions in the same ledger could both pass the check.
+    pub fn verify_and_reserve(
+        env: Env,
+        borrower: Address,
+        revenue_usd: String,
+        pub_id: String,
+        window_start: String,
+        window_end: String,
+        timestamp_s: u64,
+        epoch: u64,
+        signature: BytesN<64>,
+        recovery_id: u32,
+    ) -> Result<VerifiedClaim, Error> {
+        let verified = Self::verify_claim(
+            env.clone(),
+            borrower,
+            revenue_usd,
+            pub_id,
+            window_start,
+            window_end,
+            timestamp_s,
+            epoch,
+            signature,
+            recovery_id,
+        )?;
+
+        let nullifier = Self::nullifier_for(
+            env.clone(),
+            verified.pub_id.clone(),
+            verified.window_start.clone(),
+            verified.window_end.clone(),
+        )?;
+        let key = DataKey::Nullifier(nullifier.clone());
+        if env.storage().persistent().has(&key) {
+            return Err(Error::NullifierSpent);
+        }
+        env.storage().persistent().set(&key, &verified.timestamp_s);
+        // Persistent entries are archived rather than deleted when their TTL lapses, so a
+        // lapsed nullifier cannot silently read as absent — the host makes the caller
+        // restore it first. Extending anyway, so nobody has to.
+        env.storage()
+            .persistent()
+            .extend_ttl(&key, 120 * 17_280, 180 * 17_280);
+
+        NullifierSpent {
+            borrower: verified.borrower.clone(),
+            nullifier,
+        }
+        .publish(&env);
+        Ok(verified)
     }
 
     // -------------------------------------------------------------- helpers
