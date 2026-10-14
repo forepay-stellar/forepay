@@ -8,6 +8,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test \"src/**/*.test.ts\"",
     "prove:adsense": "tsx src/cli/prove-adsense.ts",
+    "prove:smoke": "tsx src/cli/prove-smoke.ts",
+    "zk:files": "tsx src/cli/zk-files.ts",
     "verify:proof": "tsx src/cli/verify-proof.ts"
   },
   "dependencies": {

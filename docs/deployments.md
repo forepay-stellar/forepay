@@ -128,8 +128,49 @@ transaction here, and only then repoint anything at it.
 
 ## The feasibility gate (#5)
 
-**Pending:** the gate needs a real AdSense proof from `pnpm -C be prove:adsense` (#4). When it
-exists, `pnpm -C be verify:proof be/proofs/<file>.json --submit` prints the rows that go here.
+**Status (2026-10-14):** passed on feasibility, with one open risk on data access. This is the
+[PM's ruling on #5](https://github.com/forepay-stellar/forepay/issues/5).
+
+- What is proven: a fresh zkTLS proof, minted today, verifies on Reclaim's verifier on testnet.
+  See the live run below.
+- What is still open: no AdSense account in state `READY` is available yet. A `READY` account with
+  $0 earnings is accepted as gate evidence, with that limitation written beside it.
+
+When an AdSense proof exists, `pnpm -C be verify:proof be/proofs/<file>.json --submit` prints the
+rows that go here.
+
+### Live run: a fresh proof of a public endpoint (not gate evidence)
+
+On 2026-10-14 we ran the whole pipeline live: zkFetch through Reclaim's production attestor, then
+`verify_proof` on Reclaim's verifier. The fetched endpoint was `https://horizon.stellar.org/`, which
+is public and **not AdSense**.
+
+What it checked:
+- **Secret header redaction.** A random canary was sent as a secret header, in the place the
+  AdSense OAuth token goes. It does not appear in the proof.
+- **Binding to the borrower.** The context binds the claim to the borrower address.
+
+Commands: `pnpm -C be prove:smoke`, then `verify:proof … --submit`.
+
+| Step | Result |
+| --- | --- |
+| zkFetch, engine `snarkjs` | Proof in ~10 min on a laptop. Extracted `passphrase`, `ledger` = `64940833` |
+| Canary secret header | Absent from the proof |
+| Context binding | `GAVGFCYCIQ2OOPNNW4MLXBE6OPB72NBRJVEPNK5YJBJ4Z6GNTXH3EOFJ` |
+| `verify_proof` on `CA3EMXR6…H54DU5`, genuine digest | **Ok**: [`13bdff8b…`](https://stellar.expert/explorer/testnet/tx/13bdff8b4378fd5bdcd6d571c715f1c680a569a5284da2730d3764df9b8b958d) (ledger 5193392) |
+| Same digest, one byte flipped (simulated) | `Error(Contract, #5) SignatureMismatch` |
+| Signer | `0x244897572368eadf65bfbc5aec98d8e5443a9072` (production attestor) |
+| Claim identifier | `0x6b91a4273e61536607d1dcf6360f79baa8dc413f9c50b9459234f83163b35c77` |
+
+Two findings from this run, both now built into `be/src/reclaim/zk-files.ts`:
+
+1. **The `stwo` engine is refused.** zk-fetch 1.1.0 uses `stwo` by default, and the production
+   attestor refused every `stwo` proof with `invalid proof (ZK proof 0, startIdx 0, record 1)`. So
+   the engine is pinned to `snarkjs`.
+2. **`snarkjs` needs circuit files that npm does not ship** (~330 MB). Fetch them once with
+   `pnpm -C be zk:files`.
+
+About 10 minutes per proof matters for #17: a browser-side prover would be at least this slow.
 
 ### Pipeline check, on the #3 fixture (not gate evidence)
 

@@ -1,6 +1,7 @@
 /**
  * Produce one real AdSense revenue proof (#4), audit it, and save it for #5.
  *
+ *   pnpm -C be zk:files      once: the circuit files zkFetch proves with
  *   pnpm -C be prove:adsense
  *
  * Reads be/.env (see be/.env.example). The file must be chmod 600, per the working
@@ -36,10 +37,12 @@ import {
   withAccessToken,
 } from "../adsense/request.js";
 import { prepareVerification } from "../reclaim/claim-digest.js";
+import { ZK_ENGINE, hasZkFiles } from "../reclaim/zk-files.js";
 import { BE_ROOT, die, keepSecret, loadEnv, need, optional } from "./env.js";
 
 function readConfig() {
   loadEnv(true);
+  if (!hasZkFiles()) die("the ZK circuit files are missing. Run: pnpm -C be zk:files");
   return {
     appId: need("RECLAIM_APP_ID"),
     appSecret: keepSecret(need("RECLAIM_APP_SECRET")),
@@ -147,7 +150,7 @@ async function main() {
   const call = withAccessToken(request, env.accessToken);
   let proof: RevenueProof | undefined;
   try {
-    proof = (await client.zkFetch(call.url, call.options, call.secretOptions)) as RevenueProof | undefined;
+    proof = (await client.zkFetch(call.url, { ...call.options, zkEngine: ZK_ENGINE }, call.secretOptions)) as RevenueProof | undefined;
   } catch (e) {
     die(`zkFetch failed: ${(e as Error).message}`);
   }
