@@ -1,27 +1,17 @@
 [package]
 name = "forepay-advance"
 version = "0.1.0"
-edition = "2021"
-publish = false
+edition.workspace = true
+publish.workspace = true
 description = "Forepay advance contract — a zkTLS-proven revenue figure sized into a USDC advance"
 
 [lib]
 crate-type = ["lib", "cdylib"]
 
 [dependencies]
-# Protocol 29 on testnet (getVersionInfo, 2026-10-09); the SDK major tracks the
-# protocol major, so this must stay in step with the network we deploy to.
-soroban-sdk = "29"
+# Version pinned once, in the workspace root (sc/Cargo.toml).
+soroban-sdk = { workspace = true }
 
 [dev-dependencies]
-soroban-sdk = { version = "29", features = ["testutils"] }
+soroban-sdk = { workspace = true, features = ["testutils"] }
 
-[profile.release]
-opt-level = "z"
-overflow-checks = true
-debug = 0
-strip = "symbols"
-debug-assertions = false
-panic = "abort"
-codegen-units = 1
-lto = true

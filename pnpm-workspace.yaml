@@ -1,0 +1,17 @@
+# One pnpm workspace, one lockfile, for every TypeScript package (Forepay #1).
+# Rust lives in its own Cargo workspace under sc/. See CLAUDE.md for why.
+packages:
+  - be
+  - fe
+  - landing-page
+
+# Every dependency with an install script must be decided here, in review.
+# pnpm fails the install on an undecided one, so a new transitive postinstall
+# cannot slip in unnoticed.
+allowBuilds:
+  # esbuild (via tsx) ships its binary as an optional per-platform dependency;
+  # its postinstall only re-checks what is already there. CI's `be` tests run
+  # through tsx, so they prove it works without the script.
+  esbuild: false
+  # Native resolver used by eslint-config-next.
+  unrs-resolver: true

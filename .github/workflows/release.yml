@@ -11,8 +11,13 @@
 #
 #     git tag v0.1.0 && git push origin v0.1.0
 #
-# Note for #1: this is release-and-verify only, not the test CI. Those are separate
-# jobs on purpose — tests run on every push, verification runs on a tag.
+# This is release-and-verify only. The test CI is ci.yml — separate on purpose:
+# tests run on every push, verification runs on a tag.
+#
+# The reusable workflow is pinned to a commit, not @main: it runs with
+# contents/id-token/attestations write, so an upstream push to main would
+# otherwise execute here with those permissions. Its v28.1.0 builds with
+# stellar-cli 28.1.0, the same version ci.yml builds with.
 name: Release and verify
 
 on:
@@ -28,7 +33,7 @@ permissions:
 
 jobs:
   advance-contract:
-    uses: stellar-expert/soroban-build-workflow/.github/workflows/release.yml@main
+    uses: stellar-expert/soroban-build-workflow/.github/workflows/release.yml@6b16426dd3a61715ddddf83a2df322a6371fe071 # v28.1.0
     with:
       release_name: ${{ github.ref_name }}
       release_description: "Forepay advance contract — zkTLS-proven revenue sized into a USDC advance"

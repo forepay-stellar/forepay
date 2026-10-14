@@ -1,0 +1,8 @@
+# Pinned so CI, every laptop and the release build compile with the same rustc.
+# A floating `stable` lets a new clippy lint turn CI red on a commit that changed
+# nothing, and changes the wasm hash StellarExpert verifies against.
+[toolchain]
+channel = "1.95.0"
+components = ["clippy", "rustfmt"]
+targets = ["wasm32v1-none"]
+profile = "minimal"

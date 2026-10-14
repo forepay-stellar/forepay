@@ -3,3 +3,13 @@
 node_modules/
 target/
 __pycache__/
+
+# Secrets: .env files hold keys and never leave the machine (working agreement #6).
+# A committed .env.example documents the variable names, with no values.
+.env
+.env.*
+!.env.example
+
+# Build output
+*.tsbuildinfo
+.next/

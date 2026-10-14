@@ -1,0 +1,28 @@
+# One Cargo workspace for every Soroban crate (Forepay #1).
+#
+# One lockfile means the advance contract and the claim library it will link
+# against resolve the same dependency versions, and one `cargo test --workspace`
+# in CI covers both. Release profiles must live here: Cargo ignores
+# `[profile.*]` in member manifests.
+[workspace]
+resolver = "2"
+members = ["advance", "reclaim-claim"]
+
+[workspace.package]
+edition = "2021"
+publish = false
+
+[workspace.dependencies]
+# Protocol 29 on testnet (getVersionInfo, 2026-10-09); the SDK major tracks the
+# protocol major, so this must stay in step with the network we deploy to.
+soroban-sdk = "29"
+
+[profile.release]
+opt-level = "z"
+overflow-checks = true
+debug = 0
+strip = "symbols"
+debug-assertions = false
+panic = "abort"
+codegen-units = 1
+lto = true
