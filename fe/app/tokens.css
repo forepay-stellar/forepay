@@ -2,7 +2,7 @@
  * Forepay design tokens (#38).
  *
  * Source of truth is the "Design Tokens" page in Figma, frame
- * "Forepay · Design tokens · Warm" (Semantic collection, mode "Warm"); every
+ * "Forepay · Design tokens · Orange" (Semantic collection, mode "Orange"); every
  * semantic variable there shows the CSS name it maps to here. Change both
  * together.
  *
@@ -26,45 +26,48 @@
   --fp-rose-200: #fecdd3;
   --fp-rose-100: #ffe4e6;
 
-  /* Brand: Burnt Orange, Golden Yellow, Apricot Cream, Dark Chestnut. */
-  --fp-orange-500: #ec6426;
-  --fp-orange-50: #fff4ec;
+  /* Brand: Tangerine, with Golden Yellow as a spare accent. */
+  --fp-tangerine-500: #f2620f;
+  --fp-tangerine-100: #ffe2cc;
+  --fp-tangerine-50: #fff3ea;
+  --fp-rust-800: #8a3207;
   --fp-yellow-500: #f8a91f;
-  --fp-apricot-100: #fde3cf;
 
-  --fp-chestnut-900: #632713;
-  --fp-chestnut-600: #8a5a45;
-  --fp-chestnut-400: #b48a74;
-  --fp-sand-300: #efd2bd;
-  --fp-sand-200: #f4dfcf;
-  --fp-sand-100: #f8ebe1;
-  --fp-sand-50: #fdf5ee;
+  /* Neutrals: warm Stone, near-black for text and primary actions. */
+  --fp-stone-950: #1c1612;
+  --fp-stone-600: #6e655f;
+  --fp-stone-400: #a59c95;
+  --fp-stone-200: #e3dbd3;
+  --fp-stone-150: #ede7e1;
+  --fp-stone-100: #f3eee9;
+  --fp-stone-canvas: #f3eee8;
 }
 
 /* Semantic colours: these generate bg-*, text-*, border-*, fill-* utilities. */
 @theme inline {
-  --color-canvas: var(--fp-apricot-100);
+  --color-canvas: var(--fp-stone-canvas);
   --color-surface: var(--fp-white);
-  --color-subtle: var(--fp-sand-50);
-  --color-brand-subtle: var(--fp-orange-50);
+  --color-subtle: var(--fp-stone-100);
+  --color-brand-subtle: var(--fp-tangerine-50);
 
-  --color-fg: var(--fp-chestnut-900);
-  --color-fg-muted: var(--fp-chestnut-600);
-  --color-fg-subtle: var(--fp-chestnut-400);
+  --color-fg: var(--fp-stone-950);
+  --color-fg-muted: var(--fp-stone-600);
+  --color-fg-subtle: var(--fp-stone-400);
   --color-fg-on-brand: var(--fp-white);
-  --color-brand-strong: var(--fp-chestnut-900);
+  /* Dark orange text on brand-subtle (the trust note, the selected chip). */
+  --color-brand-strong: var(--fp-rust-800);
 
-  --color-line: var(--fp-sand-200);
-  --color-line-strong: var(--fp-sand-300);
-  --color-divider: var(--fp-sand-100);
+  --color-line: var(--fp-stone-150);
+  --color-line-strong: var(--fp-stone-200);
+  --color-divider: var(--fp-stone-100);
 
-  --color-brand: var(--fp-orange-500);
-  /* Golden Yellow: a second accent, used sparingly (wallet avatar, hero mark). */
+  --color-brand: var(--fp-tangerine-500);
+  /* Golden Yellow: not used by the orange design; kept as a spare accent. */
   --color-accent: var(--fp-yellow-500);
-  /* Primary buttons are chestnut, not brand: orange stays for the hero and accents. */
-  --color-action: var(--fp-chestnut-900);
-  --color-icon: var(--fp-orange-500);
-  --color-icon-subtle: var(--fp-apricot-100);
+  /* Primary buttons are near-black, not brand: orange stays for the hero and accents. */
+  --color-action: var(--fp-stone-950);
+  --color-icon: var(--fp-tangerine-500);
+  --color-icon-subtle: var(--fp-tangerine-100);
 
   /* Emerald means money arrived. Never use it for a neutral action. */
   --color-success: var(--fp-emerald-600);
@@ -129,12 +132,12 @@
   --text-overline--font-weight: 600;
 
   /*
-   * Shadows. Not used by the warm design, which is flat: surfaces separate by
-   * contrast, white on Apricot Cream. Kept, tinted chestnut, until the audit;
-   * no orange glows.
+   * Shadows. Not used by the orange design, which is flat: surfaces separate
+   * by contrast, white on the Stone canvas. Kept, tinted Stone 950, until the
+   * audit; no orange glows.
    */
-  --shadow-card: 0 8px 24px rgb(99 39 19 / 0.06);
-  --shadow-hero: 0 12px 32px rgb(99 39 19 / 0.12);
-  --shadow-nav: 0 10px 30px rgb(99 39 19 / 0.18);
-  --shadow-glow: 0 10px 24px rgb(99 39 19 / 0.16);
+  --shadow-card: 0 8px 24px rgb(28 22 18 / 0.06);
+  --shadow-hero: 0 12px 32px rgb(28 22 18 / 0.12);
+  --shadow-nav: 0 10px 30px rgb(28 22 18 / 0.18);
+  --shadow-glow: 0 10px 24px rgb(28 22 18 / 0.16);
 }
