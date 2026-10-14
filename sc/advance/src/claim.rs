@@ -1,0 +1,211 @@
+//! Rebuilding the exact bytes a Reclaim attestor signed, inside the contract (#9).
+//!
+//! The chain, frozen in `docs/interface.md` §1 and proven in #3 against a real
+//! attestor signature:
+//!
+//! ```text
+//! identifier = keccak256(provider \n parameters \n canonical_context)
+//! sign_data  = identifier \n owner_lowercase \n timestamp_s \n epoch
+//! digest     = keccak256("\x19Ethereum Signed Message:\n" + len(sign_data) + sign_data)
+//! ```
+//!
+//! # Nothing here is taken from the caller unchecked
+//!
+//! `provider` and `parameters` are **rebuilt from a pinned template**, never read from a
+//! submitted string. The attestor signs whatever the fetched server returned, so a zkFetch
+//! against `attacker.example` returning a large `totals` carries a perfectly valid
+//! signature; a contract that accepts a `parameters` string cannot tell it from the real
+//! one. Pinning also removes Reclaim's separator ambiguity, where `provider="a",
+//! parameters="b\nc"` hashes identically to `provider="a\nb", parameters="c"`.
+//!
+//! The caller supplies only values that vary, and every one of them lands inside the
+//! bytes that get hashed. If any is wrong, the digest is wrong, and the verifier refuses.
+
+use soroban_sdk::{Address, Bytes, Env, String, Vec};
+
+/// Reclaim's HTTP provider. Constant, never submitted.
+pub const PROVIDER: &[u8] = b"http";
+
+/// The `contextMessage` every Forepay claim must carry.
+///
+/// Checked rather than accepted: a claim produced for some other application, with the
+/// same publisher and window, must not be spendable here.
+pub const CONTEXT_MESSAGE: &[u8] = b"Forepay advance request";
+
+/// A soroban `String` as raw UTF-8 bytes.
+///
+/// `String::copy_into_slice` panics unless the slice length matches exactly, so the
+/// buffer is sized from `len()` first. Capped at 512 bytes — every field this contract
+/// accepts is a publisher id, a date or a decimal figure, and a caller sending more than
+/// that is not describing an AdSense account.
+pub fn string_bytes(env: &Env, s: &String) -> Option<Bytes> {
+    let len = s.len() as usize;
+    if len > 512 {
+        return None;
+    }
+    let mut buf = [0u8; 512];
+    s.copy_into_slice(&mut buf[..len]);
+    Some(Bytes::from_slice(env, &buf[..len]))
+}
+
+/// Rebuild `parameters` by interleaving pinned literals with caller values.
+///
+/// `parts` holds the literal segments of the request template, and the values are placed
+/// between them in a fixed order: publisher id, window start, window end. There is no
+/// search-and-replace and no parsing — a template of N parts takes exactly N-1 values, so
+/// a caller cannot introduce a segment the admin did not pin.
+///
+/// Returns `None` if the template does not have exactly one more part than there are
+/// values, which means the stored template does not match this contract version.
+pub fn rebuild_parameters(parts: &Vec<Bytes>, values: &[Bytes]) -> Option<Bytes> {
+    if parts.len() as usize != values.len() + 1 {
+        return None;
+    }
+    let mut out = parts.get(0)?;
+    for (i, value) in values.iter().enumerate() {
+        out.append(value);
+        out.append(&parts.get(i as u32 + 1)?);
+    }
+    Some(out)
+}
+
+/// Rebuild the canonical context, byte for byte.
+///
+/// Canonical context is sorted-key JSON with no whitespace, so the key order below is
+/// alphabetical because that is what canonicalisation produces — it is not style and must
+/// not be tidied. Building it rather than parsing it keeps a JSON parser out of the wasm,
+/// where its bugs would be indistinguishable from a bad proof.
+#[allow(clippy::too_many_arguments)]
+pub fn rebuild_context(
+    env: &Env,
+    borrower: &Bytes,
+    revenue_usd: &Bytes,
+    window_start: &Bytes,
+    window_end: &Bytes,
+    provider_hash: &Bytes,
+) -> Bytes {
+    let mut out = Bytes::from_slice(env, br#"{"contextAddress":""#);
+    out.append(borrower);
+    out.extend_from_slice(br#"","contextMessage":""#);
+    out.extend_from_slice(CONTEXT_MESSAGE);
+    out.extend_from_slice(br#"","extractedParameters":{"currency":"USD","endDate":""#);
+    out.append(window_end);
+    out.extend_from_slice(br#"","revenueUsd":""#);
+    out.append(revenue_usd);
+    out.extend_from_slice(br#"","startDate":""#);
+    out.append(window_start);
+    out.extend_from_slice(br#""},"providerHash":""#);
+    out.append(provider_hash);
+    out.extend_from_slice(br#""}"#);
+    out
+}
+
+/// `keccak256(provider \n parameters \n context)`, as 32 raw bytes.
+pub fn identifier(env: &Env, parameters: &Bytes, context: &Bytes) -> [u8; 32] {
+    let mut buf = Bytes::from_slice(env, PROVIDER);
+    buf.extend_from_slice(b"\n");
+    buf.append(parameters);
+    buf.extend_from_slice(b"\n");
+    buf.append(context);
+
+    let mut out = [0u8; 32];
+    env.crypto()
+        .keccak256(&buf)
+        .to_bytes()
+        .copy_into_slice(&mut out);
+    out
+}
+
+/// Lowercase `0x…` hex, the form Reclaim writes identifiers in.
+pub fn hex_prefixed(bytes: &[u8; 32]) -> [u8; 66] {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut out = [0u8; 66];
+    out[0] = b'0';
+    out[1] = b'x';
+    for (i, b) in bytes.iter().enumerate() {
+        out[2 + i * 2] = HEX[(b >> 4) as usize];
+        out[3 + i * 2] = HEX[(b & 0x0f) as usize];
+    }
+    out
+}
+
+/// Decimal digits of a `u64`. `sign_data` carries the timestamp and epoch as text.
+pub fn write_u64(mut v: u64, buf: &mut [u8; 20]) -> &[u8] {
+    if v == 0 {
+        buf[0] = b'0';
+        return &buf[..1];
+    }
+    let mut i = buf.len();
+    while v > 0 {
+        i -= 1;
+        buf[i] = b'0' + (v % 10) as u8;
+        v /= 10;
+    }
+    &buf[i..]
+}
+
+/// The EIP-191 digest the attestor signed.
+///
+/// `owner` must already be lowercase — a checksummed address produces a different digest
+/// and an unexplained `SignatureMismatch`, which is the hardest kind of failure to read.
+pub fn message_digest(
+    env: &Env,
+    identifier_hex: &[u8; 66],
+    owner_lowercase: &Bytes,
+    timestamp_s: u64,
+    epoch: u64,
+) -> Bytes {
+    let mut ts_buf = [0u8; 20];
+    let ts = write_u64(timestamp_s, &mut ts_buf);
+    let mut ep_buf = [0u8; 20];
+    let ep = write_u64(epoch, &mut ep_buf);
+
+    let sign_data_len = 66 + 1 + owner_lowercase.len() as usize + 1 + ts.len() + 1 + ep.len();
+    let mut len_buf = [0u8; 20];
+    let len_txt = write_u64(sign_data_len as u64, &mut len_buf);
+
+    let mut buf = Bytes::from_slice(env, b"\x19Ethereum Signed Message:\n");
+    buf.extend_from_slice(len_txt);
+    buf.extend_from_slice(identifier_hex);
+    buf.extend_from_slice(b"\n");
+    buf.append(owner_lowercase);
+    buf.extend_from_slice(b"\n");
+    buf.extend_from_slice(ts);
+    buf.extend_from_slice(b"\n");
+    buf.extend_from_slice(ep);
+
+    env.crypto().keccak256(&buf).to_bytes().into()
+}
+
+/// The borrower's `G…` address as the bytes that appear in `contextAddress`.
+///
+/// Taken from the `Address` the caller passed and converted here, so the string hashed
+/// into the identifier is the one the contract will actually pay. A separately submitted
+/// address string could differ from the `Address`, and the signature would still verify.
+pub fn borrower_bytes(env: &Env, borrower: &Address) -> Option<Bytes> {
+    string_bytes(env, &borrower.to_string())
+}
+
+/// ASCII-lowercase a byte string.
+///
+/// Reclaim lowercases `owner` before signing, so the digest must be built from the
+/// lowercase form. A checksummed address hashes differently and comes back as an
+/// unexplained `SignatureMismatch`, which is the hardest failure in this pipeline to read.
+///
+/// Stellar `G…` strkeys are already uppercase base32 and unaffected; this exists for the
+/// Ethereum-style addresses Reclaim also allows as owners, and costs nothing when the
+/// input has no lowercase to apply.
+pub fn lowercase(env: &Env, b: &Bytes) -> Bytes {
+    let len = b.len() as usize;
+    if len > 512 {
+        return b.clone();
+    }
+    let mut buf = [0u8; 512];
+    b.copy_into_slice(&mut buf[..len]);
+    for c in buf[..len].iter_mut() {
+        if c.is_ascii_uppercase() {
+            *c += 32;
+        }
+    }
+    Bytes::from_slice(env, &buf[..len])
+}

@@ -29,9 +29,14 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contracterror, contractevent, contractimpl, contracttype, Address, BytesN,
-    ContractExecutable, Env,
+    contract, contracterror, contractevent, contractimpl, contracttype, Address, Bytes, BytesN,
+    ContractExecutable, Env, String, Vec,
 };
+
+mod claim;
+mod reclaim;
+
+pub use claim::{CONTEXT_MESSAGE, PROVIDER};
 
 /// Storage keys. Append-only: a new variant may be added, none may ever be removed,
 /// renamed or given a different payload type.
@@ -48,6 +53,30 @@ pub enum DataKey {
     UpgradeRenounced,
     /// The pending upgrade, if one has been proposed.
     PendingUpgrade,
+    /// Literal segments of the Reclaim request template (#6 §2). Set by the admin once
+    /// the first live proof exists; until then `verify_claim` refuses.
+    ParamsTemplate,
+    /// Reclaim's provider hash for the AdSense provider, as it appears in the context.
+    ProviderHash,
+}
+
+/// A claim whose signature has been checked against Reclaim's verifier.
+///
+/// Every field here came out of the bytes that were signed. Nothing in it was taken from
+/// a caller parameter that the attestor did not cover.
+#[contracttype]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct VerifiedClaim {
+    /// Who the advance is for, from `contextAddress` inside the signed context.
+    pub borrower: Address,
+    /// The attested figure, still a decimal string. #11 parses it to fixed point.
+    pub revenue_usd: String,
+    /// AdSense publisher id. With the window, this is the nullifier key (#10).
+    pub pub_id: String,
+    pub window_start: String,
+    pub window_end: String,
+    /// When the attestor signed, seconds. Already checked for freshness.
+    pub timestamp_s: u64,
 }
 
 /// A proposed upgrade, and the earliest moment it may be executed.
@@ -97,7 +126,28 @@ pub enum Error {
     /// A second `propose_upgrade` while one is already pending. Cancel first, so that
     /// replacing a proposal cannot quietly restart someone else's timelock.
     UpgradeAlreadyPending = 6,
+
+    // --- 10-19: proof verification (#9) ---
+    /// No claim template pinned yet, so there is nothing to rebuild against. The
+    /// contract deploys in this state on purpose rather than accepting anything.
+    TemplateNotSet = 10,
+    /// A field was longer than this contract accepts, or the stored template does not
+    /// have one more part than there are values.
+    ClaimMismatch = 11,
+    /// The attestor signed longer ago than `MAX_PROOF_AGE_SECONDS`.
+    ProofStale = 12,
+    /// The attestor's timestamp is further ahead than `MAX_CLOCK_SKEW_SECONDS`.
+    ProofFromTheFuture = 13,
+    /// Reclaim's `verify_proof` refused the digest. Either the signature is not from a
+    /// current witness, or one of the rebuilt fields differs from what was signed.
+    VerifierRejected = 14,
 }
+
+/// How old an attestor signature may be, measured against ledger time (#6 §6).
+pub const MAX_PROOF_AGE_SECONDS: u64 = 3_600;
+
+/// How far ahead of ledger time an attestor signature may be.
+pub const MAX_CLOCK_SKEW_SECONDS: u64 = 300;
 
 #[contractevent]
 pub struct UpgradeProposed {
@@ -125,6 +175,13 @@ pub struct UpgradeCancelled {
 pub struct UpgradeabilityRenounced {
     #[topic]
     pub admin: Address,
+}
+
+#[contractevent]
+pub struct ClaimTemplateSet {
+    #[topic]
+    pub admin: Address,
+    pub parts: u32,
 }
 
 #[contract]
@@ -273,6 +330,148 @@ impl AdvanceContract {
         Ok(())
     }
 
+    // ------------------------------------------------- claim template (#6 §2)
+
+    /// Pin the Reclaim request template and provider hash.
+    ///
+    /// The exact bytes come from the first live AdSense proof (#5). Admin-gated, and
+    /// re-callable because the template changes whenever the provider version does.
+    /// Changing it does not invalidate advances already made; it only governs what a new
+    /// proof must match.
+    ///
+    /// `parts` are the literal segments of the request, interleaved at verification time
+    /// with the publisher id, window start and window end — so it must hold exactly four
+    /// entries for the three values this contract supplies.
+    pub fn set_claim_template(
+        env: Env,
+        parts: Vec<Bytes>,
+        provider_hash: Bytes,
+    ) -> Result<(), Error> {
+        let admin = Self::require_admin(&env)?;
+        if parts.len() != 4 {
+            return Err(Error::ClaimMismatch);
+        }
+        let n = parts.len();
+        env.storage()
+            .instance()
+            .set(&DataKey::ParamsTemplate, &parts);
+        env.storage()
+            .instance()
+            .set(&DataKey::ProviderHash, &provider_hash);
+        Self::bump(&env);
+
+        ClaimTemplateSet { admin, parts: n }.publish(&env);
+        Ok(())
+    }
+
+    /// The pinned template, if one is set. Public so that anyone can check what this
+    /// contract will accept before sending a proof to it.
+    pub fn claim_template(env: Env) -> Option<Vec<Bytes>> {
+        env.storage().instance().get(&DataKey::ParamsTemplate)
+    }
+
+    pub fn provider_hash(env: Env) -> Option<Bytes> {
+        env.storage().instance().get(&DataKey::ProviderHash)
+    }
+
+    // -------------------------------------------------- verify a claim (#9)
+
+    /// Check a Reclaim proof and return only what it actually attested.
+    ///
+    /// The order is the security property and does not change: rebuild every field from
+    /// pinned bytes and caller values, check freshness, **then** verify. Nothing the
+    /// caller sent is trusted until `verify_proof` has returned, and after it returns the
+    /// only reason it could have returned is that the attestor signed these exact bytes.
+    ///
+    /// The borrower is taken from the `Address` argument and hashed into the context, so
+    /// a proof bound to one account cannot be spent by another (#18): change the address
+    /// and the digest changes with it.
+    #[allow(clippy::too_many_arguments)]
+    pub fn verify_claim(
+        env: Env,
+        borrower: Address,
+        revenue_usd: String,
+        pub_id: String,
+        window_start: String,
+        window_end: String,
+        timestamp_s: u64,
+        epoch: u64,
+        signature: BytesN<64>,
+        recovery_id: u32,
+    ) -> Result<VerifiedClaim, Error> {
+        let parts: Vec<Bytes> = env
+            .storage()
+            .instance()
+            .get(&DataKey::ParamsTemplate)
+            .ok_or(Error::TemplateNotSet)?;
+        let provider_hash: Bytes = env
+            .storage()
+            .instance()
+            .get(&DataKey::ProviderHash)
+            .ok_or(Error::TemplateNotSet)?;
+
+        // Freshness before any hashing: a stale proof should cost the caller a cheap
+        // refusal, not a keccak over the whole request template.
+        let now = env.ledger().timestamp();
+        if timestamp_s > now.saturating_add(MAX_CLOCK_SKEW_SECONDS) {
+            return Err(Error::ProofFromTheFuture);
+        }
+        if now.saturating_sub(timestamp_s) > MAX_PROOF_AGE_SECONDS {
+            return Err(Error::ProofStale);
+        }
+
+        let borrower_b = claim::borrower_bytes(&env, &borrower).ok_or(Error::ClaimMismatch)?;
+        let revenue_b = claim::string_bytes(&env, &revenue_usd).ok_or(Error::ClaimMismatch)?;
+        let pub_id_b = claim::string_bytes(&env, &pub_id).ok_or(Error::ClaimMismatch)?;
+        let start_b = claim::string_bytes(&env, &window_start).ok_or(Error::ClaimMismatch)?;
+        let end_b = claim::string_bytes(&env, &window_end).ok_or(Error::ClaimMismatch)?;
+
+        let parameters =
+            claim::rebuild_parameters(&parts, &[pub_id_b.clone(), start_b.clone(), end_b.clone()])
+                .ok_or(Error::ClaimMismatch)?;
+        let context = claim::rebuild_context(
+            &env,
+            &borrower_b,
+            &revenue_b,
+            &start_b,
+            &end_b,
+            &provider_hash,
+        );
+
+        let identifier = claim::identifier(&env, &parameters, &context);
+        let identifier_hex = claim::hex_prefixed(&identifier);
+
+        // The attestor's `owner` is the borrower's own address, lowercased, because that
+        // is what the relay put in the claim. Reclaim lowercases it before signing.
+        let owner = claim::lowercase(&env, &borrower_b);
+        let digest = claim::message_digest(&env, &identifier_hex, &owner, timestamp_s, epoch);
+
+        let verifier: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Verifier)
+            .ok_or(Error::NotInitialized)?;
+        let client = reclaim::ReclaimClient::new(&env, &verifier);
+
+        // `try_` so a refusal comes back as a value rather than trapping the whole
+        // invocation: the caller gets a Forepay error code they can act on, not a bare
+        // host panic from somebody else's contract.
+        let digest32: BytesN<32> = digest.try_into().map_err(|_| Error::ClaimMismatch)?;
+        client
+            .try_verify_proof(&digest32, &signature, &recovery_id)
+            .map_err(|_| Error::VerifierRejected)?
+            .map_err(|_| Error::VerifierRejected)?;
+
+        Ok(VerifiedClaim {
+            borrower,
+            revenue_usd,
+            pub_id,
+            window_start,
+            window_end,
+            timestamp_s,
+        })
+    }
+
     // -------------------------------------------------------------- helpers
 
     fn require_admin(env: &Env) -> Result<Address, Error> {
@@ -303,3 +502,5 @@ impl AdvanceContract {
 
 #[cfg(test)]
 mod test;
+#[cfg(test)]
+mod test_claim;
