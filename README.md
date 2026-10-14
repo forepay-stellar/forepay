@@ -96,3 +96,8 @@ stellar contract build --package forepay-advance
 
 - Reclaim zkFetch on Stellar: https://docs.reclaimprotocol.org/zkfetch/stellar
 - Stellar developer docs: https://developers.stellar.org
+
+## License
+
+[AGPL-3.0-only](LICENSE). The proof relay depends on `@reclaimprotocol/zk-fetch`, which is AGPL-3.0,
+so Forepay is too — see [`docs/licensing.md`](docs/licensing.md).
