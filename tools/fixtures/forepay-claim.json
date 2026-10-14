@@ -1,0 +1,23 @@
+{
+  "borrower": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+  "contextMessage": "Forepay advance request",
+  "pubId": "pub-1234567890123456",
+  "windowStart": "2026-07-01",
+  "windowEnd": "2026-09-30",
+  "revenueUsd": "1234.56",
+  "providerHash": "0x569b93233185c054ed9fda68b5aef8fda180b6d291180450bf757b11bb52f7df",
+  "templateParts": [
+    "{\"method\":\"GET\",\"url\":\"https://adsense.googleapis.com/v2/accounts/",
+    "/reports:generate?startDate=",
+    "&endDate=",
+    "&metrics=ESTIMATED_EARNINGS\"}"
+  ],
+  "timestampS": 1760000000,
+  "epoch": 1,
+  "identifier": "0xb44163715ab6c857a53eff47415a2106baf7ce21bf397ef197b58d35a5cdd90b",
+  "signData": "0xb44163715ab6c857a53eff47415a2106baf7ce21bf397ef197b58d35a5cdd90b\nga2cd6pmhmbtcfaqdo3r22bszn5zsvtakvnokxl2sonzblgrayiowwh2\n1760000000\n1",
+  "messageDigest": "aa8e7c8bd442ce4447913d47fe05f9c65d903b283edafb18d698ff544ae9e0ec",
+  "signature64": "41a1b3f92c2cee207d8fde5fd489da05f1d7b18f72af79c33d4cf17697509d7271b51ba7a3d9dd551f2e5aeba4aa1c8716d9945ae74b200c92da34739e80986d",
+  "recoveryId": 1,
+  "signerAddress": "1563915e194d8cfba1943570603f7606a3115508"
+}
