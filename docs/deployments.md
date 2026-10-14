@@ -174,3 +174,65 @@ git tag v0.1.0 && git push origin v0.1.0
 ```
 
 Do this **after** #15 deploys, so the verified hash is the one actually on chain.
+
+---
+
+## The nullifier, proven on live testnet (issue #10)
+
+An end-to-end run against a deployed contract on **2026-10-14**. Not a unit test with a mocked
+verifier — real transactions, a real cross-contract call, real ledger state.
+
+| What | Address |
+| --- | --- |
+| Advance contract (dev) | [`CA3YGQHU42EL2TAOG7NJ5DDT5FLKKQNDWIUFFU6KV7QJHCFGLAGYXLID`](https://stellar.expert/explorer/testnet/contract/CA3YGQHU42EL2TAOG7NJ5DDT5FLKKQNDWIUFFU6KV7QJHCFGLAGYXLID) |
+| Verifier it points at | `CASAIKW7EOWC3RUBS34IAW6ETXBXI4KOQNMXO66DK7LRBN5MXAWWZURP` — **our probe instance** (#2) |
+| USDC SAC | `CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA` |
+| Wasm | `af9ee02edc4a12097dcc1c9e8a7be5841e0eec891658dbd75d96a555ae0cdc55`, 17,035 bytes |
+
+**Why the probe verifier and not Reclaim's.** The success path needs a signature the verifier will
+accept, and only the production attestor can produce one for a real AdSense response — which is
+exactly what #5 is blocked on. The probe instance runs **the identical wasm** with a witness we
+control, so the contract's code path is the same in every respect but whose key signed. The digest
+construction itself was proven against the real attestor in #3 and accepted by Reclaim's own
+contract, so what is being shown here is the nullifier, not the cryptography.
+
+This deployment is **development only** and must not be used for anything real: its verifier accepts
+forged proofs by design, as recorded above.
+
+### The run
+
+| Step | Result | Transaction |
+| --- | --- | --- |
+| Upload wasm | — | [`959ad856…`](https://stellar.expert/explorer/testnet/tx/959ad85651072af4636f7fac245ed09d052d4f6df4be6ed60d07d97efd010fc2) |
+| Deploy | — | [`05cb75d1…`](https://stellar.expert/explorer/testnet/tx/05cb75d1586c27dff901613d6556869104ada975fa75400264853fe774eb3fa0) |
+| `set_claim_template` | `ClaimTemplateSet`, 4 parts | [`36d6362e…`](https://stellar.expert/explorer/testnet/tx/36d6362ea16d4233a4f3002787389ea294b2eae94b9f159f4f59d90be1ae3527) |
+| **`verify_and_reserve`, first call** | **Success**, event `NullifierSpent` | [`c9ea01e4…`](https://stellar.expert/explorer/testnet/tx/c9ea01e40444ef41ee2557bab6b963db51d3d9e0f9dfa531d84511767ea847e8) |
+| **The same proof again** | **`Error(Contract, #20)` `NullifierSpent`** | refused at simulation; nothing submitted |
+| `is_spent(nullifier)` | `true`, read from chain | — |
+
+The first call returned the verified claim:
+
+```json
+{"borrower":"GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+ "pub_id":"pub-9988776655443322","revenue_usd":"4821.75",
+ "window_start":"2026-07-01","window_end":"2026-09-30","timestamp_s":1791989719}
+```
+
+Nullifier `d43c27e55f8376145943774f79de86792867841cc3c00fea13cca39697505e09`.
+
+**The second attempt failed at simulation, so it never reached the ledger.** That is the right
+shape: a replay costs the attacker a refusal, not a transaction fee and a half-applied state.
+
+### Why the nullifier is persistent and not temporary
+
+Checked against the Stellar docs rather than assumed:
+
+| Storage | When the TTL expires |
+| --- | --- |
+| `temporary` | **Removed forever** |
+| `persistent` | **Archived**, and restorable |
+
+A nullifier in temporary storage would be deleted when its TTL lapsed, and the proof would become
+spendable again — replay protection with a time limit is not replay protection. A persistent entry
+is archived instead, and the host makes a caller restore it before touching it, so a lapsed
+nullifier cannot silently read as absent.

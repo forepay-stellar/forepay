@@ -279,3 +279,106 @@ fn a_template_with_the_wrong_number_of_parts_is_refused() {
         Err(Ok(Error::ClaimMismatch))
     );
 }
+
+// --- #10: the nullifier registry ---
+
+fn reserve(f: &Fixture, borrower: &Address) -> Result<VerifiedClaim, ()> {
+    match f.client.try_verify_and_reserve(
+        borrower,
+        &String::from_str(&f.env, REVENUE),
+        &String::from_str(&f.env, PUB_ID),
+        &String::from_str(&f.env, WINDOW_START),
+        &String::from_str(&f.env, WINDOW_END),
+        &TIMESTAMP_S,
+        &EPOCH,
+        &signature(&f.env),
+        &RECOVERY_ID,
+    ) {
+        Ok(Ok(claim)) => Ok(claim),
+        _ => Err(()),
+    }
+}
+
+#[test]
+fn the_same_proof_cannot_fund_two_advances() {
+    let f = setup();
+    assert!(reserve(&f, &f.borrower).is_ok(), "the first must succeed");
+    assert!(
+        reserve(&f, &f.borrower).is_err(),
+        "the second must be refused on the nullifier"
+    );
+}
+
+#[test]
+fn the_nullifier_is_recorded_as_spent_and_was_not_before() {
+    let f = setup();
+    let n = f.client.nullifier_for(
+        &String::from_str(&f.env, PUB_ID),
+        &String::from_str(&f.env, WINDOW_START),
+        &String::from_str(&f.env, WINDOW_END),
+    );
+    assert!(
+        !f.client.is_spent(&n),
+        "nothing is spent before the first call"
+    );
+    reserve(&f, &f.borrower).unwrap();
+    assert!(f.client.is_spent(&n), "and spent after it");
+}
+
+#[test]
+fn a_refused_claim_does_not_burn_the_nullifier() {
+    // Griefing check: if a bad proof consumed the nullifier, anyone could lock a creator
+    // out of their own period by submitting garbage first.
+    let f = setup();
+    let attacker = Address::generate(&f.env);
+    assert!(reserve(&f, &attacker).is_err());
+
+    let n = f.client.nullifier_for(
+        &String::from_str(&f.env, PUB_ID),
+        &String::from_str(&f.env, WINDOW_START),
+        &String::from_str(&f.env, WINDOW_END),
+    );
+    assert!(
+        !f.client.is_spent(&n),
+        "a refused claim must leave it unspent"
+    );
+    assert!(
+        reserve(&f, &f.borrower).is_ok(),
+        "so the real borrower can still use it"
+    );
+}
+
+#[test]
+fn a_different_window_is_a_different_nullifier() {
+    let f = setup();
+    let a = f.client.nullifier_for(
+        &String::from_str(&f.env, PUB_ID),
+        &String::from_str(&f.env, WINDOW_START),
+        &String::from_str(&f.env, WINDOW_END),
+    );
+    let b = f.client.nullifier_for(
+        &String::from_str(&f.env, PUB_ID),
+        &String::from_str(&f.env, "2026-04-01"),
+        &String::from_str(&f.env, "2026-06-30"),
+    );
+    assert_ne!(a, b, "borrowing against a later quarter must be possible");
+}
+
+#[test]
+fn field_boundaries_cannot_be_shifted_between_publisher_and_window() {
+    // Reclaim's own claim format concatenates with \n and is ambiguous because of it
+    // (#3 pins that collision with a test). The nullifier length-prefixes each field, so
+    // moving characters across a boundary must change the hash.
+    let f = setup();
+    let a = f.client.nullifier_for(
+        &String::from_str(&f.env, "pub-12"),
+        &String::from_str(&f.env, "34"),
+        &String::from_str(&f.env, WINDOW_END),
+    );
+    let b = f.client.nullifier_for(
+        &String::from_str(&f.env, "pub-1"),
+        &String::from_str(&f.env, "234"),
+        &String::from_str(&f.env, WINDOW_END),
+    );
+    assert_ne!(a, b, "a delimiter-only scheme would collide here");
+}

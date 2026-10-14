@@ -209,3 +209,25 @@ pub fn lowercase(env: &Env, b: &Bytes) -> Bytes {
     }
     Bytes::from_slice(env, &buf[..len])
 }
+
+/// The nullifier for a publisher and a reporting window.
+///
+/// Keyed on the **economic thing being borrowed against** — the account and the period —
+/// not on the proof's bytes. A nullifier keyed on the proof identifier would be wrong:
+/// any difference in the response at all (a recalculated total, a trailing zero, a window
+/// boundary landing a day differently) mints a fresh identifier and would fund a second
+/// advance against the same revenue.
+///
+/// Each field is **length-prefixed** rather than separated by a delimiter. Reclaim's own
+/// claim format concatenates with `\n` and is ambiguous because of it — `provider="a",
+/// parameters="b\nc"` hashes identically to `provider="a\nb", parameters="c"`, which #3
+/// pinned with a test. Length prefixes cost four bytes each and remove the question, so
+/// no caller can shift a boundary between the publisher id and the window.
+pub fn nullifier_of(env: &Env, pub_id: &Bytes, window_start: &Bytes, window_end: &Bytes) -> Bytes {
+    let mut buf = Bytes::new(env);
+    for field in [pub_id, window_start, window_end] {
+        buf.extend_from_slice(&field.len().to_be_bytes());
+        buf.append(field);
+    }
+    env.crypto().sha256(&buf).to_bytes().into()
+}
