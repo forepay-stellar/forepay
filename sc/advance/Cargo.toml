@@ -3,6 +3,7 @@ name = "forepay-advance"
 version = "0.1.0"
 edition.workspace = true
 publish.workspace = true
+license.workspace = true
 description = "Forepay advance contract — a zkTLS-proven revenue figure sized into a USDC advance"
 
 [lib]

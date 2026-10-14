@@ -11,6 +11,9 @@ members = ["advance", "reclaim-claim"]
 [workspace.package]
 edition = "2021"
 publish = false
+# AGPL-3.0-only: @reclaimprotocol/zk-fetch, which the proof relay depends on, is
+# AGPL-3.0. See LICENSE and docs/licensing.md.
+license = "AGPL-3.0-only"
 
 [workspace.dependencies]
 # Protocol 29 on testnet (getVersionInfo, 2026-10-09); the SDK major tracks the
