@@ -200,7 +200,9 @@ States & interactions:
    spent), proof stale (older than 1 hour), no USDC trustline, contract call failed, contract
    has insufficient liquidity
 4. Signing interactions: wallet rejected the signature, transaction pending, timed out
-5. Already has an active advance (how the Advance tab reads when one exists)
+5. No "repay first" rule. The contract allows one advance per revenue period, not one open advance
+   per creator. A second try in the same period is the "This proof was already used" state above.
+   The template pins one period (Jul to Sep 2026), so in practice a creator holds one advance.
 
 ### 03 Repayment, issue #21
 

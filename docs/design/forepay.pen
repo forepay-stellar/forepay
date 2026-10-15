@@ -2053,7 +2053,8 @@
                   "content": "Any amount, any time. Recorded on Stellar.",
                   "lineHeight": 1.15,
                   "fontFamily": "$font-sans",
-                  "fontSize": 15
+                  "fontSize": 15,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -2154,7 +2155,8 @@
                   "content": "AdSense revenue from July to September",
                   "lineHeight": 1.15,
                   "fontFamily": "$font-sans",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -2204,7 +2206,8 @@
                   "content": "Completed on 12 Oct 2026",
                   "lineHeight": 1.15,
                   "fontFamily": "$font-sans",
-                  "fontSize": 13
+                  "fontSize": 13,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -18081,128 +18084,6 @@
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
                       "content": "Below 1 USDC there is nothing to lend. The proof is not used up, so the creator can try again next quarter.",
-                      "lineHeight": 1.5,
-                      "fontFamily": "$font-sans",
-                      "fontSize": 14,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "otYMa",
-                  "name": "Advance already open",
-                  "width": 460,
-                  "layout": "vertical",
-                  "gap": 14,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "SULTk",
-                      "name": "Preview",
-                      "width": "fill_container",
-                      "height": 420,
-                      "fill": "$canvas",
-                      "cornerRadius": "$radius-tile",
-                      "layout": "vertical",
-                      "gap": 12,
-                      "padding": 24,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "L3EQaT",
-                          "name": "Panel",
-                          "width": 400,
-                          "fill": "$surface",
-                          "cornerRadius": "$radius-card",
-                          "layout": "vertical",
-                          "gap": 14,
-                          "padding": 24,
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "nxEKF",
-                              "name": "Illustration wrap",
-                              "width": "fill_container",
-                              "justifyContent": "center",
-                              "children": [
-                                {
-                                  "id": "WlWTE",
-                                  "type": "ref",
-                                  "ref": "mrLSL",
-                                  "name": "Illustration"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "id": "E6HbJ9",
-                              "name": "Title",
-                              "fill": "$fg",
-                              "content": "You already have an advance",
-                              "fontFamily": "$font-sans",
-                              "fontSize": 19,
-                              "fontWeight": "600",
-                              "letterSpacing": -0.3
-                            },
-                            {
-                              "type": "text",
-                              "id": "w6C4F",
-                              "name": "Body",
-                              "fill": "$fg-muted",
-                              "textGrowth": "fixed-width",
-                              "width": "fill_container",
-                              "content": "Repay it first, then you can prove your revenue again for a new one.",
-                              "lineHeight": 1.5,
-                              "fontFamily": "$font-sans",
-                              "fontSize": 14,
-                              "fontWeight": "normal"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "Hd6Di",
-                              "name": "Actions",
-                              "width": "fill_container",
-                              "gap": 10,
-                              "children": [
-                                {
-                                  "id": "P2SqEN",
-                                  "type": "ref",
-                                  "ref": "GqUzt",
-                                  "name": "Primary",
-                                  "width": "fill_container",
-                                  "descendants": {
-                                    "jdAIa": {
-                                      "content": "Go to repayment"
-                                    }
-                                  }
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "text",
-                      "id": "qb6zi",
-                      "name": "Title",
-                      "fill": "$fg",
-                      "content": "Advance already open",
-                      "fontFamily": "$font-sans",
-                      "fontSize": 16,
-                      "fontWeight": "600"
-                    },
-                    {
-                      "type": "text",
-                      "id": "dWjRL",
-                      "name": "Desc",
-                      "fill": "$fg-muted",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "One advance at a time. The Advance tab points to repayment.",
                       "lineHeight": 1.5,
                       "fontFamily": "$font-sans",
                       "fontSize": 14,
