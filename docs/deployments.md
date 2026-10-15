@@ -470,3 +470,54 @@ The issue has #17 as a blocker, on the assumption the property could only be sho
 relay. It cannot be weakened by the relay: the binding lives in the digest, and the relay only
 decides which bytes get signed. Showing it directly against the contract is the stronger
 demonstration and needed nothing from the front end.
+
+---
+
+## The three SOW negative cases, on chain (#24, #25, #26)
+
+Run on **2026-10-15** against `CA3YGQHU42EL2TAOG7NJ5DDT5FLKKQNDWIUFFU6KV7QJHCFGLAGYXLID`.
+
+> *"The negative cases are what separate a credible primitive demo from a happy-path mock. They
+> show the safety logic actually holds."* — SOW §4.1
+
+**Three different error codes, because they are three different code paths.** A single generic
+refusal would prove far less.
+
+| # | Case | Result |
+| --- | --- | --- |
+| **24** | A well-formed proof signed by a key that is **not** a registered witness | **`#14` `VerifierRejected`** |
+| **25** | A genuine proof, submitted **twice** | first succeeds — [`d00cc83e…`](https://stellar.expert/explorer/testnet/tx/d00cc83ec5836adf2d013d33bbc6579d8b641fa8118fc5d39c97a40ccf4289c1); second **`#20` `NullifierSpent`** |
+| **26** | A genuine proof, timestamped **2 hours** old against a 1-hour window | **`#12` `ProofStale`** |
+
+`#14` comes from the verifier, `#20` from the nullifier registry, `#12` from the freshness check
+before either runs. Each exercises a distinct mechanism.
+
+### #24 — what "invalid" means here
+
+The signature is **structurally valid secp256k1** over the correct digest; it is simply from a key
+the epoch does not list. That is the case worth testing. A malformed signature only proves the host
+rejects garbage before the contract gets a say — it is recorded in #2 and is deliberately *not* what
+this case shows.
+
+### #25 — the balance is the evidence, not the message
+
+Only the first submission moved state. The second was refused **at simulation and never reached the
+ledger**, so a replay costs an attacker a refusal rather than a fee and a half-applied write.
+
+A refusal message alone would not be proof: a contract that disbursed and then reverted its own
+ledger row would print the same thing and the money would be gone.
+
+### #26 — and the limit of what it proves
+
+**What it shows:** a proof older than `MAX_PROOF_AGE_SECONDS` (3,600) is refused, measured against
+`env.ledger().timestamp()` — the ledger close time, the only clock a contract has.
+
+**What it does not show, and must not be read as:**
+
+- **It is not proof that a forwarded proof is refused.** A proof forwarded and submitted *inside*
+  the hour is accepted — and is worth exactly what the borrower's own proof is worth, because
+  `contextAddress` binds it to them (#18).
+- **It is not replay protection.** That is #25, and it has no time limit.
+
+Sterun's equivalent step nearly overstated the matching claim about a QR screenshot, so the bound is
+written beside the result rather than left for a reviewer to infer.
