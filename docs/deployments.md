@@ -391,3 +391,45 @@ which arrives with #5's first live proof. One admin call, no code change.
 - Admin is `GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2`, a throwaway testnet key held
   locally in `.env`. Fine for a testnet demonstration; it is not a key anything of value should
   depend on.
+
+### Funded — 5 USDC, and what that actually buys
+
+| | |
+| --- | --- |
+| Transfer | [`6ce9ea33…`](https://stellar.expert/explorer/testnet/tx/6ce9ea337a969bc13fd3e9ae0fd81644c263fee8e00363f2a072c1a350d83a89) |
+| `liquidity` | `50000000` stroops = **5 USDC** |
+| Source | Sterish's developer account, which left it with 10.7 USDC |
+
+**The amount is a constraint, not a choice.** There is no testnet USDC to be had:
+
+- Circle's faucet is Captcha-gated and answers nothing to a script.
+- The USDC SAC's admin is `CCELIKMY7RQ3BQERWSOQHLIVYC5E3UHLTLDYIO2NVS5XGFEXYER5UWSB`, a contract we do not
+  control, so minting is not an option.
+- Every testnet USDC we hold — 17.7 across two accounts — belongs to **Sterish**, where the
+  rehearsal spends about 0.8 per run.
+
+So 5 was taken and 10.7 left behind, rather than draining another project to fill this one.
+
+#### What 5 USDC can serve
+
+The advance is 25% of proven revenue, so the contract can currently pay a claim attesting at most
+**20 USD of quarterly revenue**. Above that it answers `#40 InsufficientLiquidity` — correctly, and
+before the nullifier is written, so a creator who hits it keeps their period.
+
+For reference, the sizing rule against the cap:
+
+| Attested quarterly revenue | Advance | Payable today? |
+| --- | --- | --- |
+| 20 USD | 5 USDC | yes, exactly |
+| 100 USD | 25 USDC | no |
+| 400 USD and above | 100 USDC (the cap) | no |
+
+**The 100 USDC cap is unreachable on testnet with the funds that exist.** That is not a bug — the cap
+is an upper bound, and it simply never binds here — but a demo meant to show a realistic advance
+needs more USDC in the contract than we can currently get hold of.
+
+#### What is needed, and from whom
+
+Topping this up needs a human at [faucet.circle.com](https://faucet.circle.com) with its Captcha,
+sending to `GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2` (which first needs a USDC
+trustline — it has none today) and then transferring in. A script cannot do it.
