@@ -22,23 +22,24 @@ use soroban_sdk::{
 
 // --- the fixture, from tools/fixtures/forepay-claim.json ---
 
-const BORROWER: &str = "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2";
-const PUB_ID: &str = "pub-1234567890123456";
-const WINDOW_START: &str = "2026-07-01";
-const WINDOW_END: &str = "2026-09-30";
-const REVENUE: &str = "1234.56";
-const PROVIDER_HASH: &str = "0x569b93233185c054ed9fda68b5aef8fda180b6d291180450bf757b11bb52f7df";
-const TIMESTAMP_S: u64 = 1_760_000_000;
-const EPOCH: u64 = 1;
+pub(crate) const BORROWER: &str = "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2";
+pub(crate) const PUB_ID: &str = "pub-1234567890123456";
+pub(crate) const WINDOW_START: &str = "2026-07-01";
+pub(crate) const WINDOW_END: &str = "2026-09-30";
+pub(crate) const REVENUE: &str = "1234.56";
+pub(crate) const PROVIDER_HASH: &str =
+    "0x569b93233185c054ed9fda68b5aef8fda180b6d291180450bf757b11bb52f7df";
+pub(crate) const TIMESTAMP_S: u64 = 1_760_000_000;
+pub(crate) const EPOCH: u64 = 1;
 const SIGNATURE_HEX: &str = "41a1b3f92c2cee207d8fde5fd489da05f1d7b18f72af79c33d4cf17697509d7271b51ba7a3d9dd551f2e5aeba4aa1c8716d9945ae74b200c92da34739e80986d";
-const RECOVERY_ID: u32 = 1;
+pub(crate) const RECOVERY_ID: u32 = 1;
 /// The address the fixture's signature recovers to.
 const SIGNER: [u8; 20] = [
     0x15, 0x63, 0x91, 0x5e, 0x19, 0x4d, 0x8c, 0xfb, 0xa1, 0x94, 0x35, 0x70, 0x60, 0x3f, 0x76, 0x06,
     0xa3, 0x11, 0x55, 0x08,
 ];
 
-const TEMPLATE: [&[u8]; 4] = [
+pub(crate) const TEMPLATE: [&[u8]; 4] = [
     br#"{"method":"GET","url":"https://adsense.googleapis.com/v2/accounts/"#,
     b"/reports:generate?startDate=",
     b"&endDate=",
@@ -49,6 +50,32 @@ const TEMPLATE: [&[u8]; 4] = [
 
 #[contract]
 pub struct MockVerifier;
+
+/// A verifier that accepts anything.
+///
+/// Used only by `test_advance`, where what is under test is sizing, disbursement and the
+/// repayment ledger — not the cryptography. The strict `MockVerifier` above, with the real
+/// attestor-derived fixture, is what proves the digest is built correctly (#9, #10), and
+/// that property is not re-proved by every money test.
+///
+/// It also lets those tests use `Address::generate`, which creates accounts that actually
+/// exist in the test ledger and can therefore hold a trustline. The fixture's borrower is
+/// a literal `G…` string with no account entry behind it, so `trust` on it fails with
+/// "account entry is missing" before any of the money logic is reached.
+#[contract]
+pub struct PermissiveVerifier;
+
+#[contractimpl]
+impl PermissiveVerifier {
+    pub fn verify_proof(
+        _env: Env,
+        _message_digest: BytesN<32>,
+        _signature: BytesN<64>,
+        _recovery_id: u32,
+    ) -> Result<(), reclaim::ReclaimError> {
+        Ok(())
+    }
+}
 
 #[contractimpl]
 impl MockVerifier {
@@ -114,7 +141,7 @@ fn setup() -> Fixture {
     }
 }
 
-fn signature(env: &Env) -> BytesN<64> {
+pub(crate) fn signature(env: &Env) -> BytesN<64> {
     let mut raw = [0u8; 64];
     for (i, b) in raw.iter_mut().enumerate() {
         let hi = SIGNATURE_HEX.as_bytes()[i * 2];
