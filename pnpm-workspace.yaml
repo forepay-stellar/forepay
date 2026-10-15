@@ -15,3 +15,16 @@ allowBuilds:
   esbuild: false
   # Native resolver used by eslint-config-next.
   unrs-resolver: true
+
+  # Pulled in by @reclaimprotocol/zk-fetch (#4). All four are refused: zk-fetch
+  # loads and proves without them.
+  #  - re2: native regex. Without it zk-fetch logs "falling back to native
+  #    RegExp". Response matching is evaluated by the attestor, not here, and
+  #    the regexes are ours. Its install script downloads a binary at install.
+  #  - koffi: FFI for the TEE path (useTee), which Forepay does not use.
+  #  - @swc/core, cbor-extract: ship per-platform optional binaries / JS fallback.
+  # If one becomes necessary, allow that one, here, with the reason.
+  '@swc/core': false
+  cbor-extract: false
+  koffi: false
+  re2: false
