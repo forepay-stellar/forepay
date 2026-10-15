@@ -6,4 +6,6 @@ body {
   background: var(--color-canvas);
   color: var(--color-fg);
   font-family: var(--font-sans);
+  /* The design's text layers use the font's own line height unless they set one. */
+  line-height: normal;
 }

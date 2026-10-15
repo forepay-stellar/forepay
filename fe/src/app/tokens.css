@@ -34,7 +34,9 @@
   --fp-yellow-500: #f8a91f;
 
   /* Neutrals: warm Stone, near-black for text and primary actions. */
+  --fp-black: #000000;
   --fp-stone-950: #1c1612;
+  --fp-stone-800: #3a2f28;
   --fp-stone-600: #6e655f;
   --fp-stone-400: #a59c95;
   --fp-stone-200: #e3dbd3;
@@ -66,6 +68,9 @@
   --color-accent: var(--fp-yellow-500);
   /* Primary buttons are near-black, not brand: orange stays for the hero and accents. */
   --color-action: var(--fp-stone-950);
+  /* Primary button hover and pressed, from "Primary button states" in the pen.dev design system. */
+  --color-action-hover: var(--fp-stone-800);
+  --color-action-pressed: var(--fp-black);
   --color-icon: var(--fp-tangerine-500);
   --color-icon-subtle: var(--fp-tangerine-100);
 
@@ -90,6 +95,7 @@
   --radius-tile: 22px;
   --radius-card: 24px;
   --radius-hero: 28px;
+  --radius-pill: 999px;
 
   /* Type scale (Geist). text-display, text-page, text-amount, text-card-title, ... */
   --text-display: 4rem;
