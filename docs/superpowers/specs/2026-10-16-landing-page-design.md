@@ -31,13 +31,12 @@ It is a Stellar testnet demonstration with no real money, and the page says so p
 | # | Section | Content | Motion |
 | --- | --- | --- | --- |
 | 1 | Nav | Wordmark, "How it works", "FAQ", Testnet chip, "Open the app" | Shrinks and gains a surface background after the first scroll |
-| 2 | Hero | Headline "Get paid early on the AdSense revenue you already earn", one supporting sentence, "Open the app" and "How it works". Right side, the 3D stage: a clay wallet and a few wave coins floating. | Coins bob gently, the scene tilts toward the cursor, one coin drops into the wallet as scrolling starts |
-| 3 | How it works | Three steps, Prove your revenue, See your offer, Get USDC, each with an existing spot illustration | Each step enters in turn as it scrolls in, its illustration assembling from its shapes |
-| 4 | Your password stays yours | "What we read" against "What we never see", the same lists as the app, with the seal illustration | List items appear one by one, the seal closes |
-| 5 | The math | One large example, $360 becomes 90 USDC, with 25% and the 100 USDC limit spelled out | The numbers count up on entry |
-| 6 | Repay on your terms | "Any amount, any time", built from the app's balance card | The progress bar fills |
-| 7 | FAQ | Is this real money (no, testnet demo). Which wallets. What do you read from AdSense. What if I cannot repay (honest, it is a demo with no collection). | Accordion |
-| 8 | Final CTA and footer | "Open the app" again, the testnet note, GitHub link | Soft fade |
+| 2 | Hero | "Paid" top left and "Early" right, both about 180 px, with the clay wallet and three wave coins centered between them. Supporting sentence bottom left, "Open the app" and "How it works" bottom right. Mobile stacks the scene, then "Paid Early" on one line, then copy and buttons. | Coins bob gently, the scene tilts toward the cursor, one coin drops into the wallet as scrolling starts (see the hero storyboard) |
+| 3 | How it works | "Prove it, see it, get it". Three large rounded cards on warm glass, middle one shorter, a small mono number top left, title and one sentence at the bottom. One clay object per card: a proof paper with rising bars and a wave seal, a coin stack with one coin lifted out (a quarter), a wallet with a coin dropping in and a green check. | Cards rise in one after another. The lifted coin and the dropping coin move on scroll. |
+| 4 | Your data | "We read one line" top left, "Not your password" bottom right, one body sentence bottom left. One clay lock in the middle. Behind it, the words "password emails payments" repeat in two huge, very faint rows, cleared around the lock. | The two word rows run as a marquee in opposite directions, about 40 s per loop, passing behind the lock. Paused off screen, still with reduced motion. |
+| 5 | The math | "A simple rule". Bento: a large warm card with the clay quarter coin (one quarter lifted out) and "A quarter of your revenue, early", plus two white cards, 25% with a quarter ring and 100 USDC with capped bars. | The quarter lifts out on scroll, the numbers count up |
+| 6 | FAQ | "Questions answered", centered, seven questions as rounded white cards, one open. Real money (no, testnet). What we read. How the advance is decided. When to repay (any time, no due date, no interest). Which wallets. A second advance (one per revenue period). What if I cannot repay (honest, a demo with no collection). | Accordion |
+| 7 | Closing CTA and footer | "Paid early." in tangerine with the clay wallet overlapping it, an orange sunrise ellipse rising from below, a white "Open the app" and one sentence on it. The footer continues the deep orange of the sunrise: brand line, Product and Project links, legal line, and a giant cream Forepay wordmark cropped at the bottom. | The sunrise rises as the section scrolls in |
 
 ## 4. Visual direction
 
