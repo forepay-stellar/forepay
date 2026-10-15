@@ -1,0 +1,2 @@
+# pen.dev design files: keep byte for byte, never convert line endings.
+*.pen binary
