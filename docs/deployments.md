@@ -321,3 +321,73 @@ Sterun lost days to: wasm is reproducible **within** a toolchain and host, not a
 attested one.** So deploying a locally built wasm leaves the contract unverified, with no error
 anywhere — it simply never shows the link. #15 must download the asset from the release and deploy
 *that file*, then record both the contract address and the release it came from here.
+
+---
+
+## STE-15 — the advance contract, live and verified on testnet (2026-10-15)
+
+| | |
+| --- | --- |
+| **Contract** | [`CCQFL2Q66DHFAZU2KPRWNHU4FTZJW75N5XLNXECFFGMW3PROIXJPI2HS`](https://stellar.expert/explorer/testnet/contract/CCQFL2Q66DHFAZU2KPRWNHU4FTZJW75N5XLNXECFFGMW3PROIXJPI2HS) |
+| Wasm | `a1b293ba8b9043b3f893b8fca050189b5c980d570db7d1b2e03a12f4c575ee36`, 27,894 bytes |
+| Release it came from | [`v0.1.0_sc_advance_forepay-advance_cli28.1.0`](https://github.com/forepay-stellar/forepay/releases/tag/v0.1.0_sc_advance_forepay-advance_cli28.1.0) |
+| Verifier | `CA3EMXR6JOOTNP44T3OAJFMMMGKRRETDJKBLZP2RU3SIY4SDFAH54DU5` — **Reclaim's own**, whose epoch holds the production attestor |
+| USDC | `CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA` |
+| Upload | [`cafaeed6…`](https://stellar.expert/explorer/testnet/tx/cafaeed6e693477a960a2183333961fafd026cf64b06758c7fc29f420c06cb36) |
+| Deploy | [`722526e6…`](https://stellar.expert/explorer/testnet/tx/722526e6c469813baad413c82ea84d3fcff13f13723320338e2fcc9db8ca3ae7) |
+
+This is **not** the development instance used for #10's end-to-end run. That one points at our
+probe verifier, which accepts forged proofs by design. This one points at Reclaim's.
+
+### Verified on StellarExpert
+
+```json
+{"status": "verified",
+ "repository": "https://github.com/forepay-stellar/forepay",
+ "commit": "2b2af4c64fc46f11271bcff735a238584c253463",
+ "path": "sc/advance", "package": "forepay-advance"}
+```
+
+Anyone can now open the contract and read the exact source it was built from. That is
+Deliverable 1's evidence, and it only works because the **release artifact** was deployed rather
+than a local build.
+
+**Three different hashes from one commit, and only one of them belongs on chain:**
+
+| Build | stellar-cli | sha256 | What it is for |
+| --- | --- | --- | --- |
+| Laptop | 27.0.0 | `a91ccc1c…` | developer reference, verified by nothing |
+| CI | 28.1.0 | `a98a4620…` | rebuilt on every push, proves the source is reproducible |
+| **Release** | 28.1.0 | **`a1b293ba…`** | **deployed and attested** |
+
+CI and the release differ despite the same toolchain because the release adds
+`--meta source_repo=github:forepay-stellar/forepay` into the wasm — that metadata is what ties the
+contract to the repository. So `sc/wasm-hashes.txt` is about reproducibility of the source, and is
+**not** the hash to expect on chain.
+
+### Upgradeable — exercised on this contract, not only the dev one
+
+| Call | Result |
+| --- | --- |
+| `is_upgradeable` | `true` |
+| `propose_upgrade` | `UpgradeProposed`, `executable_at` exactly 86,400 s ahead — [`6a71c864…`](https://stellar.expert/explorer/testnet/tx/6a71c864042c7ccc39d49d333869bdc3979be5578145fdf692d2e460ec02ba13) |
+| `execute_upgrade` immediately | **`Error(Contract, #4)` `TimelockNotElapsed`** |
+| `cancel_upgrade` | `UpgradeCancelled` — [`e2a2ed3c…`](https://stellar.expert/explorer/testnet/tx/e2a2ed3c1b2ee5ad8f5855bc989b91a812d805a12b3c8188c0c64c455f7d9f64) |
+| `pending_upgrade` after | `null` |
+
+Left with no pending proposal.
+
+### It deploys in a safe state, and that is proven too
+
+`claim_template` is `null`, so `request_advance` answers **`Error(Contract, #10)` `TemplateNotSet`** —
+checked on chain. The contract cannot accept a proof until an admin pins the real AdSense template,
+which arrives with #5's first live proof. One admin call, no code change.
+
+### Still to do on this deployment
+
+- **Fund it with testnet USDC.** `liquidity` reads `0`; until then `request_advance` would answer
+  `#40 InsufficientLiquidity` even with a valid proof.
+- **Pin the template** once #5 produces a real AdSense claim.
+- Admin is `GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2`, a throwaway testnet key held
+  locally in `.env`. Fine for a testnet demonstration; it is not a key anything of value should
+  depend on.
