@@ -28,3 +28,16 @@ allowBuilds:
   cbor-extract: false
   koffi: false
   re2: false
+
+  # Pulled in by the front end's wallet stack (#19): @reown/appkit and
+  # @walletconnect/universal-provider. All refused, because the app runs them
+  # in the browser, where no native addon can load anyway.
+  #  - @reown/appkit: its postinstall only prints a version-mismatch warning.
+  #  - bufferutil, utf-8-validate: optional native speedups for the `ws`
+  #    package, which falls back to plain JS without them.
+  #  - secp256k1: native build with a JS fallback (`|| exit 0` in its own
+  #    install script).
+  '@reown/appkit': false
+  bufferutil: false
+  secp256k1: false
+  utf-8-validate: false
