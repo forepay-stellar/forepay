@@ -1,0 +1,24 @@
+# Reproducible build hashes for the Forepay advance contract (#14).
+#
+# ONE ROW PER HOST TRIPLE, and only rows something actually verifies.
+#
+# Wasm is byte-identical **within** a host triple and toolchain, and **not across them**:
+# the linker orders read-only data symbols differently per host, which shifts pointer
+# constants. Section sizes stay identical, which makes it look tantalisingly close to
+# reproducible and sends you hunting for a bug that is not there. Sterun lost days to
+# exactly this, with a CI check that could never pass.
+#
+# So: a row is recorded only when something checks it. The linux row is rebuilt and
+# compared by CI on every push. The macOS row is NOT checked by anything — CI has no
+# macOS runner — so it is kept below the line as developer reference, not as evidence.
+#
+# The hash that matters for deployment is neither of these: it is the one the release
+# workflow produces, because StellarExpert matches the on-chain wasm against the attested
+# artifact. See docs/deployments.md.
+
+# triple                     stellar-cli  sha256
+# --- verified by CI on every push ---
+x86_64-unknown-linux-gnu     28.1.0       a98a462062124a1f9b8a42ebba963515a8994ca554844085a14da4ca246e0bc0
+
+# @@UNVERIFIED@@ rows below this marker are reference only and are not checked
+aarch64-apple-darwin         27.0.0       a91ccc1c88bd912c874b9db1f78831bacb9f657becd9849e2b7c371d2f604fc3

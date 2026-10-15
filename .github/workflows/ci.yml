@@ -95,6 +95,17 @@ jobs:
             echo "| $(stat -c %s "$wasm") | \`$(sha256sum "$wasm" | cut -d' ' -f1)\` |"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # A recorded hash nobody rebuilds is a claim, not evidence. Sterun lost days to a
+      # reproducibility check that could never pass, so this one must be able to fail.
+      - name: Wasm hash matches the recorded row for this triple
+        # The job's working-directory is already `sc`.
+        run: ./check-wasm-hash.sh
+
+      - name: Coverage (contracts above 80%)
+        run: |
+          cargo install cargo-llvm-cov --locked >/dev/null 2>&1 || true
+          cargo llvm-cov --workspace --fail-under-lines 80 --summary-only
+
   typescript:
     name: TypeScript (be, fe, landing-page)
     runs-on: ubuntu-24.04

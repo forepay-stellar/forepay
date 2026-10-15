@@ -39,14 +39,18 @@
 #![allow(clippy::too_many_arguments)]
 
 use soroban_sdk::{
-    contract, contracterror, contractevent, contractimpl, contracttype, Address, Bytes, BytesN,
-    ContractExecutable, Env, String, Vec,
+    contract, contracterror, contractevent, contractimpl, contracttype, token, Address, Bytes,
+    BytesN, ContractExecutable, Env, String, Vec,
 };
 
 mod claim;
 mod reclaim;
+mod sizing;
 
 pub use claim::{CONTEXT_MESSAGE, PROVIDER};
+pub use sizing::{
+    ADVANCE_CAP_STROOPS, ADVANCE_DEN, ADVANCE_NUM, MIN_ADVANCE_STROOPS, STROOPS_PER_CENT,
+};
 
 /// Storage keys. Append-only: a new variant may be added, none may ever be removed,
 /// renamed or given a different payload type.
@@ -70,6 +74,31 @@ pub enum DataKey {
     ProviderHash,
     /// One spent nullifier. **Persistent on purpose** — see `nullifier_of`.
     Nullifier(BytesN<32>),
+    /// One advance, keyed by the nullifier that funded it. Persistent: an advance that
+    /// vanished when its TTL lapsed would erase a debt, which is not a rounding error.
+    Advance(BytesN<32>),
+}
+
+/// An advance that has been paid out, and what is still owed on it.
+///
+/// **No default handling, recovery or liquidation** — SOW §4.1 excludes them, and a
+/// half-built default path would make this read as a lending product rather than the
+/// technical demonstration it is scoped as.
+#[contracttype]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Advance {
+    pub borrower: Address,
+    pub pub_id: String,
+    pub window_start: String,
+    pub window_end: String,
+    /// The attested figure the advance was sized from, in cents.
+    pub revenue_cents: i128,
+    /// Stroops disbursed.
+    pub principal: i128,
+    /// Stroops repaid so far.
+    pub repaid: i128,
+    /// Ledger timestamp at disbursement.
+    pub opened_at: u64,
 }
 
 /// A claim whose signature has been checked against Reclaim's verifier.
@@ -157,6 +186,37 @@ pub enum Error {
     // --- 20-29: nullifier registry (#10) ---
     /// This publisher and window have already funded an advance.
     NullifierSpent = 20,
+
+    // --- 30-39: sizing (#11) ---
+    /// `revenueUsd` is not a plain non-negative decimal, or carries more than two
+    /// decimal places. Refused rather than rounded: rounding would make the advance
+    /// depend on how we round, and anyone must be able to re-derive the figure.
+    RevenueUnparseable = 30,
+    /// The sized advance is below `MIN_ADVANCE_STROOPS`. Refused so that a dust advance
+    /// cannot burn the creator's nullifier for the period in exchange for nothing.
+    AdvanceTooSmall = 31,
+
+    // --- 40-49: disbursement (#12) ---
+    /// The contract does not hold enough USDC to pay this advance.
+    InsufficientLiquidity = 40,
+    /// The transfer to the borrower could not land. In practice this is a missing USDC
+    /// trustline, which is the actionable case and what the name says; it also covers an
+    /// account that does not exist on the network at all, and an authorisation the issuer
+    /// has revoked. All three are "we cannot pay this address", and all three are fixed
+    /// by the creator rather than by us.
+    ///
+    /// Named rather than left as a raw panic, because "add a USDC trustline" is something
+    /// a creator can act on and `Error(Contract, #13)` from somebody else's contract is
+    /// not.
+    NoTrustline = 41,
+
+    // --- 50-59: repayment (#13) ---
+    /// No advance exists for this publisher and window.
+    UnknownAdvance = 50,
+    /// The repayment is larger than what is still owed.
+    RepaymentExceedsOutstanding = 51,
+    /// A zero or negative amount.
+    AmountNotPositive = 52,
 }
 
 /// How old an attestor signature may be, measured against ledger time (#6 §6).
@@ -205,6 +265,24 @@ pub struct NullifierSpent {
     #[topic]
     pub borrower: Address,
     pub nullifier: BytesN<32>,
+}
+
+#[contractevent]
+pub struct AdvanceDisbursed {
+    #[topic]
+    pub borrower: Address,
+    pub nullifier: BytesN<32>,
+    pub revenue_cents: i128,
+    pub principal: i128,
+}
+
+#[contractevent]
+pub struct Repaid {
+    #[topic]
+    pub borrower: Address,
+    pub nullifier: BytesN<32>,
+    pub amount: i128,
+    pub outstanding: i128,
 }
 
 #[contract]
@@ -582,6 +660,208 @@ impl AdvanceContract {
         Ok(verified)
     }
 
+    // ------------------------------------------- the advance (#11, #12, #13)
+
+    /// What an advance would be for a given attested figure, in stroops.
+    ///
+    /// Public and pure so a front end can show the derivation before anyone proves
+    /// anything — `revenue × 25 / 100`, capped at 100 USDC — and so the number on screen
+    /// is the contract's own arithmetic rather than a reimplementation of it (#20).
+    pub fn quote(env: Env, revenue_usd: String) -> Result<i128, Error> {
+        let cents = sizing::parse_usd_cents(&env, &revenue_usd).ok_or(Error::RevenueUnparseable)?;
+        let stroops = sizing::advance_stroops(cents).ok_or(Error::RevenueUnparseable)?;
+        if stroops < sizing::MIN_ADVANCE_STROOPS {
+            return Err(Error::AdvanceTooSmall);
+        }
+        Ok(stroops)
+    }
+
+    /// How much USDC this contract can still lend.
+    pub fn liquidity(env: Env) -> Result<i128, Error> {
+        let usdc: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Usdc)
+            .ok_or(Error::NotInitialized)?;
+        Ok(token::Client::new(&env, &usdc).balance(&env.current_contract_address()))
+    }
+
+    /// The advance funded by a given nullifier, if any.
+    pub fn advance(env: Env, nullifier: BytesN<32>) -> Option<Advance> {
+        env.storage().persistent().get(&DataKey::Advance(nullifier))
+    }
+
+    /// Prove revenue, size an advance, and receive USDC. The product, in one call.
+    ///
+    /// The order is the security property and does not change:
+    ///
+    /// 1. verify the claim — nothing before this is trusted
+    /// 2. size it, so a figure too small to be worth borrowing against fails **before**
+    ///    the nullifier is consumed
+    /// 3. check and **write** the nullifier
+    /// 4. disburse
+    ///
+    /// Sizing sits before the nullifier deliberately: a creator whose quarter is below the
+    /// floor should be able to come back when it is not, rather than having burned the
+    /// period on a refused advance. The nullifier is written before the transfer, in the
+    /// same invocation, because check-then-act with a transfer in between is the classic
+    /// race and two transactions in one ledger could otherwise both pass the check.
+    pub fn request_advance(
+        env: Env,
+        borrower: Address,
+        revenue_usd: String,
+        pub_id: String,
+        window_start: String,
+        window_end: String,
+        timestamp_s: u64,
+        epoch: u64,
+        signature: BytesN<64>,
+        recovery_id: u32,
+    ) -> Result<i128, Error> {
+        let verified = Self::verify_claim(
+            env.clone(),
+            borrower,
+            revenue_usd,
+            pub_id,
+            window_start,
+            window_end,
+            timestamp_s,
+            epoch,
+            signature,
+            recovery_id,
+        )?;
+
+        let cents = sizing::parse_usd_cents(&env, &verified.revenue_usd)
+            .ok_or(Error::RevenueUnparseable)?;
+        let principal = sizing::advance_stroops(cents).ok_or(Error::RevenueUnparseable)?;
+        if principal < sizing::MIN_ADVANCE_STROOPS {
+            return Err(Error::AdvanceTooSmall);
+        }
+
+        let nullifier = Self::nullifier_for(
+            env.clone(),
+            verified.pub_id.clone(),
+            verified.window_start.clone(),
+            verified.window_end.clone(),
+        )?;
+        let null_key = DataKey::Nullifier(nullifier.clone());
+        if env.storage().persistent().has(&null_key) {
+            return Err(Error::NullifierSpent);
+        }
+
+        let usdc: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Usdc)
+            .ok_or(Error::NotInitialized)?;
+        let client = token::Client::new(&env, &usdc);
+        if client.balance(&env.current_contract_address()) < principal {
+            return Err(Error::InsufficientLiquidity);
+        }
+
+        env.storage()
+            .persistent()
+            .set(&null_key, &verified.timestamp_s);
+        env.storage()
+            .persistent()
+            .extend_ttl(&null_key, 120 * 17_280, 180 * 17_280);
+
+        // `try_transfer` rather than `transfer`: a borrower with no USDC trustline makes
+        // the SAC fail, and without `try_` that failure traps the whole invocation and
+        // the creator sees a bare host error. They get a named one they can act on.
+        client
+            .try_transfer(
+                &env.current_contract_address(),
+                &verified.borrower,
+                &principal,
+            )
+            .map_err(|_| Error::NoTrustline)?
+            .map_err(|_| Error::NoTrustline)?;
+
+        let advance = Advance {
+            borrower: verified.borrower.clone(),
+            pub_id: verified.pub_id.clone(),
+            window_start: verified.window_start.clone(),
+            window_end: verified.window_end.clone(),
+            revenue_cents: cents,
+            principal,
+            repaid: 0,
+            opened_at: env.ledger().timestamp(),
+        };
+        let adv_key = DataKey::Advance(nullifier.clone());
+        env.storage().persistent().set(&adv_key, &advance);
+        env.storage()
+            .persistent()
+            .extend_ttl(&adv_key, 120 * 17_280, 180 * 17_280);
+
+        NullifierSpent {
+            borrower: verified.borrower.clone(),
+            nullifier: nullifier.clone(),
+        }
+        .publish(&env);
+        AdvanceDisbursed {
+            borrower: verified.borrower,
+            nullifier,
+            revenue_cents: cents,
+            principal,
+        }
+        .publish(&env);
+        Ok(principal)
+    }
+
+    /// Repay an advance, in whole or in part.
+    ///
+    /// Anyone may repay on a borrower's behalf — `from` authorises the transfer, and
+    /// paying down someone else's debt harms nobody. What is refused is paying **more**
+    /// than is owed, so the ledger cannot go negative and nobody overpays by accident.
+    pub fn repay(
+        env: Env,
+        from: Address,
+        nullifier: BytesN<32>,
+        amount: i128,
+    ) -> Result<i128, Error> {
+        from.require_auth();
+        if amount <= 0 {
+            return Err(Error::AmountNotPositive);
+        }
+
+        let key = DataKey::Advance(nullifier.clone());
+        let mut advance: Advance = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .ok_or(Error::UnknownAdvance)?;
+
+        let outstanding = advance.principal - advance.repaid;
+        if amount > outstanding {
+            return Err(Error::RepaymentExceedsOutstanding);
+        }
+
+        let usdc: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Usdc)
+            .ok_or(Error::NotInitialized)?;
+        token::Client::new(&env, &usdc).transfer(&from, env.current_contract_address(), &amount);
+
+        advance.repaid += amount;
+        let remaining = advance.principal - advance.repaid;
+        let borrower = advance.borrower.clone();
+        env.storage().persistent().set(&key, &advance);
+        env.storage()
+            .persistent()
+            .extend_ttl(&key, 120 * 17_280, 180 * 17_280);
+
+        Repaid {
+            borrower,
+            nullifier,
+            amount,
+            outstanding: remaining,
+        }
+        .publish(&env);
+        Ok(remaining)
+    }
+
     // -------------------------------------------------------------- helpers
 
     fn require_admin(env: &Env) -> Result<Address, Error> {
@@ -612,5 +892,7 @@ impl AdvanceContract {
 
 #[cfg(test)]
 mod test;
+#[cfg(test)]
+mod test_advance;
 #[cfg(test)]
 mod test_claim;
