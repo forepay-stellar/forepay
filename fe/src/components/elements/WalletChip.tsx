@@ -34,14 +34,18 @@ export function WalletChip({
     <Menu.Root>
       <Menu.Trigger
         aria-label={`Wallet ${short}`}
-        className="flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-pill bg-surface py-1.5 pl-1.5 pr-3.5 outline-none hover:bg-subtle focus-visible:ring-2 focus-visible:ring-brand data-[popup-open]:bg-subtle"
+        className="group flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-pill bg-surface py-1.5 pl-1.5 pr-3.5 outline-none focus-visible:ring-2 focus-visible:ring-brand"
       >
         <span className="flex size-[30px] items-center justify-center rounded-pill bg-brand-subtle">
           <Wallet className="size-4 text-icon" aria-hidden />
         </span>
         <span className="font-mono text-[14px] font-medium text-fg">{short}</span>
-        {/* A phone drops the chevron to fit the header (1c Mobile). */}
-        <ChevronDown className="hidden size-4 text-fg-muted lg:block" aria-hidden />
+        {/* A phone drops the chevron to fit the header (1c Mobile). It points up while the menu is open.
+            The chip itself stays white, as on the board: a tint would melt into the canvas. */}
+        <ChevronDown
+          className="hidden size-4 text-fg-muted transition-transform duration-150 group-data-[popup-open]:rotate-180 motion-reduce:transition-none lg:block"
+          aria-hidden
+        />
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner sideOffset={8} align="end" className="z-50">

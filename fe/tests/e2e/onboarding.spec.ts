@@ -69,7 +69,10 @@ test("the wallet menu copies the address", async ({ page, context, browserName }
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await mockRpc(page, { account: true, trustline: false });
   await connectFromStart(page);
-  await page.getByRole("button", { name: /^Wallet / }).first().click();
+  const chip = page.getByRole("button", { name: /^Wallet / }).first();
+  await chip.click();
+  // The chip stays the white pill while its menu is open (onboarding board, "Wallet menu").
+  await expect(chip).toHaveCSS("background-color", "rgb(255, 255, 255)");
   await page.getByRole("menuitem", { name: "Copy address" }).click();
   await expect(page.getByText("Address copied")).toBeVisible();
 });
