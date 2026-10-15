@@ -433,3 +433,40 @@ needs more USDC in the contract than we can currently get hold of.
 Topping this up needs a human at [faucet.circle.com](https://faucet.circle.com) with its Captcha,
 sending to `GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2` (which first needs a USDC
 trustline — it has none today) and then transferring in. A script cannot do it.
+
+---
+
+## #18 — a proof bound to one borrower cannot be spent by another, on chain
+
+Checked on **2026-10-15** against the development deployment
+`CA3YGQHU42EL2TAOG7NJ5DDT5FLKKQNDWIUFFU6KV7QJHCFGLAGYXLID`.
+
+One claim, bound to `GA2CD6PM…WWH2`, submitted twice with **identical bytes** and only the borrower
+argument changed:
+
+| Submitted for | Result |
+| --- | --- |
+| `GD73M4F7…RSZU` — someone else | **`Error(Contract, #14)` `VerifierRejected`** |
+| `GA2CD6PM…WWH2` — the bound borrower | **Success** — [`162b534c…`](https://stellar.expert/explorer/testnet/tx/162b534cd0c540fe8916acfaf6fdc6ba2f7de7cb34abbd1fa804ba8fbeecf263) |
+
+Same signature, same revenue figure, same publisher, same window, same timestamp. The only
+difference is who asked.
+
+**Why that is the right error.** `#14` is the verifier refusing, not a Forepay rule rejecting a
+mismatch. The borrower is converted from the `Address` argument and hashed into `contextAddress`
+inside the claim, so submitting for a different address builds a **different digest** — and the
+attestor never signed that one. There is no check to forget and no branch to get wrong: the binding
+is structural.
+
+That is what makes proofs safe to hand around. A creator's proof sitting in a log, a screenshot or
+someone else's inbox is worth nothing to anyone but them.
+
+The unit test `a_proof_bound_to_one_borrower_cannot_be_spent_by_another` pins the same property, so
+a refactor cannot quietly remove it.
+
+### Why this did not wait for #17
+
+The issue has #17 as a blocker, on the assumption the property could only be shown through the
+relay. It cannot be weakened by the relay: the binding lives in the digest, and the relay only
+decides which bytes get signed. Showing it directly against the contract is the stronger
+demonstration and needed nothing from the front end.
