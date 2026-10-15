@@ -1,0 +1,17 @@
+{"kind": "action", "at": "2026-10-15T16:42:36+00:00", "step": "P.1", "action": "read is_upgradeable", "outcome": "ok", "tx": null, "url": null, "detail": "true"}
+{"kind": "action", "at": "2026-10-15T16:42:37+00:00", "step": "P.1", "action": "read claim_template", "outcome": "ok", "tx": null, "url": null, "detail": "[\"7b226d6574686f64223a22474554222c2275726c223a2268747470733a2f2f616473656e73652e676f6f676c65617069732e636f6d2f76322f6163636f756e74732f\",\"2f7265706f7274733a67656e65726174653f7374617274446174653d\",\"26656e64446174653d\",\"266d6574726963733d455354494d415445445f4541524e494e4753227d\"]"}
+{"kind": "action", "at": "2026-10-15T16:42:38+00:00", "step": "P.1", "action": "read liquidity", "outcome": "ok", "tx": null, "url": null, "detail": "\"20000000\""}
+{"kind": "action", "at": "2026-10-15T16:42:38+00:00", "step": "P.1", "action": "contract under test", "outcome": "info", "tx": null, "url": null, "detail": "CD25Q4TDGDY6CI3LUIWUOH6SXCH6ETIUCI6FUOBI322GCJL5G3EIHQN4 (https://stellar.expert/explorer/testnet/contract/CD25Q4TDGDY6CI3LUIWUOH6SXCH6ETIUCI6FUOBI322GCJL5G3EIHQN4)"}
+{"kind": "action", "at": "2026-10-15T16:42:38+00:00", "step": "P.1", "action": "verified production contract", "outcome": "info", "tx": null, "url": null, "detail": "CCQFL2Q66DHFAZU2KPRWNHU4FTZJW75N5XLNXECFFGMW3PROIXJPI2HS \u2014 not this one; its verifier is Reclaim's and cannot be signed for here"}
+{"kind": "conclusion", "at": "2026-10-15T16:42:38+00:00", "step": "P.1", "status": "GREEN", "summary": "the contract answers and its state is on the record"}
+{"kind": "action", "at": "2026-10-15T16:42:39+00:00", "step": "H.1", "action": "borrower USDC before", "outcome": "ok", "tx": null, "url": null, "detail": "0 stroops"}
+{"kind": "action", "at": "2026-10-15T16:42:40+00:00", "step": "H.1", "action": "request_advance", "outcome": "fail", "tx": null, "url": null, "detail": "#14"}
+{"kind": "conclusion", "at": "2026-10-15T16:42:40+00:00", "step": "H.1", "status": "RED", "summary": "a genuine proof was refused (#14)"}
+{"kind": "conclusion", "at": "2026-10-15T16:42:40+00:00", "step": "H.2", "status": "BLOCKED", "summary": "H.1 produced no advance to repay"}
+{"kind": "action", "at": "2026-10-15T16:42:41+00:00", "step": "N.1", "action": "proof signed by a key that is not a witness", "outcome": "ok", "tx": null, "url": null, "detail": "refused with #14, expected #14"}
+{"kind": "conclusion", "at": "2026-10-15T16:42:41+00:00", "step": "N.1", "status": "GREEN", "summary": "refused with #14, and the refusal never reached the ledger"}
+{"kind": "conclusion", "at": "2026-10-15T16:42:41+00:00", "step": "N.2", "status": "BLOCKED", "summary": "H.1 did not produce an advance to replay"}
+{"kind": "action", "at": "2026-10-15T16:42:42+00:00", "step": "N.3", "action": "a proof two hours old against a one hour window", "outcome": "ok", "tx": null, "url": null, "detail": "refused with #12, expected #12"}
+{"kind": "conclusion", "at": "2026-10-15T16:42:42+00:00", "step": "N.3", "status": "GREEN", "summary": "refused with #12, and the refusal never reached the ledger"}
+{"kind": "action", "at": "2026-10-15T16:42:44+00:00", "step": "B.1", "action": "a proof bound to one borrower, submitted for another", "outcome": "ok", "tx": null, "url": null, "detail": "refused with #14, expected #14"}
+{"kind": "conclusion", "at": "2026-10-15T16:42:44+00:00", "step": "B.1", "status": "GREEN", "summary": "refused with #14, and the refusal never reached the ledger"}
