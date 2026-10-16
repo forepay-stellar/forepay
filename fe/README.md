@@ -43,9 +43,10 @@ It uses Playwright's own Chromium. Google Chrome works too (`PW_CHANNEL=chrome`)
 a Chrome update pending, Chrome's updater can keep a finished run from exiting. It starts its own
 `next dev` on port 3219 (or `PW_PORT`), built into `.next-e2e` (`NEXT_DIST_DIR`), so it runs
 alongside your own `next dev`. Any other `NEXT_DIST_DIR` makes Next add its type folder to
-`tsconfig.json`; do not commit that. It sets its own environment (`playwright.config.ts`): the test wallet
-(`NEXT_PUBLIC_E2E=1`) and a fake RPC URL whose answers each spec decides, so a run never touches
-testnet and needs no browser extension.
+`tsconfig.json`; do not commit that. It sets its own environment (`playwright.config.ts`): the test
+wallet (`NEXT_PUBLIC_E2E=1`), a fake RPC URL and a fake #16 API URL whose answers each spec decides
+(`tests/e2e/rpc.ts`, `tests/e2e/api.ts`), so a run never touches testnet or a real API and needs no
+browser extension.
 
 ## Environment
 
