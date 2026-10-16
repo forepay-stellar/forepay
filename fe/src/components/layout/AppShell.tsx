@@ -35,7 +35,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="flex min-h-dvh flex-col bg-canvas pb-[120px] lg:px-20 lg:pb-16">
       <TopNav wallet={wallet} />
       <MobileHeader wallet={wallet} />
-      <main className="flex flex-1 flex-col px-4 pt-4 lg:px-0 lg:pt-8">{children}</main>
+      {/* The gap under the top nav is the page's own: 32 on 2a to 2d, 28 on 3a and 3b. */}
+      <main className="flex flex-1 flex-col px-4 pt-4 lg:px-0 lg:pt-0">{children}</main>
       <TabBar />
     </div>
   );
