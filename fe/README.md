@@ -55,6 +55,22 @@ browser. Never put a secret in one.
 - **`NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID`** is only needed for mobile wallets. Without it,
   desktop browser wallets still work.
 
+## Proving revenue is mocked until #17
+
+The Reclaim session and the proof relay (#17) do not exist yet, so `src/lib/reclaim/` answers from a
+mock while `NEXT_PUBLIC_RELAY_URL` is empty. It walks through the session (window open, reading) and
+returns fixed values. Everything after it, the offer from `quote`, the proof check, `request_advance`
+and the receipt, is the real contract client. On testnet the contract refuses the mock's proof, so the
+whole flow only completes in the e2e run, against the stubbed RPC.
+
+To see the other states by hand, set these in the browser's localStorage and reload:
+
+| Key | Value | Shows |
+| --- | --- | --- |
+| `forepay.mock.revenue` | `1240.00` | the offer capped at 100 USDC |
+| `forepay.mock.revenue` | `3.20` | "Not enough revenue yet" |
+| `forepay.mock.reclaim` | `cancel` | "You closed the AdSense window" |
+
 ## A wallet to test with
 
 1. Install the Freighter browser extension and create an account.

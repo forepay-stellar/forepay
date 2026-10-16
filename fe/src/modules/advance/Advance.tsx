@@ -233,13 +233,22 @@ export function Advance() {
     }
   }
 
-  function onFailureAction(action: FailureAction, r: AdvanceRequest | undefined, during: "prove" | "accept") {
+  function onFailureAction(
+    action: FailureAction,
+    failure: AdvanceFailure,
+    r: AdvanceRequest | undefined,
+    during: "prove" | "accept",
+  ) {
     switch (action) {
       case "prove":
         return void prove();
-      case "back":
-        // From a failed accept with a proof that is still good, Back is the offer. Otherwise 2a.
-        return r && during === "accept" ? toOffer(r) : toStart();
+      case "back": {
+        // Back is the offer only when the accept failed before the contract looked at the proof, so
+        // the proof is still good. A refusal (expired, used, paused) goes back to 2a.
+        const proofStillGood =
+          "kind" in failure && (failure.kind === "refused" || failure.kind === "charged" || failure.kind === "unreachable");
+        return r && during === "accept" && proofStillGood ? toOffer(r) : toStart();
+      }
       case "reviewOffer":
         return r ? toOffer(r) : toStart();
       case "retry":
@@ -312,7 +321,7 @@ export function Advance() {
               failure={proveFailure(offer.error)}
               walletName={wallet}
               allowing={allowing}
-              onAction={(action) => onFailureAction(action, flow.req, "prove")}
+              onAction={(action) => onFailureAction(action, proveFailure(offer.error), flow.req, "prove")}
             />
           </Centered>
         ) : (
@@ -375,7 +384,7 @@ export function Advance() {
           failure={flow.failure}
           walletName={wallet}
           allowing={allowing}
-          onAction={(action) => onFailureAction(action, flow.req, flow.during)}
+          onAction={(action) => onFailureAction(action, flow.failure, flow.req, flow.during)}
         />
       </Centered>
     </AdvanceScreen>
