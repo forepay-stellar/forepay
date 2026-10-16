@@ -166,10 +166,11 @@ const PICKER_THEME = {
 export function getKit(): typeof StellarWalletsKit {
   if (typeof window === "undefined") throw new Error("wallet is client-only");
   if (!initialized) {
+    const modules = walletModules();
     StellarWalletsKit.init({
       network: Networks.TESTNET,
-      selectedWalletId: initialWalletId(),
-      modules: walletModules(),
+      selectedWalletId: initialWalletId(modules.map((m) => m.productId)),
+      modules,
       theme: PICKER_THEME,
       authModal: { showInstallLabel: true },
     });
@@ -178,12 +179,21 @@ export function getKit(): typeof StellarWalletsKit {
   return StellarWalletsKit;
 }
 
-function initialWalletId() {
+/**
+ * The wallet picked last time, if this build still has it. `init` calls `setWallet`, which throws for
+ * an id that is not a registered module (`wallet_connect` after its project id was removed, say), and
+ * a throw there would leave the kit uninitialised and every later call failing until site data is
+ * cleared. An unknown id is forgotten and Freighter, always registered, is selected instead.
+ */
+function initialWalletId(known: string[]) {
   try {
-    return window.localStorage.getItem(WALLET_ID_KEY) ?? FREIGHTER_ID;
+    const saved = window.localStorage.getItem(WALLET_ID_KEY);
+    if (saved && known.includes(saved)) return saved;
+    if (saved) window.localStorage.removeItem(WALLET_ID_KEY);
   } catch {
-    return FREIGHTER_ID;
+    // Storage unavailable: nothing was saved.
   }
+  return FREIGHTER_ID;
 }
 
 export function getWalletName(): string {
