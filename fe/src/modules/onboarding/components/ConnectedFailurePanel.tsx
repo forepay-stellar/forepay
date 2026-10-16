@@ -93,7 +93,7 @@ export function ConnectedFailurePanel({
     <OnboardingShell step={2} wallet={wallet} narrow>
       <ErrorPanel
         centered
-        stacked={failure === "unfunded" || failure === "fundFailed"}
+        stacked={["unfunded", "fundFailed", "signLocked", "signWrongNetwork", "signNoAnswer"].includes(failure)}
         illustration={content.illustration}
         title={copy.title}
         body={copy.body}
