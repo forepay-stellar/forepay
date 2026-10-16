@@ -12,6 +12,7 @@ function friendbot(status: number) {
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   readUsdcStatus.mockReset();
 });
@@ -45,10 +46,12 @@ describe("fundWithFriendbot", () => {
   it("throws FriendbotError when the account never appears, without waiting after the last try", async () => {
     friendbot(200);
     readUsdcStatus.mockResolvedValue("unfunded");
-    const started = Date.now();
-    await expect(fundWithFriendbot(ADDRESS, { attempts: 2, intervalMs: 300 })).rejects.toBeInstanceOf(FriendbotError);
-    // One wait between the two reads, none after the second.
-    expect(Date.now() - started).toBeLessThan(550);
+    vi.useFakeTimers();
+    const outcome = fundWithFriendbot(ADDRESS, { attempts: 2, intervalMs: 300 }).catch((e: unknown) => e);
+    // One wait between the two reads, none after the second: done once a single interval has passed.
+    await vi.advanceTimersByTimeAsync(300);
+    expect(vi.getTimerCount()).toBe(0);
+    expect(await outcome).toBeInstanceOf(FriendbotError);
     expect(readUsdcStatus).toHaveBeenCalledTimes(2);
   });
 
