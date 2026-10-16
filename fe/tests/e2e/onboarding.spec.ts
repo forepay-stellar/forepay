@@ -228,13 +228,15 @@ test("a wallet that cannot report its network connects and stays connected after
   await expect(page.getByRole("heading", { name: "Unlock xBull first" })).toHaveCount(0);
 });
 
-test("a wallet locked since the last visit is dropped on reload, not trusted until signing", async ({ page }) => {
+test("a Freighter locked since the last visit is dropped on reload and named, not trusted until signing", async ({
+  page,
+}) => {
   await mockRpc(page, { account: true, trustline: false });
   await connectFromStart(page);
   await expect(page.getByText("Not allowed yet")).toBeVisible();
   await page.evaluate(() => window.localStorage.setItem("forepay.e2e.scenario", "locked"));
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Get paid early on the AdSense revenue you already earn" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Unlock Freighter first" })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Wallet / })).toHaveCount(0);
 });
 
