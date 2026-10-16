@@ -52,6 +52,17 @@ describe("addUsdcTrustline", () => {
     await expect(addUsdcTrustline(ADDRESS, sign)).rejects.toMatchObject({ outcome: "unconfirmed" });
   });
 
+  it("reports a submission that gets no answer as unconfirmed, never as nothing charged", async () => {
+    vi.spyOn(rpc.Server.prototype, "getAccount").mockResolvedValue(new Account(ADDRESS, "1"));
+    vi.spyOn(rpc.Server.prototype, "sendTransaction").mockRejectedValue(new TypeError("fetch failed"));
+    await expect(addUsdcTrustline(ADDRESS, sign)).rejects.toMatchObject({ outcome: "unconfirmed" });
+  });
+
+  it("reports a poll that loses the connection after PENDING as unconfirmed", async () => {
+    chain("PENDING", rpc.Api.GetTransactionStatus.SUCCESS).mockRejectedValue(new TypeError("fetch failed"));
+    await expect(addUsdcTrustline(ADDRESS, sign)).rejects.toMatchObject({ outcome: "unconfirmed" });
+  });
+
   it("lets the wallet's own rejection through untouched", async () => {
     chain("PENDING", rpc.Api.GetTransactionStatus.SUCCESS);
     const declined = new Error("The user rejected this request.");

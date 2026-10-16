@@ -78,11 +78,24 @@ export async function addUsdcTrustline(
     .build();
 
   const signed = await signTransaction(tx.toXDR());
-  const sent = await rpcServer.sendTransaction(TransactionBuilder.fromXDR(signed, NETWORK_PASSPHRASE));
+  // From here on the signed transaction may be out. A request that gets no answer (a dropped
+  // connection, a node that times out) cannot say whether it landed, so it is "unconfirmed", never
+  // "nothing was charged".
+  let sent: rpc.Api.SendTransactionResponse;
+  try {
+    sent = await rpcServer.sendTransaction(TransactionBuilder.fromXDR(signed, NETWORK_PASSPHRASE));
+  } catch {
+    throw new TrustlineError("Sending got no answer", "unconfirmed");
+  }
   if (sent.status === "ERROR" || sent.status === "TRY_AGAIN_LATER") {
     throw new TrustlineError(`The network did not accept the transaction (${sent.status})`, "refused");
   }
-  const result = await rpcServer.pollTransaction(sent.hash, { attempts: 30 });
+  let result: rpc.Api.GetTransactionResponse;
+  try {
+    result = await rpcServer.pollTransaction(sent.hash, { attempts: 30 });
+  } catch {
+    throw new TrustlineError("Waiting for the ledger got no answer", "unconfirmed");
+  }
   if (result.status === rpc.Api.GetTransactionStatus.FAILED) {
     throw new TrustlineError("The transaction failed on the ledger", "failed");
   }
