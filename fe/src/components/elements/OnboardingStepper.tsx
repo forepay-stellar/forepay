@@ -12,7 +12,8 @@ function barColour(i: number, current: number) {
 
 export function OnboardingStepper({ current }: { current: number }) {
   return (
-    <ol className="flex w-[480px] gap-2.5" aria-label="Onboarding progress">
+    // 480 wide at 1440, narrower between 1024 and ~1120 so the top bar never overflows.
+    <ol className="flex w-full min-w-0 max-w-[480px] flex-1 gap-2.5" aria-label="Onboarding progress">
       {ONBOARDING_STEPS.map((name, i) => (
         <li key={name} className="flex flex-1 flex-col gap-2" aria-current={i === current ? "step" : undefined}>
           <span className={cn("h-1 w-full rounded-[2px]", barColour(i, current))} />
