@@ -29,7 +29,7 @@ describe("repayFailureCopy", () => {
   });
 
   it("promises nothing about a transaction that may still land", () => {
-    const late = repayFailureCopy(new TransactionFailedError("The transaction was not confirmed (NOT_FOUND)", false), true);
+    const late = repayFailureCopy(new TransactionFailedError("The transaction was not confirmed (NOT_FOUND)", false, true), true);
     expect(late.title).toBe("Your repayment is not confirmed yet");
     expect(repayFailureCopy(new Error("fetch failed"), true).title).toBe("Your repayment is not confirmed yet");
   });
@@ -43,7 +43,7 @@ describe("repayFailureCopy", () => {
     const all = [
       repayFailureCopy(new TransactionFailedError("x", true), true),
       repayFailureCopy(new TransactionFailedError("x", false), true),
-      repayFailureCopy(new TransactionFailedError("not confirmed", false), true),
+      repayFailureCopy(new TransactionFailedError("not confirmed", false, true), true),
       repayFailureCopy(new WalletError("rejected", -4), false),
       repayFailureCopy(new Error("x"), false),
       ...[10, 11, 13, 99].map((code) => repayFailureCopy(new ContractError(code, "x"), false)),
