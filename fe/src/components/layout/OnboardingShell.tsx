@@ -33,12 +33,12 @@ export function OnboardingShell({
   return (
     <div className="flex min-h-dvh flex-col bg-canvas lg:px-20">
       {/* Desktop top bar */}
-      <header className="hidden h-[90px] items-center justify-between lg:flex">
-        <div className="flex w-60">
+      <header className="hidden h-[90px] items-center justify-between gap-6 lg:flex">
+        <div className="flex w-60 shrink-0">
           <Wordmark />
         </div>
         <OnboardingStepper current={step} />
-        <div className="flex w-60 items-center justify-end gap-2.5">
+        <div className="flex min-w-60 shrink-0 items-center justify-end gap-2.5">
           <NetworkChip />
           {wallet}
         </div>
