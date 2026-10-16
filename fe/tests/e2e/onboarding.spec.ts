@@ -279,4 +279,5 @@ test("the stepper stays centred on desktop once the wallet chip shows", async ({
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(1024);
   const narrow = await page.getByRole("list", { name: "Onboarding progress" }).boundingBox();
   expect(narrow?.width).toBeGreaterThan(200);
+  expect((narrow?.x ?? 0) + (narrow?.width ?? 0) / 2).toBeCloseTo(512, 0);
 });
