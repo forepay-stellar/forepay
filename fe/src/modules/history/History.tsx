@@ -58,7 +58,8 @@ function HistoryScreen({ address }: { address: string }) {
   }
 
   return (
-    <div className="flex w-full flex-col gap-4 lg:gap-7">
+    // 28 under the top nav on desktop (Z7FXmJ); the shell leaves that gap to each page.
+    <div className="flex w-full flex-col gap-4 lg:gap-7 lg:pt-7">
       <header className="flex flex-col gap-1.5">
         {picked && !advances.isError && !transactions.isError && (
           <p className="hidden text-[15px] text-brand lg:block">Advance {picked.number}</p>
