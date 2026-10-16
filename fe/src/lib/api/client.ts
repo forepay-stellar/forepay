@@ -61,10 +61,12 @@ const mock = {
       txHash: "a3f9c2".padEnd(64, "0"),
     },
   ],
+  // The 3a and 3b frames' list: 20.00 repaid on 20 Oct, 10.00 that never went through, 10.00 on 24 Oct.
   transactions: async (): Promise<LedgerTransaction[]> => [
-    { hash: "e90b13".padEnd(64, "1"), kind: "repayment", amount: 200_000_000n, at: OPENED + 1_036_800n, status: "completed", nullifier: NULLIFIER },
-    { hash: "f1c2d0".padEnd(64, "2"), kind: "repayment", amount: 500_000_000n, at: OPENED + 1_036_000n, status: "failed", nullifier: NULLIFIER },
-    { hash: "7c21d0".padEnd(64, "3"), kind: "repayment", amount: 100_000_000n, at: OPENED + 691_200n, status: "completed", nullifier: NULLIFIER },
+    { hash: "e90b13".padEnd(64, "1"), kind: "repayment", amount: 100_000_000n, at: OPENED + 1_036_800n, status: "completed", nullifier: NULLIFIER },
+    { hash: "f1c2d0".padEnd(64, "2"), kind: "repayment", amount: 100_000_000n, at: OPENED + 1_036_000n, status: "failed", nullifier: NULLIFIER },
+    { hash: "7c21d0".padEnd(64, "3"), kind: "repayment", amount: 200_000_000n, at: OPENED + 691_200n, status: "completed", nullifier: NULLIFIER },
     { hash: "a3f9c2".padEnd(64, "0"), kind: "advance", amount: 900_000_000n, at: OPENED, status: "completed", nullifier: NULLIFIER },
+    { hash: "5b8e44".padEnd(64, "4"), kind: "trustline", amount: 0n, at: OPENED - 600n, status: "completed", nullifier: "" },
   ],
 };
