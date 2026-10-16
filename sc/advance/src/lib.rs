@@ -101,6 +101,31 @@ pub struct Advance {
     pub opened_at: u64,
 }
 
+/// The constants `quote` sizes an advance from (#63).
+///
+/// These are compile-time constants, not storage — an upgrade can change them, and when
+/// it does, this getter changes with the arithmetic in the same wasm. That is the point:
+/// the front end shows the derivation on 2b (#20), and a hard-coded `25%` on screen beside
+/// a figure the contract computed from something else is a derivation that lies.
+///
+/// `rate_num` / `rate_den` rather than a percentage: the contract divides integers, and a
+/// front end that renders `rate_num / rate_den` reproduces the same arithmetic instead of
+/// approximating it.
+#[contracttype]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Sizing {
+    /// Numerator of the advance rate. 25 today.
+    pub rate_num: i128,
+    /// Denominator of the advance rate. 100 today.
+    pub rate_den: i128,
+    /// The most any one advance can be, in stroops. 100 USDC today.
+    pub cap_stroops: i128,
+    /// Below this an advance is refused with `AdvanceTooSmall`. 1 USDC today.
+    pub min_stroops: i128,
+    /// Stroops per cent for the USDC SAC this contract pays in. 100_000 at 7 decimals.
+    pub stroops_per_cent: i128,
+}
+
 /// A claim whose signature has been checked against Reclaim's verifier.
 ///
 /// Every field here came out of the bytes that were signed. Nothing in it was taken from
@@ -667,6 +692,24 @@ impl AdvanceContract {
     /// Public and pure so a front end can show the derivation before anyone proves
     /// anything — `revenue × 25 / 100`, capped at 100 USDC — and so the number on screen
     /// is the contract's own arithmetic rather than a reimplementation of it (#20).
+    /// The constants behind `quote`, so the front end can stop hard-coding them (#63).
+    ///
+    /// Pure, no storage read, no error: these are compile-time constants and this function
+    /// cannot fail. It is a read of the wasm, which is exactly what makes it honest — upgrade
+    /// the arithmetic and this answer moves with it, in the same transaction.
+    ///
+    /// It also lets 2b tell "capped" apart from "happens to be exactly 100 USDC": compare
+    /// `quote()` against `cap_stroops` instead of against a literal in the bundle.
+    pub fn sizing(_env: Env) -> Sizing {
+        Sizing {
+            rate_num: sizing::ADVANCE_NUM,
+            rate_den: sizing::ADVANCE_DEN,
+            cap_stroops: sizing::ADVANCE_CAP_STROOPS,
+            min_stroops: sizing::MIN_ADVANCE_STROOPS,
+            stroops_per_cent: sizing::STROOPS_PER_CENT,
+        }
+    }
+
     pub fn quote(env: Env, revenue_usd: String) -> Result<i128, Error> {
         let cents = sizing::parse_usd_cents(&env, &revenue_usd).ok_or(Error::RevenueUnparseable)?;
         let stroops = sizing::advance_stroops(cents).ok_or(Error::RevenueUnparseable)?;

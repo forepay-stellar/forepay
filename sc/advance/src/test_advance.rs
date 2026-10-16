@@ -150,6 +150,89 @@ fn one_decimal_place_means_tenths_not_hundredths() {
     );
 }
 
+#[test]
+fn the_sizing_getter_describes_the_arithmetic_quote_actually_uses() {
+    let f = fx(0);
+    let s = f.client.sizing();
+
+    // Not "the getter returns 25" — that only tests that two literals match. What the
+    // front end needs is that re-deriving the figure from the getter lands on the same
+    // number the contract paid. Done for a figure under the cap and one over it.
+    for revenue in ["4.00", "100.00", "999999.99"] {
+        let cents = {
+            let (w, c) = revenue.split_once('.').unwrap();
+            w.parse::<i128>().unwrap() * 100 + c.parse::<i128>().unwrap()
+        };
+        let derived = {
+            let sized = cents * s.stroops_per_cent * s.rate_num / s.rate_den;
+            if sized > s.cap_stroops {
+                s.cap_stroops
+            } else {
+                sized
+            }
+        };
+        assert_eq!(
+            f.client.quote(&String::from_str(&f.env, revenue)),
+            derived,
+            "{revenue}: the getter must reproduce the contract's own arithmetic"
+        );
+    }
+}
+
+#[test]
+fn the_floor_the_getter_reports_is_the_floor_quote_enforces() {
+    let f = fx(0);
+    let s = f.client.sizing();
+
+    // The smallest whole cent that still clears the floor, derived from the getter rather
+    // than written down: a getter that reported a floor the contract does not enforce would
+    // make 2b refuse figures the contract would have paid.
+    let per_cent = s.rate_num * s.stroops_per_cent / s.rate_den;
+    assert_eq!(
+        s.min_stroops % per_cent,
+        0,
+        "the floor must land on a whole cent, or the boundary below is off by one"
+    );
+    let cents_at_floor = s.min_stroops / per_cent;
+
+    assert_eq!(
+        f.client.quote(&usd(&f.env, cents_at_floor)),
+        s.min_stroops,
+        "the figure the getter's floor implies must be payable"
+    );
+    assert_eq!(
+        f.client.try_quote(&usd(&f.env, cents_at_floor - 1)),
+        Err(Ok(Error::AdvanceTooSmall)),
+        "one cent below it must not be"
+    );
+}
+
+/// Cents as the decimal string a claim carries. `no_std`, so written out by hand.
+fn usd(env: &Env, cents: i128) -> String {
+    assert!(cents >= 0);
+    let mut buf = [0u8; 24];
+    let mut i = buf.len();
+
+    i -= 1;
+    buf[i] = b'0' + (cents % 10) as u8;
+    i -= 1;
+    buf[i] = b'0' + ((cents / 10) % 10) as u8;
+    i -= 1;
+    buf[i] = b'.';
+
+    let mut whole = cents / 100;
+    if whole == 0 {
+        i -= 1;
+        buf[i] = b'0';
+    }
+    while whole > 0 {
+        i -= 1;
+        buf[i] = b'0' + (whole % 10) as u8;
+        whole /= 10;
+    }
+    String::from_str(env, core::str::from_utf8(&buf[i..]).unwrap())
+}
+
 // --- #12 disbursement ---
 
 #[test]
