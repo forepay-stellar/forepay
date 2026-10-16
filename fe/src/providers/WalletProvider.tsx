@@ -94,15 +94,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Disconnect always ends the session here, and never throws: a wallet that fails to hear it (a
+  // WalletConnect relay that does not answer, say) must not stop the screen from moving on.
   const disconnect = useCallback(async () => {
     try {
       await wallet.disconnect();
-    } finally {
-      clearStorage();
-      setRestoreFailure(null);
-      setAddress(null);
-      setWalletName(null);
+    } catch {
+      // The wallet keeps its side; Forepay forgets the session either way.
     }
+    clearStorage();
+    setRestoreFailure(null);
+    setAddress(null);
+    setWalletName(null);
   }, []);
 
   const clearRestoreFailure = useCallback(() => setRestoreFailure(null), []);
