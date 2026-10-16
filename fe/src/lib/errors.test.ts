@@ -5,6 +5,9 @@ import {
   contractFailureCopy,
   failureCopy,
   isSignatureDeclined,
+  proveFailureCopy,
+  tooSmallCopy,
+  type ProveFailure,
   type WalletFailure,
 } from "./errors";
 import { WalletError, WalletSignError } from "./stellar/wallet-error";
@@ -93,10 +96,42 @@ describe("contractFailureCopy", () => {
     }
   });
 
-  it("uses the brief's words for the refusals it names", () => {
-    expect(contractFailureCopy(20).title).toBe("This proof was already used for an advance");
+  it("uses the Prove and accept board's words for the refusals it names", () => {
+    expect(contractFailureCopy(20).title).toBe("This proof was already used");
+    expect(contractFailureCopy(14).title).toBe("We could not confirm this proof");
+    expect(contractFailureCopy(11)).toEqual(contractFailureCopy(14));
+    expect(contractFailureCopy(31).title).toBe("Not enough revenue yet");
     expect(contractFailureCopy(12).title).toBe("This proof expired");
     expect(contractFailureCopy(40).title).toBe("Advances are paused right now");
     expect(contractFailureCopy(41).title).toBe("Your wallet needs to accept USDC first");
+  });
+});
+
+describe("proveFailureCopy", () => {
+  const kinds: ProveFailure[] = ["cancelled", "declined", "refused", "charged", "unconfirmed", "unreachable", "relayNotReady"];
+
+  it("keeps every failure inside the copy rules, and never says Something went wrong", () => {
+    for (const k of kinds) {
+      const { title, body } = proveFailureCopy(k);
+      expect(`${title} ${body}`).not.toMatch(/[:;—·]|something went wrong/i);
+    }
+  });
+
+  it("says nothing was charged only when that is true", () => {
+    expect(proveFailureCopy("refused").body).toMatch(/Nothing was charged/);
+    expect(proveFailureCopy("charged").body).not.toMatch(/Nothing was charged/);
+    expect(proveFailureCopy("unconfirmed").body).not.toMatch(/Nothing was charged/);
+  });
+
+  it("names the wallet that declined", () => {
+    expect(proveFailureCopy("declined", "xBull").title).toBe("You declined in xBull");
+  });
+});
+
+describe("tooSmallCopy", () => {
+  it("shows the creator's own figure, as the board does", () => {
+    expect(tooSmallCopy("$3.20").body).toBe(
+      "25% of $3.20 is under 1 USDC, the smallest advance we can send. Your proof was not used.",
+    );
   });
 });

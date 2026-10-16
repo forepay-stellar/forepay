@@ -45,3 +45,43 @@ export function formatDate(date: Date): string {
 export function formatLedgerTime(seconds: bigint | number): string {
   return formatDate(new Date(Number(seconds) * 1000));
 }
+
+/**
+ * An attested revenue figure, as the claim carries it (`360.00`, `1240`, `3.2`), in dollars: `$1,240.00`.
+ * Text in, text out, so the figure on screen is exactly the one that was proven, never a float.
+ */
+export function formatUsd(revenueUsd: string): string {
+  const m = /^(\d+)(?:\.(\d{1,2}))?$/.exec(revenueUsd.trim());
+  if (!m) return revenueUsd;
+  const whole = BigInt(m[1]).toLocaleString("en-US");
+  return `$${whole}.${(m[2] ?? "").padEnd(2, "0")}`;
+}
+
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+/**
+ * A revenue window from its `YYYY-MM-DD` ends: `short` is `Jul to Sep 2026` (the offer breakdown),
+ * `long` is `July to September` (the sentence on the offer).
+ */
+export function formatWindow(start: string, end: string): { short: string; long: string } {
+  const [sy, sm] = start.split("-").map(Number);
+  const [ey, em] = end.split("-").map(Number);
+  const startShort = sy === ey ? MONTHS[sm - 1] : `${MONTHS[sm - 1]} ${sy}`;
+  return {
+    short: `${startShort} to ${MONTHS[em - 1]} ${ey}`,
+    long: `${MONTH_NAMES[sm - 1]} to ${MONTH_NAMES[em - 1]}`,
+  };
+}

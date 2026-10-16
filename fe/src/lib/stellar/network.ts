@@ -24,6 +24,11 @@ export function explorerAccountUrl(address: string): string {
   return `https://stellar.expert/explorer/testnet/account/${address}`;
 }
 
+/** A transaction on stellar.expert, the "View receipt" link (brief §3, rule 4). */
+export function explorerTxUrl(hash: string): string {
+  return `https://stellar.expert/explorer/testnet/tx/${hash}`;
+}
+
 /** Testnet's faucet for XLM. A new account needs a little XLM before it can hold any trustline. */
 export function friendbotUrl(address: string): string {
   return `https://friendbot.stellar.org/?addr=${encodeURIComponent(address)}`;
