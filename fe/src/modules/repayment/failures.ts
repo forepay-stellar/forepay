@@ -1,5 +1,6 @@
-import { contractFailureCopy, isSignatureDeclined, type FailureCopy } from "@/lib/errors";
-import { ContractError, TransactionFailedError } from "@/lib/stellar/contract";
+import { classifySignError, contractFailureCopy, type FailureCopy } from "@/lib/errors";
+import { ContractError, MissingConfigError, SimulationError, TransactionFailedError } from "@/lib/stellar/contract";
+import { WalletSignError } from "@/lib/stellar/wallet-error";
 
 /**
  * Why a repayment did not land, in the brief's words (board row 3, "Did not go through"). One sentence
@@ -11,9 +12,12 @@ import { ContractError, TransactionFailedError } from "@/lib/stellar/contract";
  *   was sent and never confirmed;
  * - a transaction that was sent but not confirmed while we waited may still land, so it promises nothing.
  *
+ * - the wallet's own trouble (declined, locked, wrong network, silent) is told apart from the network's,
+ *   in the words #20 uses for the same causes;
+ *
  * `signed` is whether the wallet had already handed back a signed transaction when it failed.
  */
-export function repayFailureCopy(error: unknown, signed: boolean): FailureCopy {
+export function repayFailureCopy(error: unknown, signed: boolean, walletName: string | null = null): FailureCopy {
   if (error instanceof ContractError) return refusalCopy(error.code);
   if (error instanceof TransactionFailedError) {
     if (error.charged) {
@@ -25,9 +29,19 @@ export function repayFailureCopy(error: unknown, signed: boolean): FailureCopy {
     if (error.unconfirmed) return unconfirmed;
     return { title: "The repayment did not go through", body: "Nothing was charged. Try again in a moment." };
   }
-  if (!signed && isSignatureDeclined(error)) {
-    return { title: "You declined the repayment", body: "Nothing was charged. Repay again when you are ready." };
+  if (error instanceof SimulationError) {
+    return {
+      title: "Stellar could not run this request",
+      body: "Nothing was charged and no USDC left your wallet. Try again in a moment.",
+    };
   }
+  if (error instanceof MissingConfigError) {
+    return {
+      title: "Forepay is not set up on this page",
+      body: "This copy of the app is missing a Stellar address. Nothing was charged.",
+    };
+  }
+  if (error instanceof WalletSignError) return walletCopy(error, walletName);
   if (!signed) {
     return { title: "We could not reach Stellar", body: "Nothing was charged. Check your connection, then try again." };
   }
@@ -67,6 +81,29 @@ function refusalCopy(code: number): FailureCopy {
       };
     default:
       return { title: "The repayment did not go through", body: "Nothing was charged. Try again in a moment." };
+  }
+}
+
+/** The wallet threw before handing back a signature, so nothing was sent. */
+function walletCopy(error: WalletSignError, walletName: string | null): FailureCopy {
+  // A title starts with the name, a body uses it mid-sentence.
+  const Name = walletName ?? "Your wallet";
+  const name = walletName ?? "your wallet";
+  switch (classifySignError(error)) {
+    case "declined":
+      return { title: "You declined the repayment", body: "Nothing was charged. Repay again when you are ready." };
+    case "locked":
+      return { title: `Unlock ${name} first`, body: `Open ${name}, enter your password, then repay again.` };
+    case "wrongNetwork":
+      return {
+        title: "Switch your wallet to testnet",
+        body: `Forepay runs on Stellar testnet. Change the network in ${name}, then repay again.`,
+      };
+    case "noAnswer":
+      return {
+        title: `${Name} did not answer`,
+        body: "Nothing was sent. Try again, or reconnect your wallet from the wallet menu.",
+      };
   }
 }
 

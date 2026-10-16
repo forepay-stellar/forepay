@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { WalletError } from "@/lib/stellar/wallet-error";
-import { ContractError, TransactionFailedError } from "@/lib/stellar/contract";
+import { WalletError, WalletSignError } from "@/lib/stellar/wallet-error";
+import { ContractError, MissingConfigError, SimulationError, TransactionFailedError } from "@/lib/stellar/contract";
 import { repayFailureCopy } from "./failures";
 
 describe("repayFailureCopy", () => {
@@ -35,8 +35,34 @@ describe("repayFailureCopy", () => {
   });
 
   it("tells a declined signature apart from a node that did not answer", () => {
-    expect(repayFailureCopy(new WalletError("The user rejected this request.", -4), false).title).toBe("You declined the repayment");
+    const declined = new WalletSignError(new WalletError("The user rejected this request.", -4));
+    expect(repayFailureCopy(declined, false).title).toBe("You declined the repayment");
     expect(repayFailureCopy(new Error("fetch failed"), false).title).toBe("We could not reach Stellar");
+  });
+
+  it("names the wallet's own trouble, in the words #20 uses, never as a network failure", () => {
+    const locked = new WalletSignError(new WalletError("Freighter is locked"));
+    expect(repayFailureCopy(locked, false, "Freighter")).toEqual({
+      title: "Unlock Freighter first",
+      body: "Open Freighter, enter your password, then repay again.",
+    });
+    const mainnet = new WalletSignError(new Error("network passphrase mismatch"));
+    expect(repayFailureCopy(mainnet, false, "xBull").title).toBe("Switch your wallet to testnet");
+    expect(repayFailureCopy(mainnet, false, "xBull").body).toContain("Change the network in xBull");
+    const silent = new WalletSignError(new Error("timeout"));
+    expect(repayFailureCopy(silent, false, "Rabet").title).toBe("Rabet did not answer");
+    // With no wallet name, a title still starts with a capital, and a body keeps it lower case.
+    expect(repayFailureCopy(silent, false).title).toBe("Your wallet did not answer");
+    expect(repayFailureCopy(locked, false).body).toBe("Open your wallet, enter your password, then repay again.");
+  });
+
+  it("names a simulation Stellar could not run, and a build missing its addresses", () => {
+    expect(repayFailureCopy(new SimulationError("HostError: Error(Auth, InvalidAction)"), false).title).toBe(
+      "Stellar could not run this request",
+    );
+    expect(repayFailureCopy(new MissingConfigError("NEXT_PUBLIC_ADVANCE_CONTRACT_ID"), false).title).toBe(
+      "Forepay is not set up on this page",
+    );
   });
 
   it("never uses a colon, semicolon or em dash", () => {
@@ -44,7 +70,12 @@ describe("repayFailureCopy", () => {
       repayFailureCopy(new TransactionFailedError("x", true), true),
       repayFailureCopy(new TransactionFailedError("x", false), true),
       repayFailureCopy(new TransactionFailedError("not confirmed", false, true), true),
-      repayFailureCopy(new WalletError("rejected", -4), false),
+      repayFailureCopy(new WalletSignError(new WalletError("rejected", -4)), false),
+      repayFailureCopy(new WalletSignError(new WalletError("Freighter is locked")), false, "Freighter"),
+      repayFailureCopy(new WalletSignError(new Error("network passphrase mismatch")), false, "Freighter"),
+      repayFailureCopy(new WalletSignError(new Error("timeout")), false, "Freighter"),
+      repayFailureCopy(new SimulationError("x"), false),
+      repayFailureCopy(new MissingConfigError("X"), false),
       repayFailureCopy(new Error("x"), false),
       ...[10, 11, 13, 99].map((code) => repayFailureCopy(new ContractError(code, "x"), false)),
     ];
