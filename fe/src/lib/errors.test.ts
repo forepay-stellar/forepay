@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { classifyConnectError, failureCopy, isSignatureDeclined, type WalletFailure } from "./errors";
-import { WalletError } from "./stellar/wallet-error";
+import { classifyConnectError, classifySignError, failureCopy, isSignatureDeclined, type WalletFailure } from "./errors";
+import { WalletError, WalletSignError } from "./stellar/wallet-error";
 
 describe("classifyConnectError", () => {
   it("treats closing the picker as no failure at all", () => {
@@ -54,7 +54,7 @@ describe("failureCopy", () => {
   });
 
   it("keeps UI copy free of colons, semicolons, em dashes and middle dots (brief §3)", () => {
-    for (const k of kinds) {
+    for (const k of [...kinds, "signLocked", "signWrongNetwork", "signNoAnswer"] as WalletFailure[]) {
       const { title, body } = failureCopy(k, "Freighter");
       expect(`${title} ${body}`).not.toMatch(/[:;—·]/);
     }
@@ -62,5 +62,16 @@ describe("failureCopy", () => {
 
   it("names the wallet the creator is using", () => {
     expect(failureCopy("locked", "xBull").title).toBe("Unlock xBull first");
+    expect(failureCopy("signLocked", "Rabet").title).toBe("Unlock Rabet first");
+    expect(failureCopy("signNoAnswer", "xBull").title).toBe("xBull did not answer");
+  });
+});
+
+describe("classifySignError", () => {
+  it("names the wallet's own trouble, never the network's", () => {
+    expect(classifySignError(new WalletSignError(new WalletError("The user rejected this request.", -4)))).toBe("declined");
+    expect(classifySignError(new WalletSignError(new WalletError("Freighter is locked")))).toBe("locked");
+    expect(classifySignError(new WalletSignError(new Error("network passphrase mismatch")))).toBe("wrongNetwork");
+    expect(classifySignError(new WalletSignError(new Error("timeout")))).toBe("noAnswer");
   });
 });
