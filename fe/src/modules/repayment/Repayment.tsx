@@ -30,6 +30,7 @@ import { BalanceCard } from "./components/BalanceCard";
 import { QuickActions } from "./components/QuickActions";
 import { RepayForm } from "./components/RepayForm";
 import { repayFailureCopy } from "./failures";
+import { WalletSignError } from "@/lib/stellar/wallet-error";
 import { amountInputString, checkAmount, chipAmount, sanitizeAmountInput, type Chip } from "./model";
 
 /**
@@ -194,7 +195,12 @@ function Ledger({
         setPhase("signing");
         if (!cancelled.current) setDialogOpen(true);
         try {
-          const out = await signTransaction(xdr);
+          let out: string;
+          try {
+            out = await signTransaction(xdr);
+          } catch (e) {
+            throw new WalletSignError(e);
+          }
           signed = true;
           setPending({ hash: hashOf(out), amount });
           setPhase("pending");
@@ -208,7 +214,7 @@ function Ledger({
       setChip(null);
     } catch (e) {
       // Turning it down after pressing Cancel is no news to the creator who cancelled.
-      if (!(cancelled.current && !signed && isSignatureDeclined(e))) setFailure(repayFailureCopy(e, signed));
+      if (!(cancelled.current && !signed && isSignatureDeclined(e))) setFailure(repayFailureCopy(e, signed, walletName));
     } finally {
       // The ledger has the answer now. Read it again rather than adjusting the figures by hand.
       await Promise.all([
