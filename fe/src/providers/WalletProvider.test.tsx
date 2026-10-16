@@ -42,6 +42,14 @@ describe("WalletProvider on reload", () => {
     await waitFor(() => expect(screen.getByText(SAVED)).toBeTruthy());
   });
 
+  it("restores a wallet that cannot report its network (xBull, Rabet), instead of dropping it", async () => {
+    window.localStorage.setItem("forepay.wallet", SAVED);
+    wallet.getAddress.mockResolvedValue(SAVED);
+    wallet.getNetworkPassphrase.mockResolvedValue(null);
+    renderProvider();
+    await waitFor(() => expect(screen.getByText(SAVED)).toBeTruthy());
+  });
+
   it("drops a saved address the wallet no longer reports", async () => {
     window.localStorage.setItem("forepay.wallet", SAVED);
     wallet.getAddress.mockResolvedValue("GBOTHER");

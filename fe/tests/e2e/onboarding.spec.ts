@@ -213,3 +213,17 @@ test("a wallet moved off testnet since the last visit is caught on reload", asyn
   await expect(page.getByRole("heading", { name: "Switch your wallet to testnet" })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Wallet / })).toHaveCount(0);
 });
+
+test("a wallet that cannot report its network connects and stays connected after a reload", async ({ page }) => {
+  await mockRpc(page, { account: true, trustline: false });
+  await page.addInitScript(() => {
+    window.localStorage.setItem("forepay.e2e.scenario", "no-network-api");
+    window.localStorage.setItem("forepay.e2e.wallet", "xBull");
+  });
+  await connectFromStart(page);
+  await expect(page.getByText("xBull connected").first()).toBeVisible();
+  await expect(page.getByText("Not allowed yet")).toBeVisible();
+  await page.reload();
+  await expect(page.getByText("Not allowed yet")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Unlock xBull first" })).toHaveCount(0);
+});
