@@ -660,3 +660,49 @@ The upgrade has **not** taken effect. `sizing()` is not callable on either contr
 and the deployed wasm is still `a1b293ba…` on production. The verified-source link on StellarExpert
 also still points at the `v0.1.0` build; it moves to the `v0.2.0` artifact when the upgrade
 executes, and that will be recorded here with the tx rather than assumed.
+
+---
+
+## #62 — the production contract funded to 105 USDC (2026-10-16)
+
+`liquidity()` on `CCQFL2Q66DHFAZU2KPRWNHU4FTZJW75N5XLNXECFFGMW3PROIXJPI2HS` now reads
+**1,050,000,000 stroops = 105 USDC**, up from 5. `quote("999999.99")` returns `1,000,000,000`, so
+the contract can pay **one advance at the full 100 USDC cap** and still have 5 USDC left — the first
+time that has been true.
+
+### Why five accounts rather than one
+
+Circle's faucet is reCAPTCHA-gated with no API, and it gives **20 USDC per address, per chain, every
+two hours**. Topping one address up to 100 USDC is five visits spread over eight hours, with the
+waiting being the entire cost.
+
+So the Captcha-free part was automated — five throwaway keypairs, friendbot XLM, a USDC trustline on
+each, all verified by reading `balance` back as `0` rather than `#13 TrustlineMissing` — and the
+human did five faucet requests back to back with no cooldown between them. Keys are in `.env`
+(gitignored, `chmod 600`) as `FOREPAY_TOPUP_1..5_SECRET`.
+
+### The sweep
+
+Each account held exactly 200,000,000 stroops after the faucet, and transferred all of it to the
+contract through the USDC SAC.
+
+| From | Transaction |
+| --- | --- |
+| `GBURVV7U…YFCT` | [`30907065dbc2…`](https://stellar.expert/explorer/testnet/tx/30907065dbc2e14b9b11e5dc71aef91004c9fb181f4ed44106cf7ac5cbed8c29) |
+| `GDAM26EH…25CQ` | [`de516ed50b46…`](https://stellar.expert/explorer/testnet/tx/de516ed50b4644b8d8878c7397765e8873ceff58fbe77483956b92e3a691e732) |
+| `GCXMJQSU…IUZD` | [`685b8614d250…`](https://stellar.expert/explorer/testnet/tx/685b8614d250dde7449be2a86b5836a0ff406e35bfae2f0eb6f331db647880c6) |
+| `GDGCRWII…RQZO` | [`a5bb85628ff0…`](https://stellar.expert/explorer/testnet/tx/a5bb85628ff0bf1ab6387fb4ea89d6f55f37718991561f2d9e56406809262ee9) |
+| `GCT6BJPK…M7XU` | [`2ccabdc547c0…`](https://stellar.expert/explorer/testnet/tx/2ccabdc547c001c076f4618da9e9ed221b813acb5d36831cae0994d2357994b0) |
+
+The balance is the evidence, not the five receipts: `liquidity()` moved from 50,000,000 to
+1,050,000,000, a delta of exactly 1,000,000,000, which is the only reading under which all five
+landed and none was double-counted.
+
+### What this does not fix
+
+The contract still answers `10 TemplateNotSet` for every proof — funding is not the blocker on the
+creator flow, #5 and #61 are. What 105 USDC buys is that when the template is pinned, the demo (#28)
+and the Chapter Lead run (#29) can show a realistic advance instead of a 5 USDC one.
+
+No trustline was needed on the contract itself: a `C…` address holds a SAC balance in contract
+storage, and trustlines are a classic-account concept. Only the five `G…` senders needed one.
