@@ -1,6 +1,6 @@
 import { KitEventType, Networks, StellarWalletsKit } from "@creit.tech/stellar-wallets-kit";
 import { FREIGHTER_ID, FreighterModule } from "@creit.tech/stellar-wallets-kit/modules/freighter";
-import { RabetModule } from "@creit.tech/stellar-wallets-kit/modules/rabet";
+import { RABET_ID, RabetModule } from "@creit.tech/stellar-wallets-kit/modules/rabet";
 import {
   WALLET_CONNECT_ID,
   WalletConnectModule,
@@ -212,8 +212,16 @@ export function getWalletId(): string {
  */
 export async function hasWallet(): Promise<boolean> {
   if (viaMobileWalletConnect() || walletConnectProjectId()) return true;
-  const wallets = await getKit().refreshSupportedWallets();
-  return anyBrowserWallet(wallets, !!(window as StellarWindow).xBullSDK);
+  // Ask only the two extensions that can answer, in parallel, rather than refreshSupportedWallets(),
+  // which checks every module and which the picker then runs again by itself.
+  const [freighter, rabet] = await Promise.all([new FreighterModule().isAvailable(), new RabetModule().isAvailable()]);
+  return anyBrowserWallet(
+    [
+      { id: FREIGHTER_ID, isAvailable: freighter },
+      { id: RABET_ID, isAvailable: rabet },
+    ],
+    !!(window as StellarWindow).xBullSDK,
+  );
 }
 
 /**
