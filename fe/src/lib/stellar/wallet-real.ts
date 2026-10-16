@@ -219,9 +219,16 @@ export async function connect(
       return await connectMobileWalletConnect();
     }
     const kit = getKit();
+    // The kit builds this event on a preact-signals effect, which runs once as it subscribes, with the
+    // wallet selected last time and the picker still open. That first call is not a pick. Picking the
+    // same wallet again changes nothing, so it fires nothing either; the button then simply stays on
+    // "Connecting" without a wallet name.
+    let subscribed = false;
     const unsubscribe = kit.on(KitEventType.WALLET_SELECTED, () => {
+      if (!subscribed) return;
       onWalletSelected?.(kit.selectedModule.productName);
     });
+    subscribed = true;
     try {
       const { address } = await kit.authModal();
       const id = getWalletId();
