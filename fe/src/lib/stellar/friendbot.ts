@@ -31,7 +31,7 @@ export async function fundWithFriendbot(address: string, { attempts = 10, interv
   }
   for (let i = 0; i < attempts; i++) {
     if ((await readUsdcStatus(address)) !== "unfunded") return;
-    await new Promise((r) => setTimeout(r, intervalMs));
+    if (i < attempts - 1) await new Promise((r) => setTimeout(r, intervalMs));
   }
   throw new FriendbotError("The funded account did not appear on the ledger");
 }
