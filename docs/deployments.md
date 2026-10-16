@@ -615,3 +615,48 @@ ledger row would print the same thing and the money would be gone.
 
 Sterun's equivalent step nearly overstated the matching claim about a QR screenshot, so the bound is
 written beside the result rather than left for a reviewer to infer.
+
+---
+
+## #63 — `sizing()`, and the first upgrade proposed on the production contract (2026-10-16)
+
+`sizing()` returns the constants `quote()` sizes an advance from, so the front end reads them
+instead of hard-coding them. Merged in #65; `docs/interface.md` §5 carries the interface.
+
+Getting it onto a deployed contract is the first time the upgrade path has been exercised **on the
+production contract with a real reason**, rather than as a drill. The timelock is doing its job
+here: the code is written, reviewed and released, and it still cannot take effect until tomorrow.
+
+### Three hashes, one commit — again
+
+| Where built | stellar-cli | sha256 |
+| --- | --- | --- |
+| laptop, `aarch64-apple-darwin` | 27.0.0 | `d8a55ce21baab9af8259ccdedd8ddb29421e1ee01c2b938a7c336a2a36c55e89` |
+| CI, `x86_64-unknown-linux-gnu` | 28.1.0 | `5d9ed165cafcdd45235dbacfdf4c00667b0f123781ee9c6890d7cd4465419914` |
+| **release artifact** (`v0.2.0`) | 28.1.0 | **`e5626890659fa2ad44f02f3752a37235768ee78e242d636c820d2b1581725dd6`** |
+
+Only the third one may go on chain. StellarExpert matches the deployed wasm against the attested
+release artifact, so a locally built binary — byte-identical source, different linker ordering —
+would deploy fine and then fail verification, which is the trap recorded under "⚠️ For #15" above.
+
+### Transactions
+
+| Step | What | Transaction |
+| --- | --- | --- |
+| 1 | Tag `v0.2.0` → release + StellarExpert attestation | [run 38885744796](https://github.com/forepay-stellar/forepay/actions/runs/38885744796) |
+| 2 | Upload the release wasm to testnet | [`1399a4106df9…`](https://stellar.expert/explorer/testnet/tx/1399a4106df9fffb2d1d2fb1733f0a00d913bade3e21688dcfdb16879d77f6e5) |
+| 3 | `propose_upgrade` on production `CCQFL2Q6…I2HS` | [`937a655a9aac…`](https://stellar.expert/explorer/testnet/tx/937a655a9aac7dc40cc9c328c176ca13d0823909f764aa3c739444da35f4ef29) |
+| 4 | `propose_upgrade` on dev `CD25Q4TD…HQN4` | [`761b394c4349…`](https://stellar.expert/explorer/testnet/tx/761b394c4349e37ea726f4f26b42f95caeb4b07cb34bf1eeea2575168a068830) |
+| 5 | `execute_upgrade` on both | **pending — not before 2026-10-17 10:16 UTC** |
+
+`executable_at` came back as `1792232197` (production) and `1792232217` (dev): 86,400 seconds after
+each proposal, as `UPGRADE_DELAY_SECONDS` sets. Anyone can read the pending proposal and its
+deadline with `pending_upgrade()` — which is the entire reason the delay exists, and why that
+getter is public.
+
+### What is not claimed yet
+
+The upgrade has **not** taken effect. `sizing()` is not callable on either contract until step 5,
+and the deployed wasm is still `a1b293ba…` on production. The verified-source link on StellarExpert
+also still points at the `v0.1.0` build; it moves to the `v0.2.0` artifact when the upgrade
+executes, and that will be recorded here with the tx rather than assumed.
