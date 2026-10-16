@@ -205,3 +205,26 @@ describe("signTransaction", () => {
     expect(kit.signTransaction).toHaveBeenCalledWith(xdr, { networkPassphrase: Networks.TESTNET });
   });
 });
+
+describe("disconnect", () => {
+  it("awaits the wallet's own disconnect and passes its failure on, after the kit forgets the wallet", async () => {
+    class Module {
+      productId = "wallet_connect";
+      async disconnect() {
+        throw new Error("relay did not answer");
+      }
+    }
+    const walletConnect = new Module();
+    kit.selectedModule = walletConnect as unknown as Record<string, unknown>;
+    // The kit's own disconnect, which calls the module's without awaiting it.
+    kit.disconnect.mockImplementation(async () => {
+      void (kit.selectedModule as unknown as Module).disconnect();
+    });
+    window.localStorage.setItem("forepay.wallet.id", "wallet_connect");
+    await expect((await load()).disconnect()).rejects.toThrow("relay did not answer");
+    expect(kit.disconnect).toHaveBeenCalledOnce();
+    expect(window.localStorage.getItem("forepay.wallet.id")).toBeNull();
+    // The module is left as it was.
+    expect(Object.prototype.hasOwnProperty.call(walletConnect, "disconnect")).toBe(false);
+  });
+});
