@@ -48,7 +48,7 @@ export function RepayForm({
   className?: string;
 }) {
   const settled = left === 0n;
-  const { typed, ghost } = amountDisplay(settled ? "" : input);
+  const shown = amountDisplay(settled ? "" : input);
   const invalid = check.kind === "overOutstanding" || check.kind === "overBalance";
   const lit = !invalid && (check.kind === "ok" || chip !== null);
 
@@ -101,8 +101,8 @@ export function RepayForm({
         <div className="flex w-full items-center justify-between gap-3">
           <div className="relative min-w-0 flex-1 text-[36px] font-semibold tracking-[-1.1px]">
             <p aria-hidden className="truncate whitespace-pre">
-              <span className="text-fg">{typed}</span>
-              <span className="text-fg-subtle">{ghost}</span>
+              <span className="text-fg">{shown.whole}</span>
+              <span className="text-fg-subtle">{shown.decimals}</span>
             </p>
             <input
               ref={inputRef}
@@ -136,7 +136,7 @@ export function RepayForm({
 
       <div className="flex w-full gap-2">
         {CHIPS.map(({ chip: c, label }) => {
-          const on = chip === c && !invalid;
+          const on = chip === c;
           return (
             <button
               key={c}
@@ -145,7 +145,7 @@ export function RepayForm({
               disabled={settled || busy}
               onClick={() => onChip(c)}
               className={cn(
-                "flex-1 whitespace-nowrap rounded-pill px-4 py-2.5 text-[14px] font-medium outline outline-1 -outline-offset-[0.5px] transition-colors focus-visible:ring-2 focus-visible:ring-brand disabled:text-fg-subtle",
+                "flex min-w-0 flex-1 justify-center whitespace-nowrap rounded-pill px-4 py-2.5 text-[14px] font-medium outline outline-1 -outline-offset-[0.5px] transition-colors focus-visible:ring-2 focus-visible:ring-brand disabled:text-fg-subtle",
                 on ? "bg-brand-subtle text-brand-strong outline-brand" : "bg-surface text-fg outline-line-strong hover:bg-subtle",
               )}
             >

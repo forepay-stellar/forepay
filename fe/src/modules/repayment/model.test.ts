@@ -91,12 +91,13 @@ describe("the repay form", () => {
     expect(typedAmount("30.")).toBe(30n * USDC);
   });
 
-  it("shows what was typed solid and the rest of 0.00 faded", () => {
-    expect(amountDisplay("")).toEqual({ typed: "", ghost: "0.00" });
-    expect(amountDisplay("30")).toEqual({ typed: "30", ghost: ".00" });
-    expect(amountDisplay("30.")).toEqual({ typed: "30.", ghost: "00" });
-    expect(amountDisplay("30.5")).toEqual({ typed: "30.5", ghost: "0" });
-    expect(amountDisplay("30.55")).toEqual({ typed: "30.55", ghost: "" });
+  it("shows the whole part solid and the decimals faded, padded to two", () => {
+    expect(amountDisplay("")).toEqual({ whole: "", decimals: "0.00" });
+    expect(amountDisplay("30")).toEqual({ whole: "30", decimals: ".00" });
+    expect(amountDisplay("30.")).toEqual({ whole: "30", decimals: ".00" });
+    expect(amountDisplay("30.5")).toEqual({ whole: "30", decimals: ".50" });
+    expect(amountDisplay("30.00")).toEqual({ whole: "30", decimals: ".00" });
+    expect(amountDisplay("1.1234567")).toEqual({ whole: "1", decimals: ".1234567" });
   });
 
   it("writes stroops back as a plain amount, keeping every stroop", () => {

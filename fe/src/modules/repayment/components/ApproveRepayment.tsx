@@ -91,7 +91,7 @@ export function ApproveRepayment({
           </Base.Popup>
         ) : (
           <Base.Popup
-            className={`fixed inset-x-0 bottom-0 z-50 flex flex-col gap-4 rounded-t-[28px] bg-surface px-5 pb-8 pt-2.5 outline-none ${fade}`}
+            className={`fixed inset-x-0 bottom-0 z-50 flex min-h-[420px] flex-col gap-4 rounded-t-[28px] bg-surface px-5 pb-8 pt-2.5 outline-none ${fade}`}
           >
             <div className="flex w-full justify-center" aria-hidden>
               <span className="h-[5px] w-10 rounded-[3px] bg-line-strong" />
