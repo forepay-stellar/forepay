@@ -8,8 +8,9 @@ const PORT = Number(process.env.PW_PORT ?? 3219);
 export default defineConfig({
   testDir: "tests/e2e",
   fullyParallel: true,
-  // Google Chrome, not the bundled Chromium, so a run needs no `playwright install`.
-  use: { baseURL: `http://localhost:${PORT}`, channel: "chrome", trace: "retain-on-failure" },
+  // Playwright's own Chromium (`npx playwright install chromium`, once). Google Chrome can hold a run
+  // open after it ends while an update is pending; PW_CHANNEL=chrome still uses it when wanted.
+  use: { baseURL: `http://localhost:${PORT}`, channel: process.env.PW_CHANNEL, trace: "retain-on-failure" },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 960 } } },
     { name: "mobile", use: { ...devices["Pixel 7"], viewport: { width: 390, height: 844 } } },
@@ -21,6 +22,7 @@ export default defineConfig({
     reuseExistingServer: false,
     timeout: 180_000,
     env: {
+      NEXT_DIST_DIR: ".next-e2e",
       NEXT_PUBLIC_E2E: "1",
       NEXT_PUBLIC_STELLAR_RPC_URL: "https://rpc.e2e.invalid",
       NEXT_PUBLIC_USDC_ASSET: "USDC:GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5",
