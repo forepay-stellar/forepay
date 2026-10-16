@@ -42,9 +42,10 @@ test("prove, see the offer with its derivation, accept, and receive the USDC", a
     await route.fallback();
   });
 
-  // 2a
+  // 2a. Arriving does not move focus.
   await expect(heading(page, "Get an advance")).toBeVisible();
   await expect(heading(page, "See how much you can get")).toBeVisible();
+  await expect(heading(page, "See how much you can get")).not.toBeFocused();
   await page.getByRole("button", { name: "Prove my revenue" }).click();
 
   // The Reclaim session, then the check on Stellar
@@ -55,6 +56,8 @@ test("prove, see the offer with its derivation, accept, and receive the USDC", a
 
   // 2b: the contract's figure and how it was reached
   await expect(heading(page, "Your offer")).toBeVisible();
+  // Focus lands on the offer itself, so a screen reader starts with the amount.
+  await expect(page.getByRole("region", { name: "You can get 90.00 USDC" })).toBeFocused();
   await expect(page.getByText("Revenue verified")).toBeVisible();
   await expect(page.getByText("A quarter of the $360.00 you earned on AdSense from July to September.")).toBeVisible();
   const breakdown = page.getByRole("region", { name: "How we got this number" });

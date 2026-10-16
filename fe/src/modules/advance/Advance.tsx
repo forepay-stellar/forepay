@@ -1,6 +1,5 @@
 "use client";
 
-import { TransactionBuilder } from "@stellar/stellar-sdk";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
@@ -17,7 +16,6 @@ import {
   requestAdvance,
   type AdvanceRequest,
 } from "@/lib/stellar/contract";
-import { NETWORK_PASSPHRASE } from "@/lib/stellar/network";
 import { TrustlineError, addUsdcTrustline } from "@/lib/stellar/trustline";
 import { useUsdcStatus } from "@/modules/onboarding/hooks/useUsdcStatus";
 import { useWallet } from "@/providers/WalletProvider";
@@ -28,6 +26,7 @@ import { ProgressPanel } from "./components/ProgressPanel";
 import { ProveRevenue } from "./components/ProveRevenue";
 import { ReviewOffer } from "./components/ReviewOffer";
 import { SignAdvance } from "./components/SignAdvance";
+import { maxFee } from "./fee";
 import { WalletSignError, acceptFailure, proofStillGood, proveFailure, type AdvanceFailure } from "./failures";
 
 /** After this long without a confirmation, say so (board row 4, "Taking longer than usual"). */
@@ -166,7 +165,7 @@ export function Advance() {
 
     const sign = async (xdr: string) => {
       // The transaction is built and simulated: its fee is now known, and 2c shows it.
-      const fee = BigInt(TransactionBuilder.fromXDR(xdr, NETWORK_PASSPHRASE).fee);
+      const fee = maxFee(xdr);
       if (id === attempt.current) setFlow({ at: "signing", req: r, fee, sent: false, slow: false });
       let out: string;
       try {
