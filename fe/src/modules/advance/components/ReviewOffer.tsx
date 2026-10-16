@@ -36,7 +36,11 @@ export function ReviewOffer({
   return (
     <div className="flex w-full flex-col gap-4 lg:flex-row">
       <div className="flex flex-1 flex-col gap-4">
-        <section className="relative flex flex-col gap-3 overflow-hidden rounded-hero bg-brand p-[22px] lg:gap-[18px] lg:p-8">
+        <section
+          data-focus
+          aria-label={`You can get ${amount}`}
+          className="relative flex flex-col gap-3 overflow-hidden rounded-hero bg-brand p-[22px] lg:gap-[18px] lg:p-8"
+        >
           <span
             aria-hidden
             className="absolute left-[220px] top-[30px] size-[180px] rounded-full bg-fg-on-brand/12 lg:left-[560px] lg:top-10 lg:size-[300px]"

@@ -20,22 +20,23 @@ export function AdvanceScreen({
   children: ReactNode;
 }) {
   const root = useRef<HTMLDivElement>(null);
-  const first = useRef(true);
+  // The key focus was last moved for. Starts as the first key, so first load never moves focus, even
+  // when Strict Mode runs the effect twice.
+  const focusedFor = useRef(focusKey);
   // A press that swaps the card (Prove, Accept, Try again) would leave keyboard and screen reader
-  // users on a button that is gone. Put them on the heading of what replaced it. Not on first load.
+  // users on a button that is gone. Put them on what replaced it: the element a card marks with
+  // `data-focus` (the offer), or else its first heading.
   useEffect(() => {
-    if (first.current) {
-      first.current = false;
-      return;
-    }
-    const heading = root.current?.querySelector<HTMLElement>("h2");
+    if (focusedFor.current === focusKey) return;
+    focusedFor.current = focusKey;
+    const heading = root.current?.querySelector<HTMLElement>("[data-focus]") ?? root.current?.querySelector<HTMLElement>("h2");
     if (!heading) return;
     heading.tabIndex = -1;
     heading.focus({ preventScroll: true });
   }, [focusKey]);
 
   return (
-    <div ref={root} className="flex w-full flex-col gap-4 lg:gap-8 [&_h2:focus]:outline-none">
+    <div ref={root} className="flex w-full flex-col gap-4 lg:gap-8 [&_[data-focus]:focus]:outline-none [&_h2:focus]:outline-none">
       <div className="flex flex-col gap-1.5">
         <p className="hidden text-[15px] text-brand lg:block">Advance</p>
         <h1 className="text-[30px] font-semibold tracking-[-0.9px] text-fg lg:text-[40px] lg:tracking-[-1.2px]">{title}</h1>

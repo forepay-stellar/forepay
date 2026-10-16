@@ -29,6 +29,10 @@ describe("acceptFailure", () => {
       kind: "walletWrongNetwork",
     });
     expect(acceptFailure(new WalletSignError(new Error("timeout")), false)).toEqual({ kind: "walletNoAnswer" });
+    // A wallet's own connection trouble is not a wrong network.
+    expect(acceptFailure(new WalletSignError(new Error("Network request failed")), false)).toEqual({
+      kind: "walletNoAnswer",
+    });
   });
 
   it("never reads a network failure before signing as a wallet problem", () => {

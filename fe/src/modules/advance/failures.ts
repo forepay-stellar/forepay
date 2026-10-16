@@ -42,7 +42,9 @@ export function proveFailure(e: unknown, revenueUsd?: string): AdvanceFailure {
 export function acceptFailure(e: unknown, signed: boolean): AdvanceFailure {
   if (e instanceof WalletSignError) {
     // Wallets share no error codes. A network mismatch is named in the message when it is named at all.
-    if (/passphrase|network/i.test(e.message)) return { kind: "walletWrongNetwork" };
+    if (/passphrase|wrong network|network mismatch|mainnet|public global/i.test(e.message)) {
+      return { kind: "walletWrongNetwork" };
+    }
     switch (classifyConnectError(e.cause)) {
       case "declined":
         return { kind: "declined" };
