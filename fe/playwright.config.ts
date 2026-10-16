@@ -24,6 +24,8 @@ export default defineConfig({
     env: {
       NEXT_DIST_DIR: ".next-e2e",
       NEXT_PUBLIC_E2E: "1",
+      // The Reclaim mock, whatever .env.local says.
+      NEXT_PUBLIC_RELAY_URL: "",
       NEXT_PUBLIC_STELLAR_RPC_URL: "https://rpc.e2e.invalid",
       NEXT_PUBLIC_USDC_ASSET: "USDC:GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5",
     },
