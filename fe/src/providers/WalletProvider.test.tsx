@@ -1,5 +1,6 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { WalletError } from "@/lib/stellar/wallet-error";
 
 const wallet = {
   getAddress: vi.fn(),
@@ -79,13 +80,21 @@ describe("WalletProvider on reload", () => {
     expect(window.localStorage.getItem("forepay.wallet")).toBeNull();
   });
 
-  it("drops the session when Freighter, asked silently, gives no address (locked or revoked)", async () => {
+  it("drops the session and says to unlock when Freighter, asked silently, gives no address", async () => {
     window.localStorage.setItem("forepay.wallet", SAVED);
-    // What the kit's Freighter module rejects with for getAddress({ skipRequestAccess: true }).
-    wallet.getAddress.mockRejectedValue({
-      code: -3,
-      message: "Getting the address from Freighter is not allowed, please request access first.",
-    });
+    // What the kit's Freighter module rejects with for getAddress({ skipRequestAccess: true }), once
+    // wallet-real has made it a WalletError.
+    wallet.getAddress.mockRejectedValue(
+      new WalletError("Getting the address from Freighter is not allowed, please request access first.", -3),
+    );
+    renderProvider();
+    await waitFor(() => expect(screen.getByText("none locked")).toBeTruthy());
+    expect(window.localStorage.getItem("forepay.wallet")).toBeNull();
+  });
+
+  it("drops the session without a reason for anything it does not recognise", async () => {
+    window.localStorage.setItem("forepay.wallet", SAVED);
+    wallet.getAddress.mockRejectedValue(new Error("boom"));
     renderProvider();
     await waitFor(() => expect(screen.getByText("none")).toBeTruthy());
   });

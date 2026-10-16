@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { classifyConnectError } from "@/lib/errors";
 import * as wallet from "@/lib/stellar/wallet";
 import { NETWORK_PASSPHRASE } from "@/lib/stellar/network";
 
@@ -14,10 +15,11 @@ type Ctx = {
   hydrated: boolean;
   isConnected: boolean;
   /**
-   * Why a saved session was dropped on reload, when the creator can do something about it. Today only
-   * "wrongNetwork": the wallet moved off testnet since the last visit.
+   * Why a saved session was dropped on reload, when the creator can do something about it:
+   * "wrongNetwork", the wallet moved off testnet since the last visit, or "locked", Freighter would not
+   * share the address when asked silently (locked, or access revoked).
    */
-  restoreFailure: { kind: "wrongNetwork"; walletName: string } | null;
+  restoreFailure: { kind: "wrongNetwork" | "locked"; walletName: string } | null;
   clearRestoreFailure: () => void;
   /** Save a session the page has already connected and checked (network included). */
   remember: (session: { address: string; name: string }) => void;
@@ -70,8 +72,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             }
           }
         }
-      } catch {
-        // Locked, revoked, or storage blocked. No verified session either way.
+      } catch (e) {
+        // Locked, revoked, or storage blocked. No verified session either way, but a locked wallet is
+        // said by name, so the creator unlocks it rather than wondering where the session went.
+        if (alive && classifyConnectError(e) === "locked") {
+          let name = "your wallet";
+          try {
+            name = window.localStorage.getItem(NAME_KEY) ?? name;
+          } catch {
+            // Storage blocked: the wallet stays unnamed.
+          }
+          setRestoreFailure({ kind: "locked", walletName: name });
+        }
       }
       if (!alive) return;
       clearStorage();
