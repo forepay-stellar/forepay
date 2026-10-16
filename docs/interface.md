@@ -122,6 +122,20 @@ advance_stroops = min(ADVANCE_CAP, revenue_stroops × ADVANCE_NUM / ADVANCE_DEN)
 No admin discretion anywhere in the path. The same proof always sizes the same advance — that
 determinism is the product, and the front end shows the derivation (#20).
 
+### Reading the constants from the contract (#63)
+
+```
+sizing() -> { rate_num, rate_den, cap_stroops, min_stroops, stroops_per_cent }
+```
+
+Pure, no storage read, cannot fail. The front end must read these rather than hard-code them: 2b
+shows the derivation beside the figure, and a hard-coded `25%` next to a number the contract sized
+differently is a derivation that lies. It also lets 2b tell *capped* apart from *exactly 100 USDC* —
+compare `quote()` to `cap_stroops`, not to a literal in the bundle.
+
+These are compile-time constants, not storage, so they can only change by upgrade — and when they
+do, this getter changes with the arithmetic, in the same wasm.
+
 ### Fixed point
 
 USDC's SAC reports **7 decimals** — read from chain on 2026-10-14, not assumed, because the Stellar
