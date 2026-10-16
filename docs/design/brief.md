@@ -74,18 +74,27 @@ https://www.figma.com/design/IFnDNonLcCKQIUUgBhrq2M/Forepay
    with a semicolon. This includes error messages and helper text.
 4. **Plain words, no jargon.** The creator is not a crypto engineer. Say what happens to them, not
    how the system works. Keep words like nullifier, attestor, zkTLS, SAC, contract call, stroops,
-   RPC, epoch and digest out of the UI. Translate them:
+   RPC, epoch and digest out of the UI.
 
-   | Internal term | What the UI says |
-   | --- | --- |
-   | Nullifier spent | "This proof was already used for an advance" |
-   | Proof stale | "This proof expired. Prove your revenue again, it takes a minute" |
-   | Verifier rejected | "We could not confirm this proof with Google's data" |
-   | No USDC trustline | "Your wallet needs to accept USDC first" + "Allow USDC" |
-   | Insufficient liquidity | "Advances are paused right now. Try again later" |
-   | Contract call failed | "The transaction did not go through. Nothing was charged" |
-   | Tx hash / stellar.expert | "View receipt" (opens stellar.expert) |
-   | Verified on-chain | "Verified" with a link to the receipt |
+   **The exact words for every failure are the ones on the States and interactions boards** in
+   `forepay.pen`, as built in `fe/src/lib/errors.ts`. Those boards are the single source. This table
+   only shows the translation for the most common terms:
+
+   | Internal term | Title the UI shows | Body |
+   | --- | --- | --- |
+   | `20` Nullifier spent | "This proof was already used" | "Each three month revenue period can fund one advance. A new period opens when the next quarter ends." |
+   | `12` Proof stale | "This proof expired" | "A revenue proof is good for one hour. Prove your revenue again, it takes about a minute." |
+   | `14` Verifier rejected | "We could not confirm this proof" | "The revenue could not be matched to Google's data. Try proving again. If it keeps happening, log out of AdSense and back in first." |
+   | `41` No USDC trustline | "Your wallet needs to accept USDC first" | "Approve USDC in your wallet, then accept the offer again. Your proof is still valid." + "Allow USDC" |
+   | `40` Insufficient liquidity | "Advances are paused right now" | "There is not enough USDC in Forepay to send this advance. Your proof was not used. Try again later." |
+   | `31` Advance too small | "Not enough revenue yet" | "25% of {revenue} is under 1 USDC, the smallest advance we can send. Your proof was not used." |
+   | Refused before the ledger | "The transaction did not go through" | "Nothing was charged and no USDC moved. Try again in a moment." |
+   | Failed on the ledger | "The transaction did not go through" | "Stellar kept the tiny network fee, but no USDC moved. Try again in a moment." |
+   | Tx hash, stellar.expert | "View receipt" (opens stellar.expert) | |
+
+   **"Nothing was charged" only when it is known to be true.** A transaction refused before the
+   ledger charged nothing. One that failed on the ledger kept the network fee. One that was sent but
+   not confirmed may still land, so it says "not confirmed yet", never "nothing was charged".
 
    Words the creator already knows are fine: wallet, USDC, AdSense, revenue, advance, repay,
    Testnet.
@@ -99,6 +108,11 @@ https://www.figma.com/design/IFnDNonLcCKQIUUgBhrq2M/Forepay
    Separate with layout spacing, and let color and words carry status.
 8. **Only the inputs the app needs.** The one form is the repay amount (amount input + 25% / 50% /
    Full amount chips). No select, checkbox, radio, toggle or text field until a screen needs one.
+9. **The revenue window is data, never copy.** The three months come from the claim template on
+   chain and move to the next period when it is reset. Screens show the window the proof will
+   actually cover, read from chain (for example "Jul to Sep 2026" in the mockups is sample data).
+   Never write a fixed range like "July to September" into a sentence.
+   | Verified on-chain | "Verified" with a link to the receipt |
 
 ### Language
 
@@ -178,6 +192,9 @@ States & interactions:
 2. **No USDC trustline**: plain-words explanation, one-click "Allow USDC" (UI words per §3 rule 4), then signing,
    then added. Shown at connect time, never after proving.
 3. Wrong network (wallet on mainnet), wallet locked or not installed, user rejected the connection
+   A new wallet with no test XLM yet: "Add test XLM to your wallet first" with "Get test XLM"
+   (Friendbot), a waiting state while the account appears on the ledger, and "We could not add test
+   XLM" if the faucet does not answer.
 4. Wallet menu: copy address, view on stellar.expert, disconnect
 5. Reload keeps the session
 

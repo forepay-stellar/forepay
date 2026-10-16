@@ -2152,7 +2152,7 @@
                   "id": "WSs7s",
                   "name": "Sample",
                   "fill": "$fg",
-                  "content": "AdSense revenue from July to September",
+                  "content": "AdSense revenue, Jul to Sep 2026",
                   "lineHeight": 1.15,
                   "fontFamily": "$font-sans",
                   "fontSize": 14,
@@ -12316,7 +12316,7 @@
                                   "id": "TbCGo",
                                   "name": "Text",
                                   "fill": "$fg",
-                                  "content": "Revenue from July to September",
+                                  "content": "Revenue for Jul to Sep 2026",
                                   "fontFamily": "$font-sans",
                                   "fontSize": 14,
                                   "fontWeight": "normal"
@@ -14759,6 +14759,381 @@
               ]
             }
           ]
+        },
+        {
+          "type": "frame",
+          "id": "MfuP1",
+          "name": "5  A new wallet with no test XLM",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 20,
+          "children": [
+            {
+              "type": "text",
+              "id": "eUzwv",
+              "name": "Row title",
+              "fill": "$fg",
+              "content": "5  A new wallet with no test XLM",
+              "fontFamily": "$font-sans",
+              "fontSize": 22,
+              "fontWeight": "600",
+              "letterSpacing": -0.3
+            },
+            {
+              "type": "frame",
+              "id": "a2rZk7",
+              "name": "Cells",
+              "width": "fill_container",
+              "gap": 24,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "U4ecSL",
+                  "name": "Needs test XLM",
+                  "width": 480,
+                  "layout": "vertical",
+                  "gap": 14,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Ro7lM",
+                      "name": "Preview",
+                      "width": "fill_container",
+                      "height": 520,
+                      "fill": "$canvas",
+                      "cornerRadius": "$radius-tile",
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 24,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "NRWod",
+                          "name": "Panel",
+                          "width": 400,
+                          "fill": "$surface",
+                          "cornerRadius": "$radius-card",
+                          "layout": "vertical",
+                          "gap": 14,
+                          "padding": 24,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "OZdRT",
+                              "name": "Illustration wrap",
+                              "width": "fill_container",
+                              "justifyContent": "center",
+                              "children": [
+                                {
+                                  "id": "O5cs15",
+                                  "type": "ref",
+                                  "ref": "al8KY",
+                                  "name": "Illustration"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "A2Wov",
+                              "name": "Title",
+                              "fill": "$fg",
+                              "content": "Add test XLM to your wallet first",
+                              "fontFamily": "$font-sans",
+                              "fontSize": 19,
+                              "fontWeight": "600",
+                              "letterSpacing": -0.3
+                            },
+                            {
+                              "type": "text",
+                              "id": "BcXiS",
+                              "name": "Body",
+                              "fill": "$fg-muted",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "A new Stellar wallet needs a little test XLM before it can accept USDC. It is free on testnet.",
+                              "lineHeight": 1.5,
+                              "fontFamily": "$font-sans",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "i2rcHA",
+                              "name": "Actions",
+                              "width": "fill_container",
+                              "gap": 10,
+                              "children": [
+                                {
+                                  "id": "X76zg",
+                                  "type": "ref",
+                                  "ref": "GqUzt",
+                                  "name": "Primary",
+                                  "width": "fill_container",
+                                  "descendants": {
+                                    "jdAIa": {
+                                      "content": "Get test XLM"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "D2X5e",
+                      "name": "Title",
+                      "fill": "$fg",
+                      "content": "Needs test XLM",
+                      "fontFamily": "$font-sans",
+                      "fontSize": 16,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "AJg9X",
+                      "name": "Desc",
+                      "fill": "$fg-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "The wallet exists in the extension but has never been funded on testnet, so it cannot accept USDC yet.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-sans",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "n2jNm",
+                  "name": "Adding test XLM",
+                  "width": 480,
+                  "layout": "vertical",
+                  "gap": 14,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "wRNY0",
+                      "name": "Preview",
+                      "width": "fill_container",
+                      "height": 520,
+                      "fill": "$canvas",
+                      "cornerRadius": "$radius-tile",
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 24,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "PG8Zw",
+                          "name": "Panel",
+                          "width": 400,
+                          "fill": "$surface",
+                          "cornerRadius": "$radius-card",
+                          "layout": "vertical",
+                          "gap": 14,
+                          "padding": 24,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "ChNQr",
+                              "name": "Illustration wrap",
+                              "width": "fill_container",
+                              "justifyContent": "center",
+                              "children": [
+                                {
+                                  "id": "G3DdA",
+                                  "type": "ref",
+                                  "ref": "wi6aH",
+                                  "name": "Spinner"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "Xw8y6",
+                              "name": "Title",
+                              "fill": "$fg",
+                              "content": "Adding test XLM",
+                              "fontFamily": "$font-sans",
+                              "fontSize": 19,
+                              "fontWeight": "600",
+                              "letterSpacing": -0.3
+                            },
+                            {
+                              "type": "text",
+                              "id": "V3CYf",
+                              "name": "Body",
+                              "fill": "$fg-muted",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Waiting for Stellar to show your account. This takes a few seconds.",
+                              "lineHeight": 1.5,
+                              "fontFamily": "$font-sans",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "N37v8k",
+                      "name": "Title",
+                      "fill": "$fg",
+                      "content": "Adding test XLM",
+                      "fontFamily": "$font-sans",
+                      "fontSize": 16,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "O5ReXE",
+                      "name": "Desc",
+                      "fill": "$fg-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Friendbot was asked. The page waits until the account shows on the ledger, then moves on to Allow USDC.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-sans",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "zxQLW",
+                  "name": "Faucet did not answer",
+                  "width": 480,
+                  "layout": "vertical",
+                  "gap": 14,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "PfVAx",
+                      "name": "Preview",
+                      "width": "fill_container",
+                      "height": 520,
+                      "fill": "$canvas",
+                      "cornerRadius": "$radius-tile",
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 24,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "WlUwh",
+                          "name": "Panel",
+                          "width": 400,
+                          "fill": "$surface",
+                          "cornerRadius": "$radius-card",
+                          "layout": "vertical",
+                          "gap": 14,
+                          "padding": 24,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "p0fIL8",
+                              "name": "Illustration wrap",
+                              "width": "fill_container",
+                              "justifyContent": "center",
+                              "children": [
+                                {
+                                  "id": "jxAPU",
+                                  "type": "ref",
+                                  "ref": "vQb5a",
+                                  "name": "Illustration"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "qAOXJ",
+                              "name": "Title",
+                              "fill": "$fg",
+                              "content": "We could not add test XLM",
+                              "fontFamily": "$font-sans",
+                              "fontSize": 19,
+                              "fontWeight": "600",
+                              "letterSpacing": -0.3
+                            },
+                            {
+                              "type": "text",
+                              "id": "h3dpUQ",
+                              "name": "Body",
+                              "fill": "$fg-muted",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "The testnet faucet did not answer. Try again in a moment.",
+                              "lineHeight": 1.5,
+                              "fontFamily": "$font-sans",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "MPNn0",
+                              "name": "Actions",
+                              "width": "fill_container",
+                              "gap": 10,
+                              "children": [
+                                {
+                                  "id": "w30AZ",
+                                  "type": "ref",
+                                  "ref": "GqUzt",
+                                  "name": "Primary",
+                                  "width": "fill_container",
+                                  "descendants": {
+                                    "jdAIa": {
+                                      "content": "Try again"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "Eq91d",
+                      "name": "Title",
+                      "fill": "$fg",
+                      "content": "Faucet did not answer",
+                      "fontFamily": "$font-sans",
+                      "fontSize": 16,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Bacfx",
+                      "name": "Desc",
+                      "fill": "$fg-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Friendbot failed or the account never appeared. Nothing was charged.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-sans",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -15115,7 +15490,7 @@
                       "fill": "$fg-on-brand",
                       "textGrowth": "fixed-width",
                       "width": 480,
-                      "content": "A quarter of the $360.00 you earned on AdSense from July to September.",
+                      "content": "A quarter of the $360.00 you earned on AdSense in Jul to Sep 2026.",
                       "lineHeight": 1.45,
                       "fontFamily": "$font-sans",
                       "fontSize": 15,
@@ -15627,7 +16002,7 @@
                   "fill": "$fg-on-brand",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "A quarter of the $360.00 you earned on AdSense from July to September.",
+                  "content": "A quarter of the $360.00 you earned on AdSense in Jul to Sep 2026.",
                   "lineHeight": 1.45,
                   "fontFamily": "$font-sans",
                   "fontSize": 15,
