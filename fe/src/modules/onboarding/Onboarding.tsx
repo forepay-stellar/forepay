@@ -75,6 +75,8 @@ export function Onboarding() {
     if (connecting) return;
     setConnecting(true);
     setConnectFailure(null);
+    // A failure names the wallet picked this time, not one left over from an earlier attempt.
+    setFailedWallet("Freighter");
     clearRestoreFailure();
     try {
       if (!(await wallet.hasWallet())) {

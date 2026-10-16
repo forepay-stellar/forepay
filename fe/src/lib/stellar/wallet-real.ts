@@ -1,4 +1,4 @@
-import { KitEventType, Networks, StellarWalletsKit } from "@creit.tech/stellar-wallets-kit";
+import { Networks, StellarWalletsKit, moduleSelectedEvent } from "@creit.tech/stellar-wallets-kit";
 import { FREIGHTER_ID, FreighterModule } from "@creit.tech/stellar-wallets-kit/modules/freighter";
 import { RABET_ID, RabetModule } from "@creit.tech/stellar-wallets-kit/modules/rabet";
 import {
@@ -237,16 +237,13 @@ export async function connect(
       return await connectMobileWalletConnect();
     }
     const kit = getKit();
-    // The kit builds this event on a preact-signals effect, which runs once as it subscribes, with the
-    // wallet selected last time and the picker still open. That first call is not a pick. Picking the
-    // same wallet again changes nothing, so it fires nothing either; the button then simply stays on
-    // "Connecting" without a wallet name.
-    let subscribed = false;
-    const unsubscribe = kit.on(KitEventType.WALLET_SELECTED, () => {
-      if (!subscribed) return;
-      onWalletSelected?.(kit.selectedModule.productName);
+    // moduleSelectedEvent fires each time the picker's row is pressed, the wallet already selected
+    // included, and never on subscribe. kit.on(WALLET_SELECTED) is no good here: it is a signals effect
+    // that runs once on subscribe with last time's wallet, and not at all when the same wallet is
+    // picked again, which is the usual case (Freighter is selected by default).
+    const unsubscribe = moduleSelectedEvent.subscribe((picked) => {
+      if ("name" in picked) onWalletSelected?.(picked.name);
     });
-    subscribed = true;
     try {
       const { address } = await kit.authModal();
       const id = getWalletId();
