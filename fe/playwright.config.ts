@@ -1,7 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// End to end runs with the test wallet (NEXT_PUBLIC_E2E=1) and with every Stellar RPC call answered by
-// the spec itself, so a run never touches testnet and never needs a browser extension.
+// End to end runs with the test wallet (NEXT_PUBLIC_E2E=1) and with every Stellar RPC call and #16 API
+// call answered by the spec itself (tests/e2e/rpc.ts, tests/e2e/api.ts), so a run never touches testnet
+// or a real API and never needs a browser extension.
 // PW_PORT lets two worktrees run their e2e suites side by side.
 const PORT = Number(process.env.PW_PORT ?? 3219);
 
@@ -27,6 +28,9 @@ export default defineConfig({
       // The Reclaim mock, whatever .env.local says.
       NEXT_PUBLIC_RELAY_URL: "",
       NEXT_PUBLIC_STELLAR_RPC_URL: "https://rpc.e2e.invalid",
+      NEXT_PUBLIC_API_URL: "https://api.e2e.invalid",
+      // Advance contract (dev), from docs/deployments.md. The stub answers for it; nothing is sent.
+      NEXT_PUBLIC_ADVANCE_CONTRACT_ID: "CA3YGQHU42EL2TAOG7NJ5DDT5FLKKQNDWIUFFU6KV7QJHCFGLAGYXLID",
       NEXT_PUBLIC_USDC_ASSET: "USDC:GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5",
     },
   },
