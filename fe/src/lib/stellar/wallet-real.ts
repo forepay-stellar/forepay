@@ -239,9 +239,27 @@ export async function connect(
   }
 }
 
+/**
+ * The address the wallet reports now, for the reload check, without opening any wallet window.
+ *
+ * The kit's own `getAddress()` only returns the address it remembered in localStorage, so a locked
+ * wallet, revoked access or a switched account would pass. Freighter can be asked silently
+ * (`skipRequestAccess`), and answers no address when it is locked or access was revoked. xBull and
+ * Rabet cannot: asking them opens their connect window, which a page load must not do. For those the
+ * remembered address stands, and a locked wallet is caught by name when it is asked to sign.
+ */
 export async function getAddress(): Promise<string> {
   if (viaMobileWalletConnect()) return mobileWalletConnectAddress();
-  const { address } = await getKit().getAddress();
+  const kit = getKit();
+  if (kit.selectedModule.productId === FREIGHTER_ID) {
+    try {
+      const { address } = await kit.selectedModule.getAddress({ skipRequestAccess: true });
+      return address;
+    } catch (e) {
+      throw toWalletError(e);
+    }
+  }
+  const { address } = await kit.getAddress();
   return address;
 }
 

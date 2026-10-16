@@ -58,9 +58,13 @@ describe("WalletProvider on reload", () => {
     expect(window.localStorage.getItem("forepay.wallet")).toBeNull();
   });
 
-  it("drops the session when the wallet is locked", async () => {
+  it("drops the session when Freighter, asked silently, gives no address (locked or revoked)", async () => {
     window.localStorage.setItem("forepay.wallet", SAVED);
-    wallet.getAddress.mockRejectedValue(new Error("locked"));
+    // What the kit's Freighter module rejects with for getAddress({ skipRequestAccess: true }).
+    wallet.getAddress.mockRejectedValue({
+      code: -3,
+      message: "Getting the address from Freighter is not allowed, please request access first.",
+    });
     renderProvider();
     await waitFor(() => expect(screen.getByText("none")).toBeTruthy());
   });
