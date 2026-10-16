@@ -1,0 +1,158 @@
+import Link from "next/link";
+import type { ReactNode } from "react";
+import { ErrorPanel } from "@/components/elements/ErrorPanel";
+import { IlloAdvancesPaused } from "@/components/illustrations/AdvancesPaused";
+import { IlloAllowUsdc } from "@/components/illustrations/AllowUsdc";
+import { IlloNoAdvanceYet } from "@/components/illustrations/NoAdvanceYet";
+import { IlloNothingCharged } from "@/components/illustrations/NothingCharged";
+import { IlloProofAlreadyUsed } from "@/components/illustrations/ProofAlreadyUsed";
+import { IlloProofExpired } from "@/components/illustrations/ProofExpired";
+import { IlloProofNotConfirmed } from "@/components/illustrations/ProofNotConfirmed";
+import { IlloSessionCancelled } from "@/components/illustrations/SessionCancelled";
+import { Button, button } from "@/components/ui/Button";
+import { contractFailureCopy, proveFailureCopy, tooSmallCopy, type ProveFailure } from "@/lib/errors";
+
+/**
+ * Why 02 Prove and accept stopped: a contract refusal (its code from `docs/interface.md` §7), one of
+ * the failures around it, or an offer too small to send.
+ */
+export type AdvanceFailure = { code: number } | { kind: ProveFailure } | { kind: "tooSmall"; revenue: string };
+
+/**
+ * What a panel's buttons ask for. `prove` starts a new Reclaim session, `back` leaves the failure,
+ * `reviewOffer` returns to 2b (the proof is still good), `retry` does again what failed (the check or
+ * the accept), `allowUsdc` adds the USDC trustline.
+ */
+export type FailureAction = "prove" | "back" | "reviewOffer" | "retry" | "allowUsdc";
+
+/**
+ * Every failure on the "Prove and accept / States and interactions" board, rows 2 to 4, each with its
+ * own illustration, words and next step. Never "Something went wrong" (#20).
+ */
+export function FailurePanel({
+  failure,
+  walletName,
+  allowing,
+  onAction,
+}: {
+  failure: AdvanceFailure;
+  walletName: string;
+  /** Allowing USDC is waiting on the wallet. */
+  allowing: boolean;
+  onAction: (action: FailureAction) => void;
+}) {
+  const a = {
+    onProve: () => onAction("prove"),
+    onBack: () => onAction("back"),
+    onReviewOffer: () => onAction("reviewOffer"),
+    onRetry: () => onAction("retry"),
+    onAllowUsdc: () => onAction("allowUsdc"),
+  };
+  const back = (
+    <Button variant="outline" onClick={a.onBack}>
+      Back
+    </Button>
+  );
+  const proveAgain = <Button onClick={a.onProve}>Prove again</Button>;
+
+  let illustration: ReactNode;
+  let actions: ReactNode;
+  let copy;
+
+  if ("code" in failure) {
+    copy = contractFailureCopy(failure.code);
+    switch (failure.code) {
+      case 11:
+      case 14:
+      case 30:
+        illustration = <IlloProofNotConfirmed data-illo="proof-not-confirmed" />;
+        actions = failure.code === 30 ? back : <>{proveAgain}{back}</>;
+        break;
+      case 12:
+      case 13:
+        illustration = <IlloProofExpired data-illo="proof-expired" />;
+        actions = <>{proveAgain}{back}</>;
+        break;
+      case 20:
+        illustration = <IlloProofAlreadyUsed data-illo="proof-already-used" />;
+        actions = back;
+        break;
+      case 41:
+        illustration = <IlloAllowUsdc data-illo="allow-usdc" />;
+        actions = (
+          <>
+            <Button onClick={a.onAllowUsdc} loading={allowing} loadingLabel={`Approve in ${walletName}`}>
+              Allow USDC
+            </Button>
+            <Button variant="outline" onClick={a.onBack} disabled={allowing}>
+              Not now
+            </Button>
+          </>
+        );
+        break;
+      case 10:
+      case 40:
+        illustration = <IlloAdvancesPaused data-illo="advances-paused" />;
+        actions = back;
+        break;
+      default:
+        // A refusal a creator cannot cause (admin and upgrade codes): the transaction did not happen.
+        illustration = <IlloNothingCharged data-illo="nothing-charged" />;
+        actions = <>{<Button onClick={a.onRetry}>Try again</Button>}{back}</>;
+    }
+  } else if (failure.kind === "tooSmall") {
+    copy = tooSmallCopy(failure.revenue);
+    illustration = <IlloNoAdvanceYet data-illo="no-advance-yet" />;
+    actions = back;
+  } else {
+    copy = proveFailureCopy(failure.kind, walletName);
+    switch (failure.kind) {
+      case "cancelled":
+        illustration = <IlloSessionCancelled data-illo="session-cancelled" />;
+        actions = <Button onClick={a.onProve}>Prove my revenue</Button>;
+        break;
+      case "declined":
+        illustration = <IlloSessionCancelled data-illo="session-cancelled" />;
+        actions = <Button onClick={a.onReviewOffer}>Review offer again</Button>;
+        break;
+      case "refused":
+      case "unreachable":
+        illustration = <IlloNothingCharged data-illo="nothing-charged" />;
+        actions = (
+          <>
+            <Button onClick={a.onRetry}>Try again</Button>
+            {back}
+          </>
+        );
+        break;
+      case "charged":
+        illustration = <IlloSessionCancelled data-illo="session-cancelled" />;
+        actions = (
+          <>
+            <Button onClick={a.onRetry}>Try again</Button>
+            {back}
+          </>
+        );
+        break;
+      case "unconfirmed":
+        illustration = <IlloNothingCharged data-illo="nothing-charged" />;
+        actions = (
+          <>
+            <Link href="/history" className={button()}>
+              Open History
+            </Link>
+            <Button variant="outline" onClick={a.onRetry}>
+              Try again
+            </Button>
+          </>
+        );
+        break;
+      case "relayNotReady":
+        illustration = <IlloAdvancesPaused data-illo="advances-paused" />;
+        actions = back;
+        break;
+    }
+  }
+
+  return <ErrorPanel illustration={illustration} title={copy.title} body={copy.body} actions={actions} />;
+}
