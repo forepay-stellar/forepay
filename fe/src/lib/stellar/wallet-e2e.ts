@@ -66,8 +66,9 @@ export async function connect(
 
 export async function getAddress(): Promise<string> {
   requireConnected();
-  // What Freighter answers for a silent address request while it is locked.
-  if (scenario() === "locked") {
+  // What Freighter answers for a silent address request while it is locked. Only Freighter is asked
+  // silently; for xBull and Rabet the real layer trusts the address it remembered.
+  if (scenario() === "locked" && walletName() === DEFAULT_WALLET_NAME) {
     throw new WalletError(`Getting the address from ${walletName()} is not allowed, please request access first.`, -3);
   }
   return E2E_ADDRESS;

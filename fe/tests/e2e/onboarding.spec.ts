@@ -238,6 +238,16 @@ test("a wallet locked since the last visit is dropped on reload, not trusted unt
   await expect(page.getByRole("button", { name: /^Wallet / })).toHaveCount(0);
 });
 
+test("a locked xBull is not caught on reload, since it cannot be asked silently", async ({ page }) => {
+  await mockRpc(page, { account: true, trustline: false });
+  await page.addInitScript(() => window.localStorage.setItem("forepay.e2e.wallet", "xBull"));
+  await connectFromStart(page);
+  await expect(page.getByText("Not allowed yet")).toBeVisible();
+  await page.evaluate(() => window.localStorage.setItem("forepay.e2e.scenario", "locked"));
+  await page.reload();
+  await expect(page.getByText("Not allowed yet")).toBeVisible();
+});
+
 test("the stepper stays centred on desktop once the wallet chip shows", async ({ page, isMobile }) => {
   test.skip(isMobile, "the phone header has no stepper");
   await mockRpc(page, { account: true, trustline: false });
