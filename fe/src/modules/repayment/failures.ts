@@ -41,6 +41,9 @@ export function repayFailureCopy(error: unknown, signed: boolean): FailureCopy {
  * something else (soroban-env-host `builtin_contracts/contract_error.rs`): 10 BalanceError, 11
  * BalanceDeauthorizedError, 13 TrustlineMissingError. Reading those as advance codes would tell a
  * creator who is short of USDC that "Advances are not open yet".
+ *
+ * Checked on 2026-10-16 against stellar/rs-soroban-env at fced8a124103, the last commit touching that
+ * file. The Stellar Raven MCP was not available to confirm it.
  */
 const REPAY_CODES = new Set([1, 50, 51, 52]);
 
