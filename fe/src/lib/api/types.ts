@@ -24,7 +24,11 @@ export type AdvanceSummary = {
   txHash: string;
 };
 
-export type TransactionKind = "advance" | "repayment";
+/**
+ * `trustline` is the wallet allowing USDC (#19), listed on 3b "All transactions". It belongs to the
+ * wallet, not to one advance, so its `nullifier` is empty. Added by #21: agree it with @Lin1er for #16.
+ */
+export type TransactionKind = "advance" | "repayment" | "trustline";
 
 /** One line of 3a "Transactions" and 3b "All transactions". */
 export type LedgerTransaction = {
