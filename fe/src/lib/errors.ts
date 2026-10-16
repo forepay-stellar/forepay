@@ -142,3 +142,55 @@ export function isSignatureDeclined(e: unknown): boolean {
   const message = (e instanceof Error ? e.message : String(e)).toLowerCase();
   return /reject|declin|denied|cancel/.test(message);
 }
+
+/**
+ * The advance contract's refusals (`docs/interface.md` §7), in the brief's words (§3, rule 4, and the
+ * "Prove and accept" board). Shared by #20 and #21. Codes 1 to 6 are admin and upgrade errors a
+ * creator can never cause, so they fall to the generic sentence.
+ */
+export function contractFailureCopy(code: number): FailureCopy {
+  switch (code) {
+    case 10:
+      return { title: "Advances are not open yet", body: "Forepay is not taking AdSense proofs yet. Try again later." };
+    case 11:
+    case 14:
+      return {
+        title: "We could not confirm this proof with Google's data",
+        body: "Nothing was charged. Prove your revenue again, it takes a minute.",
+      };
+    case 12:
+      return { title: "This proof expired", body: "Prove your revenue again, it takes a minute." };
+    case 13:
+      return {
+        title: "This proof is dated in the future",
+        body: "Check the clock on your computer, then prove your revenue again.",
+      };
+    case 20:
+      return {
+        title: "This proof was already used for an advance",
+        body: "Each three months of revenue backs one advance. You can repay it from the Repayment tab.",
+      };
+    case 30:
+      return {
+        title: "We could not read your revenue",
+        body: "The figure from AdSense was not a plain amount. Nothing was charged.",
+      };
+    case 31:
+      return {
+        title: "There is nothing to borrow yet",
+        body: "Your revenue gives an advance under 1 USDC. Your proof was not used, so you can try again next period.",
+      };
+    case 40:
+      return { title: "Advances are paused right now", body: "Try again later. Nothing was charged." };
+    case 41:
+      return { title: "Your wallet needs to accept USDC first", body: "Allow USDC in your wallet, then try again." };
+    case 50:
+      return { title: "We could not find this advance", body: "Open the Repayment tab again to load your advances." };
+    case 51:
+      return { title: "That is more than you owe", body: "Enter an amount up to what is still outstanding." };
+    case 52:
+      return { title: "Enter an amount above zero", body: "Repayments can be any amount above zero." };
+    default:
+      return { title: "The transaction did not go through", body: "Nothing was charged. Try again in a moment." };
+  }
+}
