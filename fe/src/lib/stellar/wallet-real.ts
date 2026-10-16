@@ -206,6 +206,12 @@ export function getWalletId(): string {
   return getKit().selectedModule.productId;
 }
 
+/** `false` when the check takes longer than a second or fails, the same cut-off the kit's picker uses. */
+export function withinASecond(check: Promise<boolean>): Promise<boolean> {
+  const timer = new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 1000));
+  return Promise.race([check, timer]).catch(() => false);
+}
+
 /**
  * Whether the creator has any way to connect: an installed browser extension, or WalletConnect.
  * False is the "Install a Stellar wallet" state.
@@ -213,8 +219,13 @@ export function getWalletId(): string {
 export async function hasWallet(): Promise<boolean> {
   if (viaMobileWalletConnect() || walletConnectProjectId()) return true;
   // Ask only the two extensions that can answer, in parallel, rather than refreshSupportedWallets(),
-  // which checks every module and which the picker then runs again by itself.
-  const [freighter, rabet] = await Promise.all([new FreighterModule().isAvailable(), new RabetModule().isAvailable()]);
+  // which checks every module and which the picker then runs again by itself. Each answer is capped
+  // at a second, as the kit does: without Freighter installed, its isConnected() only gives up after
+  // its own two seconds.
+  const [freighter, rabet] = await Promise.all([
+    withinASecond(new FreighterModule().isAvailable()),
+    withinASecond(new RabetModule().isAvailable()),
+  ]);
   return anyBrowserWallet(
     [
       { id: FREIGHTER_ID, isAvailable: freighter },
