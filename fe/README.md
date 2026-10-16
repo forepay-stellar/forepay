@@ -63,13 +63,16 @@ returns fixed values. Everything after it, the offer from `quote`, the proof che
 and the receipt, is the real contract client. On testnet the contract refuses the mock's proof, so the
 whole flow only completes in the e2e run, against the stubbed RPC.
 
-To see the other states by hand, set these in the browser's localStorage and reload:
+The mock reads two localStorage keys. Set them in the browser and reload:
 
-| Key | Value | Shows |
+| Key | Value | What happens |
 | --- | --- | --- |
-| `forepay.mock.revenue` | `1240.00` | the offer capped at 100 USDC |
-| `forepay.mock.revenue` | `3.20` | "Not enough revenue yet" |
-| `forepay.mock.reclaim` | `cancel` | "You closed the AdSense window" |
+| `forepay.mock.reclaim` | `cancel` | "You closed the AdSense window", anywhere |
+| `forepay.mock.revenue` | `3.20` | "Not enough revenue yet", on testnet and in e2e: the contract's `quote` refuses it before the proof check |
+| `forepay.mock.revenue` | `1240.00` | the offer capped at 100 USDC, **only in the e2e run**. Against testnet the proof check that follows `quote` refuses the mock's proof (today `10`, "Advances are not open yet", because the claim template is not set), and with the e2e RPC URL but no stub it shows "We could not reach Stellar" |
+
+Every other state on the board (each contract code, signing, pending, timed out) needs the stubbed
+RPC and is exercised in `tests/e2e/advance.spec.ts`.
 
 ## A wallet to test with
 

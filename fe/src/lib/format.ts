@@ -85,3 +85,17 @@ export function formatWindow(start: string, end: string): { short: string; long:
     long: `${MONTH_NAMES[sm - 1]} to ${MONTH_NAMES[em - 1]}`,
   };
 }
+
+/** Stroops per XLM. The network fee is paid in XLM, 7 decimals. */
+const STROOPS_PER_XLM = 10_000_000n;
+
+/**
+ * The most a transaction can cost in network fee, as the 2c row shows it: `Under 0.01 XLM`, or rounded
+ * up to the cent of XLM (`Up to 0.04 XLM`) so the figure is never below what the ledger may take.
+ */
+export function formatXlmFee(stroops: bigint): string {
+  const hundredth = STROOPS_PER_XLM / 100n;
+  if (stroops < hundredth) return "Under 0.01 XLM";
+  const cents = (stroops + hundredth - 1n) / hundredth;
+  return `Up to ${cents / 100n}.${(cents % 100n).toString().padStart(2, "0")} XLM`;
+}

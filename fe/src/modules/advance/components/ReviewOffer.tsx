@@ -66,7 +66,11 @@ export function ReviewOffer({
           revenue={revenue}
           windowShort={windowShort}
           advance={advance}
-          note={capped ? `A quarter of ${revenue} is more than 100 USDC. Each advance is limited to 100 USDC.` : undefined}
+          note={
+            capped
+              ? `A quarter of ${revenue} is more than 100 USDC. Each advance is limited to 100 USDC.`
+              : `25% of ${revenue} is ${amount}.`
+          }
         />
       </div>
 

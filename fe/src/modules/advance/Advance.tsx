@@ -1,5 +1,6 @@
 "use client";
 
+import { TransactionBuilder } from "@stellar/stellar-sdk";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
@@ -7,10 +8,8 @@ import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { notify } from "@/components/ui/Toaster";
 import { isSignatureDeclined } from "@/lib/errors";
 import { formatUsd, formatWindow } from "@/lib/format";
-import { ReclaimCancelledError, RelayNotReadyError, proveRevenue, type ProveSession, type ProveStage } from "@/lib/reclaim";
+import { proveRevenue, type ProveSession, type ProveStage } from "@/lib/reclaim";
 import {
-  ContractError,
-  TransactionFailedError,
   checkAdvance,
   getAdvance,
   nullifierFor,
@@ -18,16 +17,18 @@ import {
   requestAdvance,
   type AdvanceRequest,
 } from "@/lib/stellar/contract";
+import { NETWORK_PASSPHRASE } from "@/lib/stellar/network";
 import { TrustlineError, addUsdcTrustline } from "@/lib/stellar/trustline";
 import { useUsdcStatus } from "@/modules/onboarding/hooks/useUsdcStatus";
 import { useWallet } from "@/providers/WalletProvider";
 import { AdvanceScreen, Centered } from "./components/AdvanceScreen";
-import { FailurePanel, type AdvanceFailure, type FailureAction } from "./components/FailurePanel";
+import { FailurePanel, type FailureAction } from "./components/FailurePanel";
 import { FundsReceived } from "./components/FundsReceived";
 import { ProgressPanel } from "./components/ProgressPanel";
 import { ProveRevenue } from "./components/ProveRevenue";
 import { ReviewOffer } from "./components/ReviewOffer";
 import { SignAdvance } from "./components/SignAdvance";
+import { WalletSignError, acceptFailure, proofStillGood, proveFailure, type AdvanceFailure } from "./failures";
 
 /** After this long without a confirmation, say so (board row 4, "Taking longer than usual"). */
 const SLOW_AFTER_MS = 30_000;
@@ -38,20 +39,14 @@ type Flow =
   | { at: "proving"; stage: ProveStage }
   | { at: "checking"; req: AdvanceRequest }
   | { at: "offer"; req: AdvanceRequest }
-  | { at: "signing"; req: AdvanceRequest; sent: boolean; slow: boolean }
+  /** `fee` is the most the transaction can cost, in stroops of XLM, once it is built and in the wallet. */
+  | { at: "signing"; req: AdvanceRequest; fee?: bigint; sent: boolean; slow: boolean }
   | { at: "received"; req: AdvanceRequest; hash: string; amount: bigint }
   /** `during` is the step it happened in: proving and checking, or accepting. */
   | { at: "failed"; failure: AdvanceFailure; req?: AdvanceRequest; during: "prove" | "accept" };
 
 /** A signature given after the creator pressed Cancel. Thrown before anything is sent. */
 class AbandonedError extends Error {}
-
-function proveFailure(e: unknown): AdvanceFailure {
-  if (e instanceof ReclaimCancelledError) return { kind: "cancelled" };
-  if (e instanceof RelayNotReadyError) return { kind: "relayNotReady" };
-  if (e instanceof ContractError) return { code: e.code };
-  return { kind: "unreachable" };
-}
 
 const quoteKey = (address: string, revenueUsd: string) => ["quote", address, revenueUsd] as const;
 
@@ -99,7 +94,7 @@ export function Advance() {
   // The advance as the contract stored it, for 2d. Keyed by its nullifier (ARCHITECTURE.md §4).
   const received = flow.at === "received" ? flow : undefined;
   const nullifier = useQuery({
-    queryKey: ["nullifier", received?.req.pubId, received?.req.windowStart, received?.req.windowEnd],
+    queryKey: ["nullifier", address, received?.req.pubId, received?.req.windowStart, received?.req.windowEnd],
     queryFn: () => nullifierFor(address as string, received!.req.pubId, received!.req.windowStart, received!.req.windowEnd),
     enabled: !!address && !!received,
     staleTime: Infinity,
@@ -159,12 +154,7 @@ export function Advance() {
       await checkAdvance(me, r);
       if (id === attempt.current) setFlow({ at: "offer", req: r });
     } catch (e) {
-      if (id !== attempt.current) return;
-      const failure: AdvanceFailure =
-        e instanceof ContractError && e.code === 31
-          ? { kind: "tooSmall", revenue: formatUsd(r.revenueUsd) }
-          : proveFailure(e);
-      setFlow({ at: "failed", failure, req: r, during: "prove" });
+      if (id === attempt.current) setFlow({ at: "failed", failure: proveFailure(e, r.revenueUsd), req: r, during: "prove" });
     }
   }
 
@@ -175,12 +165,20 @@ export function Advance() {
     setFlow({ at: "signing", req: r, sent: false, slow: false });
 
     const sign = async (xdr: string) => {
-      const out = await signTransaction(xdr);
+      // The transaction is built and simulated: its fee is now known, and 2c shows it.
+      const fee = BigInt(TransactionBuilder.fromXDR(xdr, NETWORK_PASSPHRASE).fee);
+      if (id === attempt.current) setFlow({ at: "signing", req: r, fee, sent: false, slow: false });
+      let out: string;
+      try {
+        out = await signTransaction(xdr);
+      } catch (e) {
+        throw new WalletSignError(e);
+      }
       if (id !== attempt.current) throw new AbandonedError();
       signed = true;
-      setFlow({ at: "signing", req: r, sent: true, slow: false });
+      setFlow({ at: "signing", req: r, fee, sent: true, slow: false });
       slowTimer.current = setTimeout(() => {
-        if (id === attempt.current) setFlow({ at: "signing", req: r, sent: true, slow: true });
+        if (id === attempt.current) setFlow({ at: "signing", req: r, fee, sent: true, slow: true });
       }, SLOW_AFTER_MS);
       return out;
     };
@@ -198,15 +196,7 @@ export function Advance() {
     } catch (e) {
       if (id !== attempt.current) return;
       clearTimeout(slowTimer.current);
-      let failure: AdvanceFailure;
-      if (e instanceof ContractError) failure = { code: e.code };
-      else if (e instanceof TransactionFailedError)
-        failure = { kind: e.unconfirmed ? "unconfirmed" : e.charged ? "charged" : "refused" };
-      else if (!signed && isSignatureDeclined(e)) failure = { kind: "declined" };
-      // Signed but no clean answer: it may still land, so say only what is known.
-      else if (signed) failure = { kind: "unconfirmed" };
-      else failure = { kind: "unreachable" };
-      setFlow({ at: "failed", failure, req: r, during: "accept" });
+      setFlow({ at: "failed", failure: acceptFailure(e, signed), req: r, during: "accept" });
     }
   }
 
@@ -242,13 +232,10 @@ export function Advance() {
     switch (action) {
       case "prove":
         return void prove();
-      case "back": {
-        // Back is the offer only when the accept failed before the contract looked at the proof, so
-        // the proof is still good. A refusal (expired, used, paused) goes back to 2a.
-        const proofStillGood =
-          "kind" in failure && (failure.kind === "refused" || failure.kind === "charged" || failure.kind === "unreachable");
-        return r && during === "accept" && proofStillGood ? toOffer(r) : toStart();
-      }
+      case "back":
+        // Back is the offer only when the contract never refused the proof. A refusal (expired, used,
+        // paused) goes back to 2a, where proving starts again.
+        return r && during === "accept" && proofStillGood(failure) ? toOffer(r) : toStart();
       case "reviewOffer":
         return r ? toOffer(r) : toStart();
       case "retry":
@@ -261,10 +248,17 @@ export function Advance() {
     }
   }
 
+  const focusKey = [
+    flow.at,
+    flow.at === "proving" ? flow.stage : "",
+    flow.at === "signing" ? `${flow.sent}${flow.slow}` : "",
+    flow.at === "failed" ? JSON.stringify(flow.failure) : "",
+  ].join(":");
+
   // ---- 2a Prove revenue, and the Reclaim session ----
   if (flow.at === "start") {
     return (
-      <AdvanceScreen title="Get an advance" step={0}>
+      <AdvanceScreen title="Get an advance" step={0} focusKey={focusKey}>
         <ProveRevenue
           walletName={wallet}
           usdc={usdc.isError ? "error" : usdc.data}
@@ -276,7 +270,7 @@ export function Advance() {
 
   if (flow.at === "proving" || flow.at === "checking") {
     return (
-      <AdvanceScreen title="Get an advance" step={0}>
+      <AdvanceScreen title="Get an advance" step={0} focusKey={focusKey}>
         <Centered>
           {flow.at === "checking" ? (
             <ProgressPanel
@@ -305,7 +299,7 @@ export function Advance() {
   if (flow.at === "offer") {
     const period = formatWindow(flow.req.windowStart, flow.req.windowEnd);
     return (
-      <AdvanceScreen title="Your offer" step={1}>
+      <AdvanceScreen title="Your offer" step={1} focusKey={focusKey}>
         {offer.data !== undefined ? (
           <ReviewOffer
             revenue={formatUsd(flow.req.revenueUsd)}
@@ -320,6 +314,7 @@ export function Advance() {
             <FailurePanel
               failure={proveFailure(offer.error)}
               walletName={wallet}
+              beforeOffer
               allowing={allowing}
               onAction={(action) => onFailureAction(action, proveFailure(offer.error), flow.req, "prove")}
             />
@@ -334,10 +329,16 @@ export function Advance() {
   // ---- 2c Sign ----
   if (flow.at === "signing") {
     return (
-      <AdvanceScreen title="Approve the advance" step={2}>
+      <AdvanceScreen title="Approve the advance" step={2} focusKey={focusKey}>
         <Centered>
           {!flow.sent ? (
-            <SignAdvance walletName={wallet} address={me} advance={offer.data ?? 0n} onCancel={() => toOffer(flow.req)} />
+            <SignAdvance
+              walletName={wallet}
+              address={me}
+              advance={offer.data}
+              fee={flow.fee}
+              onCancel={() => toOffer(flow.req)}
+            />
           ) : flow.slow ? (
             <ProgressPanel
               title="Still waiting for Stellar"
@@ -357,7 +358,7 @@ export function Advance() {
   // ---- 2d Receive ----
   if (flow.at === "received") {
     return (
-      <AdvanceScreen title="Advance received" step={4}>
+      <AdvanceScreen title="Advance received" step={4} focusKey={focusKey}>
         <Centered>
           <FundsReceived
             amount={flow.amount}
@@ -378,11 +379,12 @@ export function Advance() {
       ? ["Approve the advance", 2]
       : ["Get an advance", 0];
   return (
-    <AdvanceScreen title={title as string} step={step as number}>
+    <AdvanceScreen title={title as string} step={step as number} focusKey={focusKey}>
       <Centered>
         <FailurePanel
           failure={flow.failure}
           walletName={wallet}
+          beforeOffer={flow.during === "prove"}
           allowing={allowing}
           onAction={(action) => onFailureAction(action, flow.failure, flow.req, flow.during)}
         />
