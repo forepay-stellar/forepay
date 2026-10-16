@@ -9,7 +9,8 @@ import { RPC_URL, USDC } from "./network";
  * wallet holds nothing" and block a creator who can pay. A transport failure throws to the caller.
  *
  * `null` means the wallet holds no USDC trustline at all. A classic trustline balance is an Int64 with
- * the asset's 7 decimals, so it is already in stroops.
+ * the asset's 7 decimals, so it is already in stroops. USDC promised to an open offer on the Stellar
+ * exchange (the trustline's selling liabilities) cannot be spent, so it is left out.
  */
 export async function readUsdcBalance(address: string): Promise<bigint | null> {
   if (!RPC_URL) throw new Error("NEXT_PUBLIC_STELLAR_RPC_URL is not set");
@@ -21,5 +22,8 @@ export async function readUsdcBalance(address: string): Promise<bigint | null> {
   const { entries } = await new rpc.Server(RPC_URL).getLedgerEntries(key);
   const entry = entries.find((e) => e.key.switch() === xdr.LedgerEntryType.trustline());
   if (!entry) return null;
-  return BigInt(entry.val.trustLine().balance().toString());
+  const line = entry.val.trustLine();
+  const balance = BigInt(line.balance().toString());
+  const selling = line.ext().switch() === 1 ? BigInt(line.ext().v1().liabilities().selling().toString()) : 0n;
+  return balance > selling ? balance - selling : 0n;
 }

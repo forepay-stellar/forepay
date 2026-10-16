@@ -27,7 +27,8 @@ export function RepayForm({
   balance,
   check,
   onSubmit,
-  busy,
+  locked,
+  busyLabel,
   failure,
   className,
 }: {
@@ -42,12 +43,18 @@ export function RepayForm({
   balance: bigint | null | undefined;
   check: AmountCheck;
   onSubmit: (amount: bigint) => void;
-  /** Waiting on the wallet or on Stellar. */
-  busy: boolean;
+  /** A repayment is under way: nothing can be sent again until it settles. */
+  locked: boolean;
+  /**
+   * What the button says while it waits ("Waiting for Stellar"). Null while the approve dialog covers
+   * the form, which then stays exactly as it was (lo2Ex).
+   */
+  busyLabel: string | null;
   failure: FailureCopy | null;
   className?: string;
 }) {
   const settled = left === 0n;
+  const busy = busyLabel !== null;
   const shown = amountDisplay(settled ? "" : input);
   const invalid = check.kind === "overOutstanding" || check.kind === "overBalance";
   const lit = !invalid && (check.kind === "ok" || chip !== null);
@@ -69,7 +76,7 @@ export function RepayForm({
       className={cn("flex w-full flex-col gap-5 rounded-card bg-surface p-5 lg:p-6", className)}
       onSubmit={(e) => {
         e.preventDefault();
-        if (check.kind === "ok" && !busy) onSubmit(check.amount);
+        if (check.kind === "ok" && !locked) onSubmit(check.amount);
       }}
     >
       <div className="flex flex-col gap-1">
@@ -112,7 +119,7 @@ export function RepayForm({
               placeholder=""
               aria-invalid={invalid || undefined}
               aria-describedby="repay-after"
-              disabled={settled}
+              disabled={settled || busy}
               value={settled ? "" : input}
               onChange={(e) => onInput(e.target.value)}
               className="absolute inset-0 w-full bg-transparent text-transparent caret-fg outline-none disabled:cursor-not-allowed"
@@ -176,7 +183,7 @@ export function RepayForm({
         className="w-full lg:px-6"
         disabled={check.kind !== "ok" || settled}
         loading={busy}
-        loadingLabel="Waiting for Stellar"
+        loadingLabel={busyLabel ?? undefined}
       >
         {action}
       </Button>

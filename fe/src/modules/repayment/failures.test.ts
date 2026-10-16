@@ -9,6 +9,17 @@ describe("repayFailureCopy", () => {
     expect(repayFailureCopy(new ContractError(50, "Error(Contract, #50)"), false).title).toBe("We could not find this advance");
   });
 
+  it("reads the USDC token contract's refusals as its own, never as advance codes", () => {
+    expect(repayFailureCopy(new ContractError(10, "Error(Contract, #10)"), false)).toEqual({
+      title: "Your wallet does not hold enough USDC",
+      body: "Nothing was charged. Add USDC to your wallet, then try again.",
+    });
+    expect(repayFailureCopy(new ContractError(13, "Error(Contract, #13)"), false).title).toBe("Your wallet needs to accept USDC first");
+    expect(repayFailureCopy(new ContractError(11, "Error(Contract, #11)"), false).title).toBe("The USDC in your wallet cannot move right now");
+    expect(repayFailureCopy(new ContractError(12, "Error(Contract, #12)"), false).title).toBe("The repayment did not go through");
+    expect(repayFailureCopy(new ContractError(52, "Error(Contract, #52)"), false).title).toBe("Enter an amount above zero");
+  });
+
   it("says nothing was charged only when the ledger did not take the fee", () => {
     const refused = repayFailureCopy(new TransactionFailedError("The network did not accept the transaction (ERROR)", false), true);
     expect(refused).toEqual({ title: "The repayment did not go through", body: "Nothing was charged. Try again in a moment." });
@@ -35,6 +46,7 @@ describe("repayFailureCopy", () => {
       repayFailureCopy(new TransactionFailedError("not confirmed", false), true),
       repayFailureCopy(new WalletError("rejected", -4), false),
       repayFailureCopy(new Error("x"), false),
+      ...[10, 11, 13, 99].map((code) => repayFailureCopy(new ContractError(code, "x"), false)),
     ];
     for (const c of all) expect(`${c.title} ${c.body}`).not.toMatch(/[:;—·]/);
   });

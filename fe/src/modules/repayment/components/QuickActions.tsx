@@ -31,7 +31,7 @@ export function QuickActions({
   onPayInFull,
   stellarHref,
   proofHref,
-  settled,
+  off,
 }: {
   onRepay: () => void;
   onPayInFull: () => void;
@@ -39,16 +39,16 @@ export function QuickActions({
   stellarHref: string;
   /** The transaction that verified the revenue proof and paid the advance. */
   proofHref: string;
-  /** Nothing left to repay: the two repay tiles turn off with the form. */
-  settled: boolean;
+  /** Nothing left to repay, or a repayment under way: the two repay tiles turn off with the form. */
+  off: boolean;
 }) {
   return (
-    <nav aria-label="Quick actions" className="flex w-full gap-2 lg:gap-3">
-      <button type="button" className={tile} onClick={onRepay} disabled={settled}>
-        <Face icon={<ArrowUpFromLine aria-hidden />} label="Repay" short="Repay" disabled={settled} />
+    <div role="group" aria-label="Quick actions" className="flex w-full gap-2 lg:gap-3">
+      <button type="button" className={tile} onClick={onRepay} disabled={off}>
+        <Face icon={<ArrowUpFromLine aria-hidden />} label="Repay" short="Repay" disabled={off} />
       </button>
-      <button type="button" className={tile} onClick={onPayInFull} disabled={settled}>
-        <Face icon={<CircleCheck aria-hidden />} label="Pay in full" short="Pay all" disabled={settled} />
+      <button type="button" className={tile} onClick={onPayInFull} disabled={off}>
+        <Face icon={<CircleCheck aria-hidden />} label="Pay in full" short="Pay all" disabled={off} />
       </button>
       <a className={tile} href={stellarHref} target="_blank" rel="noreferrer">
         <Face icon={<ArrowUpRight aria-hidden />} label="View on Stellar" short="Stellar" />
@@ -56,6 +56,6 @@ export function QuickActions({
       <a className={tile} href={proofHref} target="_blank" rel="noreferrer">
         <Face icon={<FileCheck aria-hidden />} label="Revenue proof" short="Proof" />
       </a>
-    </nav>
+    </div>
   );
 }

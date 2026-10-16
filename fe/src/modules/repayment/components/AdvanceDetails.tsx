@@ -2,8 +2,8 @@ import { Check } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { AdvanceSummary } from "@/lib/api/types";
 import { formatLedgerTime, formatUsdc } from "@/lib/format";
-import { explorerTxUrl } from "../links";
-import { formatUsd, sizingLabel, windowLabel } from "../model";
+import { formatUsd, sizingLabel, windowLabel } from "@/lib/ledger";
+import { explorerTxUrl } from "@/lib/stellar/network";
 
 // Advance details from "05 Product components": what was advanced, the proven revenue it was sized
 // from, how, when, and the proof, "Verified" with its receipt (brief §3, term table).

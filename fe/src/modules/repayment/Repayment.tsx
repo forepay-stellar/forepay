@@ -6,35 +6,31 @@ import { ArrowUpRight, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { LedgerNote } from "@/components/elements/LedgerNote";
+import { LedgerRow } from "@/components/elements/LedgerRow";
+import { CannotRead, LoadingLedger, NoAdvance, SkeletonCard } from "@/components/elements/LedgerStates";
 import { notify } from "@/components/ui/Toaster";
+import {
+  repaymentKey,
+  transactionsKey,
+  usdcBalanceKey,
+  useAdvances,
+  useTransactions,
+  useUsdcBalance,
+} from "@/lib/api/queries";
 import type { AdvanceSummary, LedgerTransaction } from "@/lib/api/types";
-import type { FailureCopy } from "@/lib/errors";
+import { isSignatureDeclined, type FailureCopy } from "@/lib/errors";
 import { formatUsdc } from "@/lib/format";
+import { latestRows, outstanding, percentRepaid, pickAdvance, type Row } from "@/lib/ledger";
 import { repay } from "@/lib/stellar/contract";
-import { NETWORK_PASSPHRASE, explorerAccountUrl } from "@/lib/stellar/network";
+import { NETWORK_PASSPHRASE, explorerAccountUrl, explorerContractUrl, explorerTxUrl } from "@/lib/stellar/network";
 import { useWallet } from "@/providers/WalletProvider";
 import { AdvanceDetails } from "./components/AdvanceDetails";
 import { ApproveRepayment } from "./components/ApproveRepayment";
 import { BalanceCard } from "./components/BalanceCard";
-import { LedgerRow } from "./components/LedgerRow";
-import { CannotRead, LoadingLedger, NoAdvance, SkeletonCard } from "./components/LedgerStates";
 import { QuickActions } from "./components/QuickActions";
 import { RepayForm } from "./components/RepayForm";
 import { repayFailureCopy } from "./failures";
-import { repaymentKey, transactionsKey, usdcBalanceKey, useAdvances, useTransactions, useUsdcBalance } from "./hooks/useLedger";
-import { explorerContractUrl, explorerTxUrl } from "./links";
-import {
-  amountInputString,
-  checkAmount,
-  chipAmount,
-  latestRows,
-  outstanding,
-  percentRepaid,
-  pickAdvance,
-  sanitizeAmountInput,
-  type Chip,
-  type Row,
-} from "./model";
+import { amountInputString, checkAmount, chipAmount, sanitizeAmountInput, type Chip } from "./model";
 
 /**
  * 3a Repayment (issue #21): what is left to repay, what has been repaid, and the transactions behind
@@ -116,7 +112,11 @@ function RepaymentScreen({ address }: { address: string }) {
   );
 }
 
-type Phase = "idle" | "signing" | "pending";
+/**
+ * Where a repayment is: Stellar checks it (`preparing`), the wallet window is open (`signing`), it was
+ * sent and Stellar has not answered yet (`pending`). Only one runs at a time.
+ */
+type Phase = "idle" | "preparing" | "signing" | "pending";
 
 /** The hash a signed transaction will have on the ledger, for the pending row's receipt. */
 function hashOf(signedXdr: string): string {
@@ -145,17 +145,29 @@ function Ledger({
   const [input, setInput] = useState("");
   const [chip, setChip] = useState<Chip | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [signing, setSigning] = useState(0n);
   const [pending, setPending] = useState<{ hash: string; amount: bigint } | null>(null);
   const [failure, setFailure] = useState<FailureCopy | null>(null);
-  // "Cancel" closes the dialog, but the wallet window is not ours to close: a later answer from it is
-  // not shown, though the figures are still refetched once it settles.
-  const attempt = useRef(0);
+  // "Cancel" closes the dialog, but the wallet window is not ours to close. The repayment is still
+  // followed: if the creator approves it after all, it shows as pending and lands like any other.
+  const cancelled = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const left = outstanding(advance);
   const walletUsdc = balance.isSuccess ? balance.data : undefined;
   const check = checkAmount(input, left, walletUsdc);
+  const locked = phase !== "idle";
+  const busyLabel =
+    phase === "preparing"
+      ? "Checking with Stellar"
+      : phase === "signing"
+        ? dialogOpen
+          ? null
+          : "Waiting for your wallet"
+        : phase === "pending"
+          ? "Waiting for Stellar"
+          : null;
 
   function fill(value: bigint, picked: Chip | null) {
     setInput(amountInputString(value));
@@ -164,33 +176,39 @@ function Ledger({
   }
 
   function focusAmount() {
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     inputRef.current?.focus();
-    inputRef.current?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+    inputRef.current?.scrollIntoView?.({ block: "center", behavior: reduce ? "auto" : "smooth" });
   }
 
   async function submit(amount: bigint) {
-    const id = ++attempt.current;
+    if (locked) return;
     let signed = false;
+    cancelled.current = false;
     setFailure(null);
     setSigning(amount);
-    setPhase("signing");
+    // Stellar checks the repayment first. The dialog opens only once the wallet window does.
+    setPhase("preparing");
     try {
       await repay(address, advance.nullifier, amount, async (xdr) => {
-        const out = await signTransaction(xdr);
-        signed = true;
-        if (id === attempt.current) {
+        setPhase("signing");
+        if (!cancelled.current) setDialogOpen(true);
+        try {
+          const out = await signTransaction(xdr);
+          signed = true;
           setPending({ hash: hashOf(out), amount });
           setPhase("pending");
+          return out;
+        } finally {
+          setDialogOpen(false);
         }
-        return out;
       });
-      if (id === attempt.current) {
-        notify(`${formatUsdc(amount)} repaid`);
-        setInput("");
-        setChip(null);
-      }
+      notify(`${formatUsdc(amount)} repaid`);
+      setInput("");
+      setChip(null);
     } catch (e) {
-      if (id === attempt.current) setFailure(repayFailureCopy(e, signed));
+      // Turning it down after pressing Cancel is no news to the creator who cancelled.
+      if (!(cancelled.current && !signed && isSignatureDeclined(e))) setFailure(repayFailureCopy(e, signed));
     } finally {
       // The ledger has the answer now. Read it again rather than adjusting the figures by hand.
       await Promise.all([
@@ -198,10 +216,8 @@ function Ledger({
         queryClient.invalidateQueries({ queryKey: transactionsKey(address) }),
         queryClient.invalidateQueries({ queryKey: usdcBalanceKey(address) }),
       ]);
-      if (id === attempt.current) {
-        setPending(null);
-        setPhase("idle");
-      }
+      setPending(null);
+      setPhase("idle");
     }
   }
 
@@ -217,7 +233,7 @@ function Ledger({
         </div>
         <div className="order-2 w-full">
           <QuickActions
-            settled={left === 0n}
+            off={left === 0n || busyLabel !== null}
             onRepay={focusAmount}
             onPayInFull={() => {
               fill(left, "full");
@@ -273,8 +289,8 @@ function Ledger({
           balance={walletUsdc}
           check={check}
           onSubmit={submit}
-          // While the wallet window is open the dialog covers the form, which stays as it was (lo2Ex).
-          busy={phase === "pending"}
+          locked={locked}
+          busyLabel={busyLabel}
           failure={failure}
         />
         <AdvanceDetails advance={advance} className="order-4 hidden lg:flex" />
@@ -282,10 +298,10 @@ function Ledger({
       </div>
 
       <ApproveRepayment
-        open={phase === "signing"}
+        open={dialogOpen}
         onCancel={() => {
-          attempt.current++;
-          setPhase("idle");
+          cancelled.current = true;
+          setDialogOpen(false);
         }}
         walletName={walletName}
         amount={signing}

@@ -112,7 +112,8 @@ export function TransactionRow({
 
   const row = "flex w-full items-center gap-3.5 py-4";
   return (
-    <li className="w-full border-b border-divider last:border-b-0">
+    // The divider is drawn inside the row, as the pen's stroke is, so a row stays 76 tall.
+    <li className="w-full shadow-[inset_0_-1px_0_var(--color-divider)] last:shadow-none">
       {receiptHref ? (
         <a
           href={receiptHref}

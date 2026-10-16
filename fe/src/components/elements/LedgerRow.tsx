@@ -1,7 +1,7 @@
 import { TransactionRow } from "@/components/elements/TransactionRow";
 import { formatUsdc } from "@/lib/format";
-import { explorerTxUrl } from "../links";
-import { formatUsd, rowDate, type Row } from "../model";
+import { formatUsd, rowDate, type Row } from "@/lib/ledger";
+import { explorerTxUrl } from "@/lib/stellar/network";
 
 // One line of 3a "Transactions" and 3b "All transactions", in the frames' words. Money leaving the
 // wallet is written with a real minus sign (U+2212), money arriving with a plus, in emerald.

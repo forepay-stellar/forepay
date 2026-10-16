@@ -5,9 +5,10 @@ import { getAdvances, getTransactions } from "@/lib/api/client";
 import { readUsdcBalance } from "@/lib/stellar/balance";
 
 /**
- * What 3a and 3b read, through React Query (ARCHITECTURE.md §4). Keys start with the resource and carry
- * the address, so a wallet switch never shows another wallet's numbers. A refetch of the same key keeps
- * the old figures on screen until the new ones arrive; nothing here is ever written by hand.
+ * What 3a Repayment and 3b All transactions read (#21), through React Query (ARCHITECTURE.md §4). Keys
+ * start with the resource and carry the address, so a wallet switch never shows another wallet's
+ * numbers. A refetch of the same key keeps the old figures on screen until the new ones arrive; nothing
+ * here is ever written by hand.
  */
 export const repaymentKey = (address: string) => ["repayment", address] as const;
 export const transactionsKey = (address: string) => ["transactions", address] as const;
