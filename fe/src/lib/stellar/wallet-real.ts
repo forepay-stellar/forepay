@@ -355,5 +355,22 @@ export async function disconnect(): Promise<void> {
     mobileWc = null;
     return;
   }
-  await getKit().disconnect();
+  const kit = getKit();
+  // The kit calls the wallet's own disconnect() without awaiting it, so a WalletConnect relay that
+  // fails would reject with nobody listening. Call it here, awaited, so its failure reaches the caller,
+  // and let the kit's call do nothing while it resets its own state.
+  const wallet = kit.selectedModule;
+  const own = Object.prototype.hasOwnProperty.call(wallet, "disconnect");
+  const walletDisconnect = wallet.disconnect;
+  try {
+    await walletDisconnect?.call(wallet);
+  } finally {
+    wallet.disconnect = async () => {};
+    try {
+      await kit.disconnect();
+    } finally {
+      if (own) wallet.disconnect = walletDisconnect;
+      else delete wallet.disconnect;
+    }
+  }
 }
