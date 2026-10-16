@@ -1,0 +1,61 @@
+import { ArrowUpFromLine, ArrowUpRight, CircleCheck, FileCheck } from "lucide-react";
+import type { ReactNode } from "react";
+import { cn } from "@/lib/cn";
+
+// Quick action tiles from "05 Product components", under the hero. A phone shows four narrow tiles with
+// shorter labels ("Pay all", "Stellar", "Proof").
+const tile =
+  "flex min-w-0 flex-1 flex-col items-center gap-2 rounded-tile bg-surface px-1.5 py-3.5 outline-none transition-colors hover:bg-subtle focus-visible:ring-2 focus-visible:ring-brand lg:gap-3 lg:px-4 lg:py-[22px] disabled:pointer-events-none";
+
+function Face({ icon, label, short, disabled }: { icon: ReactNode; label: string; short: string; disabled?: boolean }) {
+  return (
+    <>
+      <span
+        className={cn(
+          "flex size-9 items-center justify-center rounded-icon [&_svg]:size-[18px] lg:size-11 lg:[&_svg]:size-6",
+          disabled ? "bg-subtle text-fg-subtle" : "bg-brand-subtle text-icon",
+        )}
+      >
+        {icon}
+      </span>
+      <span className={cn("whitespace-nowrap text-[12px] font-medium lg:text-[15px]", disabled ? "text-fg-subtle" : "text-fg")}>
+        <span className="lg:hidden">{short}</span>
+        <span className="hidden lg:inline">{label}</span>
+      </span>
+    </>
+  );
+}
+
+export function QuickActions({
+  onRepay,
+  onPayInFull,
+  stellarHref,
+  proofHref,
+  settled,
+}: {
+  onRepay: () => void;
+  onPayInFull: () => void;
+  /** The creator's account on stellar.expert. */
+  stellarHref: string;
+  /** The transaction that verified the revenue proof and paid the advance. */
+  proofHref: string;
+  /** Nothing left to repay: the two repay tiles turn off with the form. */
+  settled: boolean;
+}) {
+  return (
+    <nav aria-label="Quick actions" className="flex w-full gap-2 lg:gap-3">
+      <button type="button" className={tile} onClick={onRepay} disabled={settled}>
+        <Face icon={<ArrowUpFromLine aria-hidden />} label="Repay" short="Repay" disabled={settled} />
+      </button>
+      <button type="button" className={tile} onClick={onPayInFull} disabled={settled}>
+        <Face icon={<CircleCheck aria-hidden />} label="Pay in full" short="Pay all" disabled={settled} />
+      </button>
+      <a className={tile} href={stellarHref} target="_blank" rel="noreferrer">
+        <Face icon={<ArrowUpRight aria-hidden />} label="View on Stellar" short="Stellar" />
+      </a>
+      <a className={tile} href={proofHref} target="_blank" rel="noreferrer">
+        <Face icon={<FileCheck aria-hidden />} label="Revenue proof" short="Proof" />
+      </a>
+    </nav>
+  );
+}
