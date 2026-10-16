@@ -149,11 +149,13 @@ test("a proof that expires while the offer is open is named at accept, and Prove
   await expect(heading(page, "Log in to AdSense in the new window")).toBeVisible();
 });
 
-test("a proof already used, found at accept, is named", async ({ page }) => {
+test("a proof already used, found at accept, is named, and Back leaves the offer behind", async ({ page }) => {
   await connect(page, { account: true, trustline: true, advance: { refuse: { code: 20, at: "accept" } } });
   await proveToOffer(page);
   await page.getByRole("button", { name: "Accept 90.00 USDC" }).click();
   await expect(heading(page, "This proof was already used")).toBeVisible();
+  await page.getByRole("button", { name: "Back" }).click();
+  await expect(heading(page, "See how much you can get")).toBeVisible();
 });
 
 test("liquidity running out between offer and accept pauses advances", async ({ page }) => {
