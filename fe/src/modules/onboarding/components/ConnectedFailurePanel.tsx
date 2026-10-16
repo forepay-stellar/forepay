@@ -9,12 +9,13 @@ import { Button } from "@/components/ui/Button";
 import { failureCopy, type ConnectedFailure } from "@/lib/errors";
 
 /**
- * A wallet is connected but cannot go on yet: it has no XLM, the ledger did not answer, or allowing
- * USDC did not go through. None of these are drawn on the board; they follow its error panel and the
+ * A wallet is connected but cannot go on yet: it has no XLM, the ledger did not answer, the wallet
+ * would not sign, or allowing USDC did not go through. None of these are drawn on the board; they follow its error panel and the
  * brief's copy rules. Shown in place of 1c.
  */
 export function ConnectedFailurePanel({
   failure,
+  walletName,
   wallet,
   busy,
   onRetry,
@@ -22,13 +23,14 @@ export function ConnectedFailurePanel({
   onUseDifferentWallet,
 }: {
   failure: ConnectedFailure;
+  walletName: string;
   wallet: ReactNode;
   busy: boolean;
   onRetry: () => void;
   onFund: () => void;
   onUseDifferentWallet: () => void;
 }) {
-  const copy = failureCopy(failure);
+  const copy = failureCopy(failure, walletName);
   const useDifferent = (
     <Button variant="outline" onClick={onUseDifferentWallet}>
       Use a different wallet
@@ -70,6 +72,19 @@ export function ConnectedFailurePanel({
         return {
           illustration: <IlloSessionCancelled data-illo="not-allowed" />,
           actions: <Button onClick={onRetry}>Try again</Button>,
+        };
+      case "signLocked":
+      case "signWrongNetwork":
+      case "signNoAnswer":
+        // The wallet would not sign, so nothing was sent. Asking again, or another wallet, is the way on.
+        return {
+          illustration: <IlloConnectWallet />,
+          actions: (
+            <>
+              <Button onClick={onRetry}>Try again</Button>
+              {useDifferent}
+            </>
+          ),
         };
     }
   })();

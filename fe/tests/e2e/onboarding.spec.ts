@@ -248,6 +248,20 @@ test("a locked xBull is not caught on reload, since it cannot be asked silently"
   await expect(page.getByText("Not allowed yet")).toBeVisible();
 });
 
+test("a wallet locked when asked to allow USDC is named, and nothing was sent", async ({ page }) => {
+  await mockRpc(page, { account: true, trustline: false });
+  await connectFromStart(page);
+  await expect(page.getByText("Not allowed yet")).toBeVisible();
+  await page.evaluate(() => window.localStorage.setItem("forepay.e2e.scenario", "locked-sign"));
+  await page.getByRole("button", { name: "Allow USDC" }).click();
+  await expect(page.getByRole("heading", { name: "Unlock Freighter first" })).toBeVisible();
+  await expect(page.getByText("Open Freighter, enter your password, then allow USDC again.")).toBeVisible();
+
+  await page.evaluate(() => window.localStorage.removeItem("forepay.e2e.scenario"));
+  await page.getByRole("button", { name: "Try again" }).click();
+  await expect(page.getByRole("button", { name: "Prove my revenue" })).toBeVisible();
+});
+
 test("the stepper stays centred on desktop once the wallet chip shows", async ({ page, isMobile }) => {
   test.skip(isMobile, "the phone header has no stepper");
   await mockRpc(page, { account: true, trustline: false });

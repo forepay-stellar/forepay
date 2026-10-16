@@ -22,8 +22,8 @@ const CONNECTED_KEY = "forepay.e2e.connected";
 /**
  * A spec can make the wallet misbehave the way a real one does, by setting this key:
  * `wrong-network`, `no-network-api` (cannot report its network, like xBull and Rabet), `declined`,
- * `locked`, `no-wallet`, `broken` (an error nothing recognises) or `decline-sign` (connects, then
- * turns down every signature).
+ * `locked`, `no-wallet`, `broken` (an error nothing recognises), `decline-sign` (connects, then
+ * turns down every signature) or `locked-sign` (connects, then is locked when asked to sign).
  */
 const SCENARIO_KEY = "forepay.e2e.scenario";
 /** And pretend to be another wallet, e.g. `xBull`. */
@@ -83,6 +83,7 @@ export async function getNetworkPassphrase(): Promise<string | null> {
 export async function signTransaction(xdr: string): Promise<string> {
   requireConnected();
   if (scenario() === "decline-sign") throw new WalletError("The user rejected this request.", -4);
+  if (scenario() === "locked-sign") throw new WalletError(`${walletName()} is locked`);
   return xdr;
 }
 

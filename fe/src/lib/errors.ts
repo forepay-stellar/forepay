@@ -1,4 +1,4 @@
-import { USER_CLOSED_MODAL, WalletError } from "./stellar/wallet-error";
+import { USER_CLOSED_MODAL, WalletError, type WalletSignError } from "./stellar/wallet-error";
 
 /**
  * Every failure the creator can meet, in the plain words of the design brief (§3, rule 4, and the
@@ -14,7 +14,10 @@ export type ConnectedFailure =
   | "readFailed"
   | "trustlineFailed"
   | "trustlineCharged"
-  | "trustlineUnconfirmed";
+  | "trustlineUnconfirmed"
+  | "signLocked"
+  | "signWrongNetwork"
+  | "signNoAnswer";
 export type WalletFailure = ConnectFailure | ConnectedFailure;
 
 export type FailureCopy = { title: string; body: string };
@@ -71,6 +74,21 @@ export function failureCopy(kind: WalletFailure, walletName = "Freighter"): Fail
         title: "USDC was not allowed",
         body: "Stellar kept the tiny network fee, but your wallet still cannot receive USDC. Try again in a moment.",
       };
+    case "signLocked":
+      return {
+        title: `Unlock ${walletName} first`,
+        body: `Open ${walletName}, enter your password, then allow USDC again.`,
+      };
+    case "signWrongNetwork":
+      return {
+        title: "Switch your wallet to testnet",
+        body: `Forepay is a demo that runs on Stellar testnet. Change the network in ${walletName}, then allow USDC again.`,
+      };
+    case "signNoAnswer":
+      return {
+        title: `${walletName} did not answer`,
+        body: "Nothing was sent. Try again, or use a different wallet.",
+      };
     case "unknown":
       return {
         title: "Your wallet did not connect",
@@ -96,6 +114,27 @@ export function classifyConnectError(e: unknown): ConnectFailure | null {
   if (/reject|declin|denied|cancel/.test(message)) return "declined";
   if (/not installed|not available|not connected|no wallet/.test(message)) return "notFound";
   return "unknown";
+}
+
+/**
+ * Why the wallet threw while it was asked to sign: one answer for allowing USDC (#19), accepting an
+ * advance (#20) and repaying (#21), so each words the same wallet trouble the same way. Wallets share
+ * no error codes; a network mismatch is named in the message when it is named at all.
+ */
+export type SignFailure = "declined" | "locked" | "wrongNetwork" | "noAnswer";
+
+export function classifySignError(e: WalletSignError): SignFailure {
+  if (/passphrase|wrong network|network mismatch|mainnet|public global/i.test(e.message)) return "wrongNetwork";
+  switch (classifyConnectError(e.cause)) {
+    case "declined":
+      return "declined";
+    case "locked":
+      return "locked";
+    case "wrongNetwork":
+      return "wrongNetwork";
+    default:
+      return "noAnswer";
+  }
 }
 
 /** True when the creator turned down a signature in the wallet. Not a failure to show, just a stop. */

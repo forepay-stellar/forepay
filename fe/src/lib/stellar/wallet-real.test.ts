@@ -1,3 +1,4 @@
+import { Account, Asset, BASE_FEE, Networks, Operation, TransactionBuilder } from "@stellar/stellar-sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // The kit is mocked whole: wallet-real.ts keeps `initialized` as module state, so each test loads a
@@ -180,5 +181,27 @@ describe("getNetworkPassphrase", () => {
   it("rethrows any other failure", async () => {
     kit.getNetwork.mockRejectedValue({ code: -3, message: "not allowed, please request access first" });
     await expect((await load()).getNetworkPassphrase()).rejects.toMatchObject({ name: "WalletError", code: -3 });
+  });
+});
+
+describe("signTransaction", () => {
+  const creator = "GA6HCMBLTZS5VYYBCATRBRZ3BZJMAFUDKYYF6AH6MVCMGWMRDNSWJPIH";
+  const xdr = new TransactionBuilder(new Account(creator, "1"), { fee: BASE_FEE, networkPassphrase: Networks.TESTNET })
+    .addOperation(Operation.changeTrust({ asset: new Asset("USDC", creator) }))
+    .setTimeout(30)
+    .build()
+    .toXDR();
+
+  it("asks the wallet to sign for testnet, as the account the transaction is for", async () => {
+    kit.signTransaction.mockResolvedValue({ signedTxXdr: "signed" });
+    expect(await (await load()).signTransaction(xdr)).toBe("signed");
+    expect(kit.signTransaction).toHaveBeenCalledWith(xdr, { networkPassphrase: Networks.TESTNET, address: creator });
+  });
+
+  it("names no account to Rabet, which cannot take one", async () => {
+    kit.selectedModule = { productId: "rabet", productName: "Rabet" };
+    kit.signTransaction.mockResolvedValue({ signedTxXdr: "signed" });
+    await (await load()).signTransaction(xdr);
+    expect(kit.signTransaction).toHaveBeenCalledWith(xdr, { networkPassphrase: Networks.TESTNET });
   });
 });

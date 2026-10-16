@@ -4,10 +4,17 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { WalletChip } from "@/components/elements/WalletChip";
 import { notify } from "@/components/ui/Toaster";
-import { classifyConnectError, isSignatureDeclined, type ConnectFailure, type ConnectedFailure } from "@/lib/errors";
+import {
+  classifyConnectError,
+  classifySignError,
+  type ConnectFailure,
+  type ConnectedFailure,
+  type SignFailure,
+} from "@/lib/errors";
 import { FriendbotError, fundWithFriendbot } from "@/lib/stellar/friendbot";
 import { NETWORK_PASSPHRASE } from "@/lib/stellar/network";
 import { TrustlineError, addUsdcTrustline } from "@/lib/stellar/trustline";
+import { WalletSignError } from "@/lib/stellar/wallet-error";
 import * as wallet from "@/lib/stellar/wallet";
 import { useWallet } from "@/providers/WalletProvider";
 import { AllowUsdc } from "./components/AllowUsdc";
@@ -23,6 +30,14 @@ const TRUSTLINE_FAILURE = {
   failed: "trustlineCharged",
   unconfirmed: "trustlineUnconfirmed",
 } as const satisfies Record<TrustlineError["outcome"], ConnectedFailure>;
+
+/** Turning the signature down is a choice, not a failure: `null` goes back to 1c as it was. */
+const SIGN_FAILURE = {
+  declined: null,
+  locked: "signLocked",
+  wrongNetwork: "signWrongNetwork",
+  noAnswer: "signNoAnswer",
+} as const satisfies Record<SignFailure, ConnectedFailure | null>;
 
 /**
  * 01 Onboarding (#19): 1a Before you start, 1b Connect wallet, 1c Allow USDC, and every state on the
@@ -132,11 +147,15 @@ export function Onboarding() {
     setApproving(true);
     let failure: ConnectedFailure | null = null;
     try {
-      await addUsdcTrustline(address, signTransaction);
+      await addUsdcTrustline(address, (xdr) =>
+        signTransaction(xdr).catch((e: unknown) => {
+          throw new WalletSignError(e);
+        }),
+      );
     } catch (e) {
-      // Turning the signature down is a choice, not a failure: back to 1c as it was.
-      if (e instanceof TrustlineError) failure = TRUSTLINE_FAILURE[e.outcome];
-      else if (!isSignatureDeclined(e)) failure = "trustlineFailed";
+      if (e instanceof WalletSignError) failure = SIGN_FAILURE[classifySignError(e)];
+      else if (e instanceof TrustlineError) failure = TRUSTLINE_FAILURE[e.outcome];
+      else failure = "trustlineFailed";
     }
     // The ledger has the last word. If the approval landed although waiting for it failed, the wallet
     // can receive USDC, and `allowed` shows the confirmation instead of an error. A cancelled attempt
@@ -179,10 +198,12 @@ export function Onboarding() {
       connectedFailure ?? (usdc.isError ? "readFailed" : status === "unfunded" ? "unfunded" : null);
 
     if (failure) {
-      const retry = failure === "trustlineFailed" || failure === "trustlineCharged" ? handleAllow : handleRecheck;
+      const allowAgain = ["trustlineFailed", "trustlineCharged", "signLocked", "signWrongNetwork", "signNoAnswer"];
+      const retry = allowAgain.includes(failure) ? handleAllow : handleRecheck;
       return (
         <ConnectedFailurePanel
           failure={failure}
+          walletName={walletName ?? "your wallet"}
           wallet={chip}
           busy={funding || usdc.isFetching}
           onRetry={retry}

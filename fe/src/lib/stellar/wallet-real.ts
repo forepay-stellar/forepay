@@ -9,6 +9,7 @@ import {
 import { xBullModule } from "@creit.tech/stellar-wallets-kit/modules/xbull";
 import { createAppKit, type AppKit } from "@reown/appkit/core";
 import { mainnet } from "@reown/appkit/networks";
+import { FeeBumpTransaction, TransactionBuilder } from "@stellar/stellar-sdk";
 import { UniversalProvider } from "@walletconnect/universal-provider";
 import { anyBrowserWallet } from "./wallet-detect";
 import { isUnsupportedCall, toWalletError } from "./wallet-error";
@@ -279,7 +280,8 @@ export async function connect(
  * wallet, revoked access or a switched account would pass. Freighter can be asked silently
  * (`skipRequestAccess`), and answers no address when it is locked or access was revoked. xBull and
  * Rabet cannot: asking them opens their connect window, which a page load must not do. For those the
- * remembered address stands, and a locked wallet is caught by name when it is asked to sign.
+ * remembered address stands until the wallet is asked to sign, where a locked one is named
+ * (`classifySignError`) and a switched account is asked for the remembered address (`signTransaction`).
  */
 export async function getAddress(): Promise<string> {
   if (viaMobileWalletConnect()) return mobileWalletConnectAddress();
@@ -299,8 +301,9 @@ export async function getAddress(): Promise<string> {
 /**
  * The network passphrase the wallet is on right now, compared with testnet after connecting and on
  * reload. `null` when the wallet cannot say: xBull, Rabet and WalletConnect reject the kit's
- * `getNetwork` with code -3 ("does not support"), and that is not a failure. Those sessions are
- * negotiated on testnet by the kit, and a wallet on the wrong network still fails by name at signing.
+ * `getNetwork` with code -3 ("does not support"), and that is not a failure. Nothing is lost by not
+ * asking: every signing request names the testnet passphrase, so what such a wallet signs is valid on
+ * testnet only, whatever network it shows. One that refuses to sign for testnet is named then.
  */
 export async function getNetworkPassphrase(): Promise<string | null> {
   if (viaMobileWalletConnect()) return Networks.TESTNET; // the session was negotiated on stellar:testnet
@@ -325,7 +328,16 @@ export async function signTransaction(xdr: string): Promise<string> {
       );
       return signedXDR;
     }
-    const { signedTxXdr } = await getKit().signTransaction(xdr, { networkPassphrase: Networks.TESTNET });
+    const kit = getKit();
+    // The account the transaction is for, so a wallet switched to another account since connecting
+    // signs for this one or refuses, rather than signing for whichever account is open. Rabet cannot
+    // be told an account (the kit only warns), so it is not.
+    const tx = TransactionBuilder.fromXDR(xdr, Networks.TESTNET);
+    const address = tx instanceof FeeBumpTransaction ? tx.feeSource : tx.source;
+    const { signedTxXdr } = await kit.signTransaction(xdr, {
+      networkPassphrase: Networks.TESTNET,
+      ...(kit.selectedModule.productId === RABET_ID ? {} : { address }),
+    });
     return signedTxXdr;
   } catch (e) {
     throw toWalletError(e);

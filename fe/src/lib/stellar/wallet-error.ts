@@ -30,6 +30,19 @@ export function isUnsupportedCall(e: WalletError): boolean {
   return e.code === -3 && /does not support/i.test(e.message);
 }
 
+/**
+ * The wallet threw while it was asked to sign. Keeps wallet trouble apart from network trouble, so a
+ * locked wallet is never reported as "could not reach Stellar" (#19 allow USDC, #20 accept, #21 repay).
+ */
+export class WalletSignError extends Error {
+  cause: unknown;
+  constructor(cause: unknown) {
+    super(cause instanceof Error ? cause.message : String(cause));
+    this.name = "WalletSignError";
+    this.cause = cause;
+  }
+}
+
 export function toWalletError(e: unknown): WalletError {
   if (e instanceof WalletError) return e;
   if (e && typeof e === "object" && "message" in e) {
