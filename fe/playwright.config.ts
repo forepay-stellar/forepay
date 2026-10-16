@@ -2,7 +2,8 @@ import { defineConfig, devices } from "@playwright/test";
 
 // End to end runs with the test wallet (NEXT_PUBLIC_E2E=1) and with every Stellar RPC call answered by
 // the spec itself, so a run never touches testnet and never needs a browser extension.
-const PORT = 3219;
+// PW_PORT lets two worktrees run their e2e suites side by side.
+const PORT = Number(process.env.PW_PORT ?? 3219);
 
 export default defineConfig({
   testDir: "tests/e2e",
