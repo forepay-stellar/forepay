@@ -4,7 +4,7 @@ import { cn } from "@/lib/cn";
 import type { FailureCopy } from "@/lib/errors";
 import { formatUsdc } from "@/lib/format";
 import { amountDisplay, type AmountCheck, type Chip } from "../model";
-import { FailureAlert } from "./FailureAlert";
+import { Alert } from "@/components/ui/Alert";
 
 // Repay form from "05 Product components" and the board's row 2: the amount field, the 25% / 50% / Full
 // amount chips, what is left after this, the network fee, and the button, which always says what
@@ -175,7 +175,7 @@ export function RepayForm({
         </div>
       </dl>
 
-      {failure && <FailureAlert failure={failure} />}
+      {failure && <Alert tone="danger" className="w-full" title={failure.title} body={failure.body} />}
 
       <Button
         type="submit"
