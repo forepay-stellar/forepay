@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { classifyConnectError, classifySignError, failureCopy, isSignatureDeclined, type WalletFailure } from "./errors";
+import {
+  classifyConnectError,
+  classifySignError,
+  contractFailureCopy,
+  failureCopy,
+  isSignatureDeclined,
+  type WalletFailure,
+} from "./errors";
 import { WalletError, WalletSignError } from "./stellar/wallet-error";
 
 describe("classifyConnectError", () => {
@@ -73,5 +80,23 @@ describe("classifySignError", () => {
     expect(classifySignError(new WalletSignError(new WalletError("Freighter is locked")))).toBe("locked");
     expect(classifySignError(new WalletSignError(new Error("network passphrase mismatch")))).toBe("wrongNetwork");
     expect(classifySignError(new WalletSignError(new Error("timeout")))).toBe("noAnswer");
+  });
+});
+
+describe("contractFailureCopy", () => {
+  const codes = [10, 11, 12, 13, 14, 20, 30, 31, 40, 41, 50, 51, 52, 99];
+
+  it("keeps every contract refusal inside the copy rules", () => {
+    for (const c of codes) {
+      const { title, body } = contractFailureCopy(c);
+      expect(`${title} ${body}`).not.toMatch(/[:;—·]/);
+    }
+  });
+
+  it("uses the brief's words for the refusals it names", () => {
+    expect(contractFailureCopy(20).title).toBe("This proof was already used for an advance");
+    expect(contractFailureCopy(12).title).toBe("This proof expired");
+    expect(contractFailureCopy(40).title).toBe("Advances are paused right now");
+    expect(contractFailureCopy(41).title).toBe("Your wallet needs to accept USDC first");
   });
 });
