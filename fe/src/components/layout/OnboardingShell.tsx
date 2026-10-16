@@ -33,8 +33,9 @@ export function OnboardingShell({
   return (
     <div className="flex min-h-dvh flex-col bg-canvas lg:px-20">
       {/* Desktop top bar */}
-      {/* Three columns, the outer two equal, so the stepper stays centred whatever the wallet chip says. */}
-      <header className="hidden h-[90px] grid-cols-[1fr_minmax(0,480px)_1fr] items-center gap-6 lg:grid">
+      {/* Three columns, the outer two equal and at least as wide as the widest chips, so the stepper stays
+          centred and keeps its place from step to step whatever the wallet chip says. */}
+      <header className="hidden h-[90px] grid-cols-[minmax(15.5rem,1fr)_minmax(0,480px)_minmax(15.5rem,1fr)] items-center gap-6 lg:grid">
         <div className="flex">
           <Wordmark />
         </div>
