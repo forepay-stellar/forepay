@@ -58,6 +58,15 @@ describe("addUsdcTrustline", () => {
     await expect(addUsdcTrustline(ADDRESS, sign)).rejects.toMatchObject({ outcome: "unconfirmed" });
   });
 
+  it("reports a wallet answer that is not a transaction as refused, since nothing was sent", async () => {
+    const poll = chain("PENDING", rpc.Api.GetTransactionStatus.SUCCESS);
+    await expect(addUsdcTrustline(ADDRESS, async () => "not a transaction")).rejects.toMatchObject({
+      outcome: "refused",
+    });
+    expect(rpc.Server.prototype.sendTransaction).not.toHaveBeenCalled();
+    expect(poll).not.toHaveBeenCalled();
+  });
+
   it("reports a poll that loses the connection after PENDING as unconfirmed", async () => {
     chain("PENDING", rpc.Api.GetTransactionStatus.SUCCESS).mockRejectedValue(new TypeError("fetch failed"));
     await expect(addUsdcTrustline(ADDRESS, sign)).rejects.toMatchObject({ outcome: "unconfirmed" });
