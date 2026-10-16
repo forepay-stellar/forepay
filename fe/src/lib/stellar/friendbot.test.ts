@@ -42,10 +42,14 @@ describe("fundWithFriendbot", () => {
     await expect(fundWithFriendbot(ADDRESS, { intervalMs: 0 })).rejects.toBeInstanceOf(FriendbotError);
   });
 
-  it("throws FriendbotError when the account never appears", async () => {
+  it("throws FriendbotError when the account never appears, without waiting after the last try", async () => {
     friendbot(200);
     readUsdcStatus.mockResolvedValue("unfunded");
-    await expect(fundWithFriendbot(ADDRESS, { attempts: 3, intervalMs: 0 })).rejects.toBeInstanceOf(FriendbotError);
+    const started = Date.now();
+    await expect(fundWithFriendbot(ADDRESS, { attempts: 2, intervalMs: 300 })).rejects.toBeInstanceOf(FriendbotError);
+    // One wait between the two reads, none after the second.
+    expect(Date.now() - started).toBeLessThan(550);
+    expect(readUsdcStatus).toHaveBeenCalledTimes(2);
   });
 
   it("lets a ledger read failure through as itself, not as a faucet failure", async () => {
