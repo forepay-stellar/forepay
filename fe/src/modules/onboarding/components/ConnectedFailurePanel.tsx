@@ -92,7 +92,8 @@ export function ConnectedFailurePanel({
   return (
     <OnboardingShell step={2} wallet={wallet} narrow>
       <ErrorPanel
-        centered
+        // As on the board's "Wallet locked" and "Wrong network" panels, those two titles sit left.
+        centered={failure !== "signLocked" && failure !== "signWrongNetwork"}
         stacked={["unfunded", "fundFailed", "signLocked", "signWrongNetwork", "signNoAnswer"].includes(failure)}
         illustration={content.illustration}
         title={copy.title}
