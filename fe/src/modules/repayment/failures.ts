@@ -7,7 +7,8 @@ import { ContractError, TransactionFailedError } from "@/lib/stellar/contract";
  *
  * - before the wallet signed, nothing can have been sent;
  * - a contract refusal comes from the simulation, before anything is sent;
- * - `TransactionFailedError.charged` says whether the ledger took the fee;
+ * - `TransactionFailedError.charged` says whether the ledger took the fee, `.unconfirmed` whether it
+ *   was sent and never confirmed;
  * - a transaction that was sent but not confirmed while we waited may still land, so it promises nothing.
  *
  * `signed` is whether the wallet had already handed back a signed transaction when it failed.
@@ -21,7 +22,7 @@ export function repayFailureCopy(error: unknown, signed: boolean): FailureCopy {
         body: "Stellar kept the tiny network fee, but no USDC left your wallet. Try again in a moment.",
       };
     }
-    if (/not confirmed/i.test(error.message)) return unconfirmed;
+    if (error.unconfirmed) return unconfirmed;
     return { title: "The repayment did not go through", body: "Nothing was charged. Try again in a moment." };
   }
   if (!signed && isSignatureDeclined(error)) {
