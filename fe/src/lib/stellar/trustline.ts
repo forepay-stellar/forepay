@@ -77,13 +77,20 @@ export async function addUsdcTrustline(
     .setTimeout(180)
     .build();
 
-  const signed = await signTransaction(tx.toXDR());
+  const signedXdr = await signTransaction(tx.toXDR());
+  // A wallet answer that is not a transaction never left the page, so nothing was charged.
+  let signed: ReturnType<typeof TransactionBuilder.fromXDR>;
+  try {
+    signed = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE);
+  } catch {
+    throw new TrustlineError("The wallet did not return a transaction", "refused");
+  }
   // From here on the signed transaction may be out. A request that gets no answer (a dropped
   // connection, a node that times out) cannot say whether it landed, so it is "unconfirmed", never
   // "nothing was charged".
   let sent: rpc.Api.SendTransactionResponse;
   try {
-    sent = await rpcServer.sendTransaction(TransactionBuilder.fromXDR(signed, NETWORK_PASSPHRASE));
+    sent = await rpcServer.sendTransaction(signed);
   } catch {
     throw new TrustlineError("Sending got no answer", "unconfirmed");
   }
