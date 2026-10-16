@@ -237,3 +237,20 @@ test("a wallet locked since the last visit is dropped on reload, not trusted unt
   await expect(page.getByRole("heading", { name: "Get paid early on the AdSense revenue you already earn" })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Wallet / })).toHaveCount(0);
 });
+
+test("the stepper stays centred on desktop once the wallet chip shows", async ({ page, isMobile }) => {
+  test.skip(isMobile, "the phone header has no stepper");
+  await mockRpc(page, { account: true, trustline: false });
+  await connectFromStart(page);
+  await expect(page.getByRole("button", { name: /^Wallet / }).first()).toBeVisible();
+  const box = await page.getByRole("list", { name: "Onboarding progress" }).boundingBox();
+  // 1440 wide: the 480px stepper sits at 480 to 960, as in the frames.
+  expect(box?.x).toBeCloseTo(480, 0);
+  expect(box?.width).toBeCloseTo(480, 0);
+
+  // 1024, where the top bar first shows: it still fits, the stepper narrower but between the sides.
+  await page.setViewportSize({ width: 1024, height: 768 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(1024);
+  const narrow = await page.getByRole("list", { name: "Onboarding progress" }).boundingBox();
+  expect(narrow?.width).toBeGreaterThan(200);
+});

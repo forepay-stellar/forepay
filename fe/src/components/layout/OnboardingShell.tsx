@@ -33,12 +33,13 @@ export function OnboardingShell({
   return (
     <div className="flex min-h-dvh flex-col bg-canvas lg:px-20">
       {/* Desktop top bar */}
-      <header className="hidden h-[90px] items-center justify-between gap-6 lg:flex">
-        <div className="flex w-60 shrink-0">
+      {/* Three columns, the outer two equal, so the stepper stays centred whatever the wallet chip says. */}
+      <header className="hidden h-[90px] grid-cols-[1fr_minmax(0,480px)_1fr] items-center gap-6 lg:grid">
+        <div className="flex">
           <Wordmark />
         </div>
         <OnboardingStepper current={step} />
-        <div className="flex min-w-60 shrink-0 items-center justify-end gap-2.5">
+        <div className="flex items-center justify-end gap-2.5">
           <NetworkChip />
           {wallet}
         </div>
