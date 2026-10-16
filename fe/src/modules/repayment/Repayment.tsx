@@ -243,7 +243,7 @@ function Ledger({
               <ChevronRight className="size-[15px]" aria-hidden />
             </Link>
           </div>
-          <ul className="flex w-full flex-col">
+          <ul className="flex w-full flex-col gap-1">
             {shown.map((row) => (
               <LedgerRow key={row.key} row={row} />
             ))}
@@ -273,7 +273,8 @@ function Ledger({
           balance={walletUsdc}
           check={check}
           onSubmit={submit}
-          busy={phase !== "idle"}
+          // While the wallet window is open the dialog covers the form, which stays as it was (lo2Ex).
+          busy={phase === "pending"}
           failure={failure}
         />
         <AdvanceDetails advance={advance} className="order-4 hidden lg:flex" />

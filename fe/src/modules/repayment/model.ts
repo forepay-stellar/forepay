@@ -106,15 +106,16 @@ export function typedAmount(input: string): bigint | null {
 }
 
 /**
- * The amount field shows money the way the design does: what was typed solid, the rest of `0.00`
- * faded. `30` → `30` + `.00`, `30.5` → `30.5` + `0`, nothing → `` + `0.00`.
+ * The amount field shows money the way the design does (brief §3, "decimals faded"): the whole part
+ * solid, the decimals faded, padded to two. `30` → `30` + `.00`, `30.5` → `30` + `.50`, nothing → `0.00`
+ * all faded.
  */
-export function amountDisplay(input: string): { typed: string; ghost: string } {
-  if (input === "") return { typed: "", ghost: "0.00" };
+export function amountDisplay(input: string): { whole: string; decimals: string } {
+  if (input === "") return { whole: "", decimals: "0.00" };
   const dot = input.indexOf(".");
-  if (dot === -1) return { typed: input, ghost: ".00" };
-  const decimals = input.length - dot - 1;
-  return { typed: input, ghost: decimals >= 2 ? "" : "0".repeat(2 - decimals) };
+  if (dot === -1) return { whole: input, decimals: ".00" };
+  const typed = input.slice(dot);
+  return { whole: input.slice(0, dot), decimals: typed.length >= 3 ? typed : typed.padEnd(3, "0") };
 }
 
 export type Chip = "quarter" | "half" | "full";

@@ -102,7 +102,7 @@ function Ledger({ advance, transactions }: { advance: AdvanceSummary; transactio
           className="flex w-full flex-col gap-1 rounded-card bg-surface px-5 pb-2 pt-5 lg:px-6 lg:pb-3 lg:pt-6"
         >
           <h2 className="text-[14px] font-medium text-fg-muted">{m.month}</h2>
-          <ul className="flex w-full flex-col">
+          <ul className="flex w-full flex-col gap-1">
             {m.rows.map((row) => (
               <LedgerRow key={row.key} row={row} />
             ))}
