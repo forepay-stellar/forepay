@@ -94,8 +94,9 @@ test("a declined signature charges nothing and leaves the balance alone", async 
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
-test("the wallet window repeats the amount, and Cancel goes back to the form", async ({ page }) => {
-  await open(page, "/repayment", frameLedger());
+test("the wallet window repeats the amount, and a repayment approved after Cancel still lands", async ({ page }) => {
+  const ledger = frameLedger();
+  await open(page, "/repayment", ledger);
   await page.evaluate(() => localStorage.setItem("forepay.e2e.scenario", "hold-sign"));
   await page.getByRole("button", { name: "50%" }).click();
   await page.getByRole("button", { name: "Repay 30.00 USDC" }).click();
@@ -106,7 +107,27 @@ test("the wallet window repeats the amount, and Cancel goes back to the form", a
   await expect(dialog.getByText("Left after this").locator("..")).toContainText("30.00 USDC");
   await dialog.getByRole("button", { name: "Cancel" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Repay 30.00 USDC" })).toBeEnabled();
+
+  // The wallet window is still open, so nothing else can be sent meanwhile.
+  await expect(page.getByRole("button", { name: "Waiting for your wallet" })).toBeDisabled();
+  await expect(amount(page)).toBeDisabled();
+  await expect(form(page).getByRole("alert")).toHaveCount(0);
+
+  // The creator approves it in the wallet after all: it is followed to the end.
+  await page.evaluate(() => localStorage.removeItem("forepay.e2e.scenario"));
+  await expect(page.getByText("30.00 USDC repaid", { exact: true })).toBeVisible();
+  await expect(card(page)).toContainText("60.00 of 90.00 USDC repaid");
+  expect(ledger.advances[0].repaid).toBe(60n * USDC);
+});
+
+test("a repayment turned down after Cancel goes quietly back to the form", async ({ page }) => {
+  await open(page, "/repayment", frameLedger());
+  await page.evaluate(() => localStorage.setItem("forepay.e2e.scenario", "hold-sign"));
+  await page.getByRole("button", { name: "25%" }).click();
+  await page.getByRole("button", { name: "Repay 15.00 USDC" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+  await page.evaluate(() => localStorage.setItem("forepay.e2e.scenario", "decline-sign"));
+  await expect(page.getByRole("button", { name: "Repay 15.00 USDC" })).toBeEnabled();
   await expect(form(page).getByRole("alert")).toHaveCount(0);
   await expect(card(page)).toContainText("60.00");
 });
@@ -138,6 +159,13 @@ test("only digits and one decimal point reach the amount field", async ({ page }
 });
 
 const failures: { name: string; contract: NonNullable<Chain["contract"]>; title: string; body: RegExp }[] = [
+  {
+    // The USDC token contract's own BalanceError, raised inside repay when the wallet is short.
+    name: "the wallet is short of USDC",
+    contract: { refuse: 10 },
+    title: "Your wallet does not hold enough USDC",
+    body: /Nothing was charged/,
+  },
   {
     name: "the contract refuses it",
     contract: { refuse: 51 },

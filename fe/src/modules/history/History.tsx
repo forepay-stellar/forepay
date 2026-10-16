@@ -1,14 +1,14 @@
 "use client";
 
 import { LedgerNote } from "@/components/elements/LedgerNote";
+import { LedgerRow } from "@/components/elements/LedgerRow";
+import { CannotRead, LoadingLedger, NoAdvance, SkeletonCard } from "@/components/elements/LedgerStates";
+import { useAdvances, useTransactions } from "@/lib/api/queries";
 import type { AdvanceSummary, LedgerTransaction } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
 import { usdcParts } from "@/lib/format";
+import { groupByMonth, historyRows, outstanding, pickAdvance } from "@/lib/ledger";
 import { useWallet } from "@/providers/WalletProvider";
-import { LedgerRow } from "@/modules/repayment/components/LedgerRow";
-import { CannotRead, LoadingLedger, NoAdvance, SkeletonCard } from "@/modules/repayment/components/LedgerStates";
-import { useAdvances, useTransactions } from "@/modules/repayment/hooks/useLedger";
-import { groupByMonth, historyRows, outstanding, pickAdvance } from "@/modules/repayment/model";
 
 /**
  * 3b All transactions (issue #21), reached from "See all" and the History tab: what was advanced, repaid
@@ -80,7 +80,7 @@ function Figure({ label, stroops, tone }: { label: string; stroops: bigint; tone
           {whole}
           {decimals}
         </span>
-        <span className="pb-[3px] text-[11px] font-medium text-fg-muted lg:pb-1.5 lg:text-[14px]">USDC</span>
+        <span className="text-[11px] font-medium text-fg-muted lg:text-[14px]">USDC</span>
       </dd>
     </div>
   );
