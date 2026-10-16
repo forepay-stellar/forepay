@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatLedgerTime, formatUsdc, parseUsdc, shortAddress, usdcParts } from "./format";
+import { formatLedgerTime, formatUsd, formatUsdc, formatWindow, parseUsdc, shortAddress, usdcParts } from "./format";
 
 describe("shortAddress", () => {
   it("keeps the first and last four characters, as the wallet chip shows them", () => {
@@ -34,5 +34,27 @@ describe("parseUsdc", () => {
 describe("formatDate", () => {
   it("has no clock time and no colon", () => {
     expect(formatLedgerTime(1_791_806_400)).toBe("12 Oct 2026");
+  });
+});
+
+describe("formatUsd", () => {
+  it("shows the proven figure in dollars, two decimals, thousands grouped", () => {
+    expect(formatUsd("360.00")).toBe("$360.00");
+    expect(formatUsd("1240")).toBe("$1,240.00");
+    expect(formatUsd("3.2")).toBe("$3.20");
+  });
+
+  it("leaves anything that is not a plain amount as it is, rather than guessing", () => {
+    expect(formatUsd("12.345")).toBe("12.345");
+  });
+});
+
+describe("formatWindow", () => {
+  it("names the three months two ways, as the offer shows them", () => {
+    expect(formatWindow("2026-07-01", "2026-09-30")).toEqual({ short: "Jul to Sep 2026", long: "July to September" });
+  });
+
+  it("keeps both years when the window crosses one", () => {
+    expect(formatWindow("2026-11-01", "2027-01-31").short).toBe("Nov 2026 to Jan 2027");
   });
 });

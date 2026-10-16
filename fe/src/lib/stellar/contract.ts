@@ -36,10 +36,13 @@ export class ContractError extends Error {
 export class TransactionFailedError extends Error {
   /** Whether the ledger took it, and with it the fee. */
   charged: boolean;
-  constructor(message: string, charged: boolean) {
+  /** Sent, but not confirmed while we waited. It may still land, so nothing is known either way. */
+  unconfirmed: boolean;
+  constructor(message: string, charged: boolean, unconfirmed = false) {
     super(message);
     this.name = "TransactionFailedError";
     this.charged = charged;
+    this.unconfirmed = unconfirmed;
   }
 }
 
@@ -111,7 +114,8 @@ async function write<T>(
   if (sent.status === "ERROR" || sent.status === "TRY_AGAIN_LATER") {
     throw new TransactionFailedError(`The network did not accept the transaction (${sent.status})`, false);
   }
-  const result = await server().pollTransaction(sent.hash, { attempts: 30 });
+  // About two minutes, one attempt a second: the "Timed out" state on the Prove and accept board.
+  const result = await server().pollTransaction(sent.hash, { attempts: 120 });
   if (result.status === rpc.Api.GetTransactionStatus.SUCCESS) {
     const value = result.returnValue ? scValToNative(result.returnValue) : undefined;
     return { hash: sent.hash, value: value as T };
@@ -119,7 +123,7 @@ async function write<T>(
   if (result.status === rpc.Api.GetTransactionStatus.FAILED) {
     throw new TransactionFailedError("The transaction failed on the ledger", true);
   }
-  throw new TransactionFailedError(`The transaction was not confirmed (${result.status})`, false);
+  throw new TransactionFailedError(`The transaction was not confirmed (${result.status})`, false, true);
 }
 
 const str = (v: string) => nativeToScVal(v, { type: "string" });
@@ -153,6 +157,17 @@ export async function getAdvance(source: string, nullifier: string): Promise<OnC
   };
 }
 
+/** The nullifier an advance for this publisher and window is stored under, as hex (#20, #21). */
+export async function nullifierFor(
+  source: string,
+  pubId: string,
+  windowStart: string,
+  windowEnd: string,
+): Promise<string> {
+  const raw = await read<Uint8Array>(source, "nullifier_for", [str(pubId), str(windowStart), str(windowEnd)]);
+  return Buffer.from(raw).toString("hex");
+}
+
 // ---- Writes ----
 
 /** The arguments `request_advance` takes besides the borrower. They come from the #17 relay. */
@@ -168,28 +183,37 @@ export type AdvanceRequest = {
   recoveryId: number;
 };
 
+function advanceArgs(borrower: string, req: AdvanceRequest): xdr.ScVal[] {
+  return [
+    new Address(borrower).toScVal(),
+    str(req.revenueUsd),
+    str(req.pubId),
+    str(req.windowStart),
+    str(req.windowEnd),
+    nativeToScVal(req.timestampS, { type: "u64" }),
+    nativeToScVal(req.epoch, { type: "u64" }),
+    xdr.ScVal.scvBytes(Buffer.from(req.signature, "hex")),
+    nativeToScVal(req.recoveryId, { type: "u32" }),
+  ];
+}
+
+/**
+ * `request_advance` simulated, never signed or sent: the contract checks the proof, its age, the
+ * nullifier, its liquidity and the borrower's trustline exactly as it would for real, and refuses with
+ * the same codes. 2a runs it before showing an offer ("Checking your proof"). Resolves with the stroops
+ * it would disburse.
+ */
+export function checkAdvance(borrower: string, req: AdvanceRequest): Promise<bigint> {
+  return read<bigint>(borrower, "request_advance", advanceArgs(borrower, req));
+}
+
 /** Prove, size and disburse in one call (#20). Resolves with the stroops disbursed. */
 export function requestAdvance(
   borrower: string,
   req: AdvanceRequest,
   signTransaction: (xdr: string) => Promise<string>,
 ): Promise<{ hash: string; value: bigint }> {
-  return write<bigint>(
-    borrower,
-    "request_advance",
-    [
-      new Address(borrower).toScVal(),
-      str(req.revenueUsd),
-      str(req.pubId),
-      str(req.windowStart),
-      str(req.windowEnd),
-      nativeToScVal(req.timestampS, { type: "u64" }),
-      nativeToScVal(req.epoch, { type: "u64" }),
-      xdr.ScVal.scvBytes(Buffer.from(req.signature, "hex")),
-      nativeToScVal(req.recoveryId, { type: "u32" }),
-    ],
-    signTransaction,
-  );
+  return write<bigint>(borrower, "request_advance", advanceArgs(borrower, req), signTransaction);
 }
 
 /** Repay part or all of an advance (#21). Resolves with what is still outstanding, in stroops. */
