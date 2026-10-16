@@ -56,7 +56,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           const live = await wallet.getAddress();
           if (!alive) return;
           if (live === saved) {
-            if ((await wallet.getNetworkPassphrase()) !== NETWORK_PASSPHRASE) {
+            const network = await wallet.getNetworkPassphrase();
+            if (network !== null && network !== NETWORK_PASSPHRASE) {
               if (alive) {
                 const name = window.localStorage.getItem(NAME_KEY) ?? "your wallet";
                 setRestoreFailure({ kind: "wrongNetwork", walletName: name });

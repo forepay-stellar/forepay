@@ -11,7 +11,7 @@ import { createAppKit, type AppKit } from "@reown/appkit/core";
 import { mainnet } from "@reown/appkit/networks";
 import { UniversalProvider } from "@walletconnect/universal-provider";
 import { anyBrowserWallet } from "./wallet-detect";
-import { toWalletError } from "./wallet-error";
+import { isUnsupportedCall, toWalletError } from "./wallet-error";
 
 // Ported from Sorosense `frontend/lib/wallet-real.ts`.
 //
@@ -245,14 +245,21 @@ export async function getAddress(): Promise<string> {
   return address;
 }
 
-/** The network passphrase the wallet is on right now. Compared with testnet after connecting. */
-export async function getNetworkPassphrase(): Promise<string> {
+/**
+ * The network passphrase the wallet is on right now, compared with testnet after connecting and on
+ * reload. `null` when the wallet cannot say: xBull, Rabet and WalletConnect reject the kit's
+ * `getNetwork` with code -3 ("does not support"), and that is not a failure. Those sessions are
+ * negotiated on testnet by the kit, and a wallet on the wrong network still fails by name at signing.
+ */
+export async function getNetworkPassphrase(): Promise<string | null> {
   if (viaMobileWalletConnect()) return Networks.TESTNET; // the session was negotiated on stellar:testnet
   try {
     const { networkPassphrase } = await getKit().getNetwork();
     return networkPassphrase;
   } catch (e) {
-    throw toWalletError(e);
+    const err = toWalletError(e);
+    if (isUnsupportedCall(err)) return null;
+    throw err;
   }
 }
 

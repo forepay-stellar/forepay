@@ -30,7 +30,8 @@ export async function getAddress(): Promise<string> {
   return E2E ? e2e.getAddress() : (await real()).getAddress();
 }
 
-export async function getNetworkPassphrase(): Promise<string> {
+/** `null` when the wallet cannot report its network (see wallet-real.ts). */
+export async function getNetworkPassphrase(): Promise<string | null> {
   return E2E ? e2e.getNetworkPassphrase() : (await real()).getNetworkPassphrase();
 }
 

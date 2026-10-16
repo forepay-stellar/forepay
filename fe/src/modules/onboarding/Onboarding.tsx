@@ -85,7 +85,9 @@ export function Onboarding() {
         setFailedWallet(name);
         setWaitingFor(name);
       });
-      if ((await wallet.getNetworkPassphrase()) !== NETWORK_PASSPHRASE) {
+      // A wallet that cannot report its network (xBull, Rabet, WalletConnect) is not refused for it.
+      const network = await wallet.getNetworkPassphrase();
+      if (network !== null && network !== NETWORK_PASSPHRASE) {
         setConnectFailure("wrongNetwork");
         return;
       }

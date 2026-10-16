@@ -21,6 +21,15 @@ export class WalletError extends Error {
   }
 }
 
+/**
+ * The kit's answer for a call this wallet does not implement, e.g. `getNetwork` on xBull, Rabet and
+ * WalletConnect: `{ code: -3, message: 'xBull does not support the "getNetwork" function' }`. Code -3
+ * alone is not enough, Freighter also uses it for an address it will not share.
+ */
+export function isUnsupportedCall(e: WalletError): boolean {
+  return e.code === -3 && /does not support/i.test(e.message);
+}
+
 export function toWalletError(e: unknown): WalletError {
   if (e instanceof WalletError) return e;
   if (e && typeof e === "object" && "message" in e) {
