@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatLedgerTime, formatUsd, formatUsdc, formatWindow, parseUsdc, shortAddress, usdcParts } from "./format";
+import { formatLedgerTime, formatUsd, formatUsdc, formatWindow, formatXlmFee, parseUsdc, shortAddress, usdcParts } from "./format";
 
 describe("shortAddress", () => {
   it("keeps the first and last four characters, as the wallet chip shows them", () => {
@@ -56,5 +56,17 @@ describe("formatWindow", () => {
 
   it("keeps both years when the window crosses one", () => {
     expect(formatWindow("2026-11-01", "2027-01-31").short).toBe("Nov 2026 to Jan 2027");
+  });
+});
+
+describe("formatXlmFee", () => {
+  it("says Under 0.01 XLM for a small fee, as the 2c frame does", () => {
+    expect(formatXlmFee(25_000n)).toBe("Under 0.01 XLM");
+  });
+
+  it("rounds a larger fee up, never down", () => {
+    expect(formatXlmFee(100_000n)).toBe("Up to 0.01 XLM");
+    expect(formatXlmFee(312_345n)).toBe("Up to 0.04 XLM");
+    expect(formatXlmFee(12_000_001n)).toBe("Up to 1.21 XLM");
   });
 });

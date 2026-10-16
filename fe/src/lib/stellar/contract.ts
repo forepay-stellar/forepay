@@ -46,6 +46,22 @@ export class TransactionFailedError extends Error {
   }
 }
 
+/** A simulation the network refused with no contract code to explain it (a host trap, an auth failure). */
+export class SimulationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SimulationError";
+  }
+}
+
+/** The app was built without an address or URL it needs. Nothing reached the network. */
+export class MissingConfigError extends Error {
+  constructor(name: string) {
+    super(`${name} is not set`);
+    this.name = "MissingConfigError";
+  }
+}
+
 /** One advance, as the contract stores it (`Advance` in sc/advance/src/lib.rs). */
 export type OnChainAdvance = {
   borrower: string;
@@ -59,12 +75,12 @@ export type OnChainAdvance = {
 };
 
 function server() {
-  if (!RPC_URL) throw new Error("NEXT_PUBLIC_STELLAR_RPC_URL is not set");
+  if (!RPC_URL) throw new MissingConfigError("NEXT_PUBLIC_STELLAR_RPC_URL");
   return new rpc.Server(RPC_URL);
 }
 
 function contract() {
-  if (!CONTRACT_ID) throw new Error("NEXT_PUBLIC_ADVANCE_CONTRACT_ID is not set");
+  if (!CONTRACT_ID) throw new MissingConfigError("NEXT_PUBLIC_ADVANCE_CONTRACT_ID");
   return new Contract(CONTRACT_ID);
 }
 
@@ -88,7 +104,7 @@ async function simulate(source: string, method: string, args: xdr.ScVal[]) {
   if (rpc.Api.isSimulationError(sim)) {
     const code = contractCode(sim.error);
     if (code !== null) throw new ContractError(code, sim.error);
-    throw new Error(sim.error);
+    throw new SimulationError(sim.error);
   }
   return { tx, sim };
 }

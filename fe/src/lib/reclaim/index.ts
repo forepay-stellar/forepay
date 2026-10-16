@@ -14,10 +14,7 @@ export { ReclaimCancelledError, RelayNotReadyError, type ProveSession, type Prov
 
 const RELAY_URL = process.env.NEXT_PUBLIC_RELAY_URL ?? "";
 
-/** True while proofs come from the mock, so the UI and the docs can say so. */
-export const PROOFS_ARE_MOCKED = !RELAY_URL;
-
 export function proveRevenue(borrower: string, onStage: (stage: ProveStage) => void): ProveSession {
-  if (PROOFS_ARE_MOCKED) return mockProveRevenue(borrower, onStage);
+  if (!RELAY_URL) return mockProveRevenue(borrower, onStage);
   return { result: Promise.reject(new RelayNotReadyError()), reopen: () => {}, abandon: () => {} };
 }

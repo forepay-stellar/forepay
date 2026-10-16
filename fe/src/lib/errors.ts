@@ -212,10 +212,25 @@ export function contractFailureCopy(code: number): FailureCopy {
  * - `refused`: the network never took the transaction, so nothing was charged.
  * - `charged`: the ledger took it and it failed there, so the network fee was spent.
  * - `unconfirmed`: sent, but not confirmed within two minutes. It may still land.
- * - `unreachable`: Stellar did not answer while we checked the proof or read the offer.
+ * - `unreachable`: Stellar did not answer (a network or RPC failure).
+ * - `simulationFailed`: Stellar answered, but could not run the request, with no contract code to say why.
+ * - `notConfigured`: this build is missing an address it needs, so nothing reached the network.
+ * - `walletLocked`, `walletWrongNetwork`, `walletNoAnswer`: the wallet could not sign, for that reason.
  * - `relayNotReady`: proofs are meant to come from the #17 relay, and its client is not built yet.
  */
-export type ProveFailure = "cancelled" | "declined" | "refused" | "charged" | "unconfirmed" | "unreachable" | "relayNotReady";
+export type ProveFailure =
+  | "cancelled"
+  | "declined"
+  | "refused"
+  | "charged"
+  | "unconfirmed"
+  | "unreachable"
+  | "simulationFailed"
+  | "notConfigured"
+  | "walletLocked"
+  | "walletWrongNetwork"
+  | "walletNoAnswer"
+  | "relayNotReady";
 
 export function proveFailureCopy(kind: ProveFailure, walletName = "Freighter"): FailureCopy {
   switch (kind) {
@@ -249,12 +264,48 @@ export function proveFailureCopy(kind: ProveFailure, walletName = "Freighter"): 
         title: "We could not reach Stellar",
         body: "Nothing was charged. Check your connection, then try again.",
       };
+    case "simulationFailed":
+      return {
+        title: "Stellar could not run this request",
+        body: "Nothing was charged and no USDC moved. Try again in a moment.",
+      };
+    case "notConfigured":
+      return {
+        title: "Forepay is not set up on this page",
+        body: "This copy of the app is missing a Stellar address. Nothing was charged.",
+      };
+    case "walletLocked":
+      return {
+        title: `Unlock ${walletName} first`,
+        body: `Open ${walletName}, enter your password, then accept the offer again.`,
+      };
+    case "walletWrongNetwork":
+      return {
+        title: "Switch your wallet to testnet",
+        body: `Forepay runs on Stellar testnet. Change the network in ${walletName}, then accept the offer again.`,
+      };
+    case "walletNoAnswer":
+      return {
+        title: `${walletName} did not answer`,
+        body: "Nothing was sent. Try again, or reconnect your wallet from the wallet menu.",
+      };
     case "relayNotReady":
       return {
         title: "Proving revenue is not open yet",
         body: "Forepay cannot read AdSense revenue yet. Try again later.",
       };
   }
+}
+
+/**
+ * "Your wallet needs to accept USDC first", found while checking the proof, before any offer was shown.
+ * The board's words for it ("accept the offer again") belong to an accept.
+ */
+export function noTrustlineBeforeOfferCopy(): FailureCopy {
+  return {
+    title: contractFailureCopy(41).title,
+    body: "Approve USDC in your wallet, then we will show your offer. Your proof is still valid.",
+  };
 }
 
 /** "Not enough revenue yet", with the creator's own figure (`$3.20`), as the board shows it. */

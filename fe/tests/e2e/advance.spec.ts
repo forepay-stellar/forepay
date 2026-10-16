@@ -6,6 +6,13 @@ import { ADVANCE_TX_HASH, mockRpc, type Chain } from "./rpc";
 // after it is the real contract client against the stubbed RPC in ./rpc.ts, which answers `quote`,
 // `request_advance` (simulated and sent), `nullifier_for` and `advance` the way the contract does.
 
+// A test can end while the page still has a request in the stub (a query refetching, a held
+// simulation). Drop the stub without waiting for those, or a handler left waiting on a closed page
+// keeps the Playwright worker from exiting.
+test.afterEach(async ({ page }) => {
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+});
+
 async function connect(page: Page, chain: Chain, mock: Record<string, string> = {}) {
   await mockRpc(page, chain);
   await page.goto("/start");
@@ -28,6 +35,13 @@ test("prove, see the offer with its derivation, accept, and receive the USDC", a
   const chain: Chain = { account: true, trustline: true, advance: { acceptDelayMs: 1500 } };
   await connect(page, chain);
 
+  // Hold the check on Stellar long enough to see it.
+  await page.route("https://rpc.e2e.invalid/**", async (route) => {
+    const body = route.request().postDataJSON() as { method: string };
+    if (body.method === "simulateTransaction" && !chain.advance?.sent) await new Promise((r) => setTimeout(r, 400));
+    await route.fallback();
+  });
+
   // 2a
   await expect(heading(page, "Get an advance")).toBeVisible();
   await expect(heading(page, "See how much you can get")).toBeVisible();
@@ -37,17 +51,19 @@ test("prove, see the offer with its derivation, accept, and receive the USDC", a
   await expect(heading(page, "Log in to AdSense in the new window")).toBeVisible();
   await expect(page.getByRole("button", { name: "Open the window again" })).toBeVisible();
   await expect(heading(page, "Reading your revenue")).toBeVisible();
+  await expect(heading(page, "Checking your proof")).toBeVisible();
 
   // 2b: the contract's figure and how it was reached
   await expect(heading(page, "Your offer")).toBeVisible();
   await expect(page.getByText("Revenue verified")).toBeVisible();
   await expect(page.getByText("A quarter of the $360.00 you earned on AdSense from July to September.")).toBeVisible();
   const breakdown = page.getByRole("region", { name: "How we got this number" });
-  await expect(breakdown.getByText("$360.00")).toBeVisible();
+  await expect(breakdown.getByText("$360.00", { exact: true })).toBeVisible();
   await expect(breakdown.getByText("× 25%")).toBeVisible();
-  await expect(breakdown.getByText("100.00 USDC")).toBeVisible();
+  await expect(breakdown.getByText("100.00 USDC", { exact: true })).toBeVisible();
   await expect(breakdown.getByText("Your advance")).toBeVisible();
   await expect(breakdown).toContainText("90.00USDC");
+  await expect(breakdown.getByText("25% of $360.00 is 90.00 USDC.")).toBeVisible();
 
   // 2c, held open by the slow simulation of the accept
   await page.getByRole("button", { name: "Accept 90.00 USDC" }).click();
@@ -74,6 +90,9 @@ test("a high revenue is capped at 100 USDC and says so", async ({ page }) => {
   await connect(page, { account: true, trustline: true }, { "forepay.mock.revenue": "1240.00" });
   await proveToOffer(page);
   await expect(page.getByRole("button", { name: "Accept 100.00 USDC" })).toBeVisible();
+  await expect(
+    page.getByText("The most one advance can be. You earned $1,240.00 on AdSense from July to September."),
+  ).toBeVisible();
   await expect(page.getByText("A quarter of $1,240.00 is more than 100 USDC. Each advance is limited to 100 USDC.")).toBeVisible();
 });
 
@@ -108,11 +127,13 @@ const atCheck: { code: number; title: string; buttons: string[] }[] = [
   { code: 12, title: "This proof expired", buttons: ["Prove again", "Back"] },
   { code: 40, title: "Advances are paused right now", buttons: ["Back"] },
   { code: 10, title: "Advances are not open yet", buttons: ["Back"] },
+  { code: 13, title: "This proof is dated in the future", buttons: ["Prove again", "Back"] },
+  { code: 30, title: "We could not read your revenue", buttons: ["Back"] },
 ];
 
 for (const { code, title, buttons } of atCheck) {
   test(`contract code ${code} while checking the proof shows "${title}"`, async ({ page }) => {
-    const chain: Chain = { account: true, trustline: true, advance: { refuse: { code, at: "check" } } };
+    const chain: Chain = { account: true, trustline: true, advance: { refuse: { code, from: 1 } } };
     await connect(page, chain);
     await page.getByRole("button", { name: "Prove my revenue" }).click();
     const panel = page.getByRole("alert");
@@ -129,16 +150,59 @@ test("a wallet that cannot receive USDC is asked to allow it, then gets its offe
   chain.trustline = false; // removed after onboarding
   await page.getByRole("button", { name: "Prove my revenue" }).click();
   await expect(heading(page, "Your wallet needs to accept USDC first")).toBeVisible();
+  // No offer has been shown yet, so it does not speak of accepting one again.
   await expect(
-    page.getByText("Approve USDC in your wallet, then accept the offer again. Your proof is still valid."),
+    page.getByText("Approve USDC in your wallet, then we will show your offer. Your proof is still valid."),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Not now" })).toBeVisible();
   await page.getByRole("button", { name: "Allow USDC" }).click();
   await expect(page.getByRole("button", { name: "Accept 90.00 USDC" })).toBeVisible();
 });
 
+test("USDC no longer allowed when accepting: the board's panel, and Not now goes back to 2a", async ({ page }) => {
+  const chain: Chain = { account: true, trustline: true };
+  await connect(page, chain);
+  await proveToOffer(page);
+  chain.trustline = false;
+  await page.getByRole("button", { name: "Accept 90.00 USDC" }).click();
+  await expect(heading(page, "Your wallet needs to accept USDC first")).toBeVisible();
+  await expect(
+    page.getByText("Approve USDC in your wallet, then accept the offer again. Your proof is still valid."),
+  ).toBeVisible();
+  expect(chain.advance?.sent ?? 0).toBe(0);
+  await page.getByRole("button", { name: "Not now" }).click();
+  await expect(heading(page, "See how much you can get")).toBeVisible();
+});
+
+test("Open the window again keeps waiting for the AdSense login, then goes on", async ({ page }) => {
+  await connect(page, { account: true, trustline: true });
+  await page.getByRole("button", { name: "Prove my revenue" }).click();
+  await page.getByRole("button", { name: "Open the window again" }).click();
+  await expect(heading(page, "Log in to AdSense in the new window")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Accept 90.00 USDC" })).toBeVisible();
+});
+
+test("Stellar not answering at accept is named, and Back keeps the offer", async ({ page }) => {
+  const chain: Chain = { account: true, trustline: true };
+  await connect(page, chain);
+  await proveToOffer(page);
+  chain.down = true;
+  await page.getByRole("button", { name: "Accept 90.00 USDC" }).click();
+  await expect(heading(page, "We could not reach Stellar")).toBeVisible();
+  chain.down = false;
+  await page.getByRole("button", { name: "Back" }).click();
+  await expect(page.getByRole("button", { name: "Accept 90.00 USDC" })).toBeVisible();
+});
+
+test("a request Stellar cannot run, with no contract code, has its own words", async ({ page }) => {
+  await connect(page, { account: true, trustline: true, advance: { simulationFails: true } });
+  await page.getByRole("button", { name: "Prove my revenue" }).click();
+  await expect(heading(page, "Stellar could not run this request")).toBeVisible();
+  await expect(heading(page, "We could not reach Stellar")).toHaveCount(0);
+});
+
 test("a proof that expires while the offer is open is named at accept, and Prove again restarts", async ({ page }) => {
-  const chain: Chain = { account: true, trustline: true, advance: { refuse: { code: 12, at: "accept" } } };
+  const chain: Chain = { account: true, trustline: true, advance: { refuse: { code: 12, from: 2 } } };
   await connect(page, chain);
   await proveToOffer(page);
   await page.getByRole("button", { name: "Accept 90.00 USDC" }).click();
@@ -150,7 +214,7 @@ test("a proof that expires while the offer is open is named at accept, and Prove
 });
 
 test("a proof already used, found at accept, is named, and Back leaves the offer behind", async ({ page }) => {
-  await connect(page, { account: true, trustline: true, advance: { refuse: { code: 20, at: "accept" } } });
+  await connect(page, { account: true, trustline: true, advance: { refuse: { code: 20, from: 2 } } });
   await proveToOffer(page);
   await page.getByRole("button", { name: "Accept 90.00 USDC" }).click();
   await expect(heading(page, "This proof was already used")).toBeVisible();
@@ -159,7 +223,7 @@ test("a proof already used, found at accept, is named, and Back leaves the offer
 });
 
 test("liquidity running out between offer and accept pauses advances", async ({ page }) => {
-  await connect(page, { account: true, trustline: true, advance: { refuse: { code: 40, at: "accept" } } });
+  await connect(page, { account: true, trustline: true, advance: { refuse: { code: 40, from: 2 } } });
   await proveToOffer(page);
   await page.getByRole("button", { name: "Accept 90.00 USDC" }).click();
   await expect(heading(page, "Advances are paused right now")).toBeVisible();

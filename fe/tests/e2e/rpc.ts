@@ -35,14 +35,17 @@ export type Chain = {
 /** The advance contract, as far as 02 Prove and accept can see it. */
 export type AdvanceChain = {
   /**
-   * A code from docs/interface.md §7 that `request_advance` refuses with. `at: "check"` refuses the
-   * simulation before the offer (and every one after), `at: "accept"` only once the creator accepts,
-   * as a proof that expired while the offer was open would.
+   * A code from docs/interface.md §7 that `request_advance` refuses with, from its `from`-th simulation
+   * on. The stub cannot tell a check from an accept (both are the same simulation), so it counts them:
+   * 1 is the check before the offer, 2 is the next one, the accept in a plain run, or the re-check
+   * after Allow USDC or Try again. `from: 2` is a proof that expired while the offer was open.
    */
-  refuse?: { code: number; at: "check" | "accept" };
+  refuse?: { code: number; from: number };
   /** How a sent `request_advance` ends: lands (default), refused before the ledger, failed on it, or never confirmed. */
   send?: "ok" | "refused" | "failed" | "pending";
-  /** Hold the simulation of an accept this long, so 2c "Approve in Freighter" can be seen. */
+  /** Refuse every `request_advance` simulation with a host error that carries no contract code. */
+  simulationFails?: boolean;
+  /** Hold every `request_advance` simulation after the first this long, so 2c can be seen. */
   acceptDelayMs?: number;
   /** Set by the stub: how many `request_advance` transactions were sent. */
   sent?: number;
@@ -212,10 +215,12 @@ export async function mockRpc(page: Page, chain: Chain) {
             checks += 1;
             const revenueUsd = scValToNative(call.args[1]) as string;
             const stroops = size(revenueUsd);
-            const accepting = checks > 1;
-            if (accepting && adv.acceptDelayMs) await new Promise((r) => setTimeout(r, adv.acceptDelayMs));
+            if (checks > 1 && adv.acceptDelayMs) await new Promise((r) => setTimeout(r, adv.acceptDelayMs));
             if (stroops < MIN_STROOPS) return reply(contractError(31));
-            if (adv.refuse && (adv.refuse.at === "check" || accepting)) return reply(contractError(adv.refuse.code));
+            if (adv.simulationFails) {
+              return reply({ error: "HostError: Error(Auth, InvalidAction)", events: [], latestLedger: 100 });
+            }
+            if (adv.refuse && checks >= adv.refuse.from) return reply(contractError(adv.refuse.code));
             if (!chain.trustline) return reply(contractError(41));
             return reply(simulated(i128(stroops)));
           }

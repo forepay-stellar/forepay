@@ -108,7 +108,20 @@ describe("contractFailureCopy", () => {
 });
 
 describe("proveFailureCopy", () => {
-  const kinds: ProveFailure[] = ["cancelled", "declined", "refused", "charged", "unconfirmed", "unreachable", "relayNotReady"];
+  const kinds: ProveFailure[] = [
+    "cancelled",
+    "declined",
+    "refused",
+    "charged",
+    "unconfirmed",
+    "unreachable",
+    "simulationFailed",
+    "notConfigured",
+    "walletLocked",
+    "walletWrongNetwork",
+    "walletNoAnswer",
+    "relayNotReady",
+  ];
 
   it("keeps every failure inside the copy rules, and never says Something went wrong", () => {
     for (const k of kinds) {
@@ -121,6 +134,11 @@ describe("proveFailureCopy", () => {
     expect(proveFailureCopy("refused").body).toMatch(/Nothing was charged/);
     expect(proveFailureCopy("charged").body).not.toMatch(/Nothing was charged/);
     expect(proveFailureCopy("unconfirmed").body).not.toMatch(/Nothing was charged/);
+  });
+
+  it("gives every failure its own words", () => {
+    const all = kinds.map((k) => JSON.stringify(proveFailureCopy(k)));
+    expect(new Set(all).size).toBe(kinds.length);
   });
 
   it("names the wallet that declined", () => {

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { ErrorPanel } from "@/components/elements/ErrorPanel";
 import { IlloAdvancesPaused } from "@/components/illustrations/AdvancesPaused";
 import { IlloAllowUsdc } from "@/components/illustrations/AllowUsdc";
+import { IlloConnectWallet } from "@/components/illustrations/ConnectWallet";
 import { IlloNoAdvanceYet } from "@/components/illustrations/NoAdvanceYet";
 import { IlloNothingCharged } from "@/components/illustrations/NothingCharged";
 import { IlloProofAlreadyUsed } from "@/components/illustrations/ProofAlreadyUsed";
@@ -10,13 +11,8 @@ import { IlloProofExpired } from "@/components/illustrations/ProofExpired";
 import { IlloProofNotConfirmed } from "@/components/illustrations/ProofNotConfirmed";
 import { IlloSessionCancelled } from "@/components/illustrations/SessionCancelled";
 import { Button, button } from "@/components/ui/Button";
-import { contractFailureCopy, proveFailureCopy, tooSmallCopy, type ProveFailure } from "@/lib/errors";
-
-/**
- * Why 02 Prove and accept stopped: a contract refusal (its code from `docs/interface.md` §7), one of
- * the failures around it, or an offer too small to send.
- */
-export type AdvanceFailure = { code: number } | { kind: ProveFailure } | { kind: "tooSmall"; revenue: string };
+import { contractFailureCopy, noTrustlineBeforeOfferCopy, proveFailureCopy, tooSmallCopy } from "@/lib/errors";
+import type { AdvanceFailure } from "../failures";
 
 /**
  * What a panel's buttons ask for. `prove` starts a new Reclaim session, `back` leaves the failure,
@@ -32,11 +28,14 @@ export type FailureAction = "prove" | "back" | "reviewOffer" | "retry" | "allowU
 export function FailurePanel({
   failure,
   walletName,
+  beforeOffer,
   allowing,
   onAction,
 }: {
   failure: AdvanceFailure;
   walletName: string;
+  /** Found while checking the proof, before any offer was shown. */
+  beforeOffer: boolean;
   /** Allowing USDC is waiting on the wallet. */
   allowing: boolean;
   onAction: (action: FailureAction) => void;
@@ -78,6 +77,7 @@ export function FailurePanel({
         actions = back;
         break;
       case 41:
+        if (beforeOffer) copy = noTrustlineBeforeOfferCopy();
         illustration = <IlloAllowUsdc data-illo="allow-usdc" />;
         actions = (
           <>
@@ -117,6 +117,8 @@ export function FailurePanel({
         break;
       case "refused":
       case "unreachable":
+      case "simulationFailed":
+      case "walletNoAnswer":
         illustration = <IlloNothingCharged data-illo="nothing-charged" />;
         actions = (
           <>
@@ -147,7 +149,18 @@ export function FailurePanel({
           </>
         );
         break;
+      case "walletLocked":
+      case "walletWrongNetwork":
+        illustration = <IlloConnectWallet data-illo="connect-wallet" />;
+        actions = (
+          <>
+            <Button onClick={a.onRetry}>Try again</Button>
+            {back}
+          </>
+        );
+        break;
       case "relayNotReady":
+      case "notConfigured":
         illustration = <IlloAdvancesPaused data-illo="advances-paused" />;
         actions = back;
         break;
