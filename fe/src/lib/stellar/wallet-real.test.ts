@@ -104,3 +104,81 @@ describe("hasWallet", () => {
     expect(await (await load()).hasWallet()).toBe(false);
   });
 });
+
+describe("connect", () => {
+  it("names each wallet the creator picks, and nothing on opening the picker", async () => {
+    const named: string[] = [];
+    let resolveModal: (v: { address: string }) => void = () => {};
+    kit.authModal.mockImplementation(() => new Promise((resolve) => (resolveModal = resolve)));
+    const { connect } = await load();
+    const session = connect((name) => named.push(name));
+    expect(named).toEqual([]);
+    // The selected wallet picked again still counts as a pick.
+    for (const l of picks.listeners) l({ name: "Freighter" });
+    for (const l of picks.listeners) l({ name: "xBull" });
+    kit.selectedModule = { productId: "xbull", productName: "xBull" };
+    resolveModal({ address: "GABC" });
+    expect(await session).toEqual({ address: "GABC", name: "xBull", id: "xbull" });
+    expect(named).toEqual(["Freighter", "xBull"]);
+    expect(picks.listeners).toHaveLength(0);
+    expect(window.localStorage.getItem("forepay.wallet.id")).toBe("xbull");
+  });
+
+  it("stops listening when the picker is closed", async () => {
+    kit.authModal.mockRejectedValue({ code: -1, message: "The user closed the modal." });
+    const { connect } = await load();
+    await expect(connect(() => {})).rejects.toMatchObject({ name: "WalletError", code: -1 });
+    expect(picks.listeners).toHaveLength(0);
+  });
+});
+
+describe("the wallet picked last time", () => {
+  it("is selected again when this build has it", async () => {
+    window.localStorage.setItem("forepay.wallet.id", "rabet");
+    (await load()).getKit();
+    expect(kit.init).toHaveBeenCalledWith(expect.objectContaining({ selectedWalletId: "rabet" }));
+  });
+
+  it("is forgotten for Freighter when this build does not have it", async () => {
+    window.localStorage.setItem("forepay.wallet.id", "wallet_connect");
+    (await load()).getKit();
+    expect(kit.init).toHaveBeenCalledWith(expect.objectContaining({ selectedWalletId: "freighter" }));
+    expect(window.localStorage.getItem("forepay.wallet.id")).toBeNull();
+  });
+});
+
+describe("getAddress", () => {
+  it("asks Freighter silently, so a locked one is caught", async () => {
+    const getAddress = vi.fn().mockRejectedValue({ code: -3, message: "not allowed, please request access first" });
+    kit.selectedModule = { productId: "freighter", productName: "Freighter", getAddress };
+    await expect((await load()).getAddress()).rejects.toMatchObject({ name: "WalletError", code: -3 });
+    expect(getAddress).toHaveBeenCalledWith({ skipRequestAccess: true });
+    expect(kit.getAddress).not.toHaveBeenCalled();
+  });
+
+  it("takes the remembered address for a wallet that cannot be asked silently", async () => {
+    const getAddress = vi.fn();
+    kit.selectedModule = { productId: "xbull", productName: "xBull", getAddress };
+    kit.getAddress.mockResolvedValue({ address: "GXBULL" });
+    expect(await (await load()).getAddress()).toBe("GXBULL");
+    expect(getAddress).not.toHaveBeenCalled();
+  });
+});
+
+describe("getNetworkPassphrase", () => {
+  it("is the wallet's passphrase when it can say", async () => {
+    const mainnet = "Public Global Stellar Network ; September 2015";
+    kit.getNetwork.mockResolvedValue({ network: "PUBLIC", networkPassphrase: mainnet });
+    expect(await (await load()).getNetworkPassphrase()).toBe(mainnet);
+  });
+
+  it("is null for a wallet that does not support asking", async () => {
+    kit.getNetwork.mockRejectedValue({ code: -3, message: 'xBull does not support the "getNetwork" function' });
+    expect(await (await load()).getNetworkPassphrase()).toBeNull();
+  });
+
+  it("rethrows any other failure", async () => {
+    kit.getNetwork.mockRejectedValue({ code: -3, message: "not allowed, please request access first" });
+    await expect((await load()).getNetworkPassphrase()).rejects.toMatchObject({ name: "WalletError", code: -3 });
+  });
+});
