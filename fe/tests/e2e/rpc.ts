@@ -48,6 +48,8 @@ export type ContractStub = {
   hold?: Promise<void>;
   /** While true, a sent call is not on the ledger yet (NOT_FOUND); set it false to let it land. */
   holdLedger?: boolean;
+  /** The send never reaches the node: no answer to it (503), and the call is never taken. */
+  dropSend?: boolean;
   /** Called once a `repay` lands, with its amount in stroops and its hash. */
   onRepaid?: (amount: bigint, hash: string) => void;
   /** The method and arguments of every call that reached the ledger, for assertions. */
@@ -330,6 +332,7 @@ export async function mockRpc(page: Page, chain: Chain) {
           other = { method: call.fn, args: call.args.map((a) => scValToNative(a)) };
           otherHash = TransactionBuilder.fromXDR(envelope, Networks.TESTNET).hash().toString("hex");
           applied = false;
+          if (chain.contract.dropSend) return route.fulfill({ status: 503, body: "unavailable" });
           if ((chain.contract.send ?? "ok") === "refused") {
             return reply({ status: "ERROR", hash: otherHash, latestLedger: 100, latestLedgerCloseTime: "0" });
           }

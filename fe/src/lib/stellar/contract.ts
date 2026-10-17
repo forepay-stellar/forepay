@@ -138,7 +138,7 @@ async function write<T>(
   method: string,
   args: xdr.ScVal[],
   signTransaction: (xdr: string) => Promise<string>,
-  onSent?: (hash: string) => void,
+  onSent?: (hash: string, validUntil?: number) => void,
 ): Promise<{ hash: string; value: T }> {
   const { tx, sim } = await simulate(source, method, args);
   const prepared = rpc.assembleTransaction(tx, sim).build();
@@ -275,7 +275,7 @@ export async function requestAdvance(
   borrower: string,
   req: AdvanceRequest,
   signTransaction: (xdr: string) => Promise<string>,
-  onSent?: (hash: string) => void,
+  onSent?: (hash: string, validUntil?: number) => void,
 ): Promise<{ hash: string; value: bigint }> {
   const args = advanceArgs(borrower, req);
   const { hash, value } = await write<unknown>(borrower, "request_advance", args, signTransaction, onSent);
@@ -300,7 +300,7 @@ export function repay(
   nullifier: string,
   amount: bigint,
   signTransaction: (xdr: string) => Promise<string>,
-  onSent?: (hash: string) => void,
+  onSent?: (hash: string, validUntil?: number) => void,
 ): Promise<{ hash: string; value: bigint }> {
   return write<bigint>(
     from,

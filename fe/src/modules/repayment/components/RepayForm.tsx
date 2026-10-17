@@ -31,6 +31,7 @@ export function RepayForm({
   locked,
   busyLabel,
   failure,
+  note,
   className,
 }: {
   input: string;
@@ -54,6 +55,8 @@ export function RepayForm({
    */
   busyLabel: string | null;
   failure: FailureCopy | null;
+  /** Not a failure: something the creator should know, shown when no failure is. */
+  note?: FailureCopy | null;
   className?: string;
 }) {
   const settled = left === 0n;
@@ -179,7 +182,11 @@ export function RepayForm({
         </div>
       </dl>
 
-      {failure && <Alert tone="danger" className="w-full" title={failure.title} body={failure.body} />}
+      {failure ? (
+        <Alert tone="danger" className="w-full" title={failure.title} body={failure.body} />
+      ) : (
+        note && <Alert tone="info" className="w-full" title={note.title} body={note.body} />
+      )}
 
       {check.kind === "overOutstanding" && !settled ? (
         // An offer, so it acts: it fills the outstanding amount, and the creator then repays that (S7).

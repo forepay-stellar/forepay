@@ -1,4 +1,4 @@
-import { TransactionBuilder, rpc } from "@stellar/stellar-sdk";
+import { FeeBumpTransaction, TransactionBuilder, rpc } from "@stellar/stellar-sdk";
 import { NETWORK_PASSPHRASE } from "./network";
 
 /**
@@ -36,7 +36,7 @@ export type Landed = { hash: string; result: rpc.Api.GetSuccessfulTransactionRes
 export async function submitSigned(
   server: rpc.Server,
   signedXdr: string,
-  { attempts, onSent }: { attempts: number; onSent?: (hash: string) => void },
+  { attempts, onSent }: { attempts: number; onSent?: (hash: string, validUntil?: number) => void },
 ): Promise<Landed> {
   // A wallet answer that is not a transaction never left the page.
   let signed: ReturnType<typeof TransactionBuilder.fromXDR>;
@@ -45,8 +45,11 @@ export async function submitSigned(
   } catch {
     throw new SubmitError("The wallet did not return a transaction", "refused");
   }
-  // The hash is the signed transaction's own, known before it leaves.
-  onSent?.(signed.hash().toString("hex"));
+  // The hash is the signed transaction's own, known before it leaves. So is the last moment a ledger
+  // may take it (its time bounds, in seconds): past that, one never seen will never land.
+  const inner = signed instanceof FeeBumpTransaction ? signed.innerTransaction : signed;
+  const maxTime = Number(inner.timeBounds?.maxTime ?? 0);
+  onSent?.(signed.hash().toString("hex"), maxTime > 0 ? maxTime : undefined);
   let sent: rpc.Api.SendTransactionResponse;
   try {
     sent = await server.sendTransaction(signed);

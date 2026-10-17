@@ -9,13 +9,25 @@ import { useSyncExternalStore } from "react";
  * sessionStorage for a reload, from just before it is sent until the API reports its transaction
  * (review B2). One that Stellar has not confirmed yet stays too, and is still watched (review B3).
  *
- * `landed` is set once the ledger confirms it; from then on only the API has to catch up.
+ * `landed` is set once the ledger confirms it (`landedAt`, ms); from then on only the API has to catch up.
+ * `validUntil` (s) is the transaction's own time limit: past it, one no ledger has seen never will.
+ * `sender` is true while the screen that sent it is still waiting on it itself, so the page does not
+ * watch the same hash a second time; it is never stored, so after a reload the page watches.
  */
-export type Inflight = { address: string; nullifier: string; hash: string; amount: bigint; landed: boolean };
+export type Inflight = {
+  address: string;
+  nullifier: string;
+  hash: string;
+  amount: bigint;
+  landed: boolean;
+  validUntil?: number;
+  landedAt?: number;
+  sender?: boolean;
+};
 
 const KEY = "forepay.repayment.inflight";
 
-type Stored = Omit<Inflight, "amount"> & { amount: string };
+type Stored = Omit<Inflight, "amount" | "sender"> & { amount: string };
 
 let current: Inflight | null | undefined;
 const listeners = new Set<() => void>();
@@ -42,7 +54,19 @@ export function getInflight(): Inflight | null {
 export function setInflight(next: Inflight | null): void {
   current = next;
   try {
-    if (next) window.sessionStorage.setItem(KEY, JSON.stringify({ ...next, amount: next.amount.toString() }));
+    if (next) {
+      // `sender` is this page's alone: not stored.
+      const stored: Stored = {
+        address: next.address,
+        nullifier: next.nullifier,
+        hash: next.hash,
+        amount: next.amount.toString(),
+        landed: next.landed,
+        validUntil: next.validUntil,
+        landedAt: next.landedAt,
+      };
+      window.sessionStorage.setItem(KEY, JSON.stringify(stored));
+    }
     else window.sessionStorage.removeItem(KEY);
   } catch {
     // Storage unavailable: kept for this page only.
@@ -54,8 +78,14 @@ export function setInflight(next: Inflight | null): void {
 export function markLanded(hash: string): boolean {
   const now = getInflight();
   if (!now || now.hash !== hash || now.landed) return false;
-  setInflight({ ...now, landed: true });
+  setInflight({ ...now, landed: true, landedAt: Date.now() });
   return true;
+}
+
+/** The sending screen has stopped waiting on this hash itself: the page watches it from here. */
+export function releaseSender(hash: string): void {
+  const now = getInflight();
+  if (now?.hash === hash && now.sender) setInflight({ ...now, sender: false });
 }
 
 /** Forget the repayment with this hash, if it is still the one in flight. */

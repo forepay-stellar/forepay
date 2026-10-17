@@ -377,6 +377,8 @@ test("a repayment not confirmed in two minutes stays held and watched, then land
   chain.contract!.holdLedger = false;
   await tick(10);
   await expect(card(page)).toContainText("60.00 of 90.00 USDC repaid");
+  // Landed after all: "not confirmed yet" no longer stands.
+  await expect(form(page).getByRole("alert")).toHaveCount(0);
   await expect(transactions.getByText("Pending")).toHaveCount(0);
   expect(chain.contract?.sent).toHaveLength(1);
 });
@@ -396,4 +398,72 @@ test("an amount with more than two decimals is shown as it is sent, everywhere (
   await expect(card(page)).toContainText("42.509 of 90.00 USDC repaid");
   await expect(transactions.getByText("−12.509 USDC")).toBeVisible();
   expect(chain.contract?.sent?.map((c) => c.args[2])).toEqual([125_090_000n]);
+});
+
+/** One poll a second: step the clock a second at a time so each poll's request can answer. */
+async function tick(page: Page, seconds: number) {
+  for (let i = 0; i < seconds; i++) {
+    await page.clock.fastForward(1000);
+    await page.waitForTimeout(15);
+  }
+}
+
+test("a repayment that never reached Stellar is let go once it is past its time limit", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.clock.install();
+  const ledger = frameLedger();
+  const chain = await open(page, "/repayment", ledger, { contract: { dropSend: true } });
+  await page.getByRole("button", { name: "50%" }).click();
+  await page.getByRole("button", { name: "Repay 30.00 USDC" }).click();
+  // No answer to the send: it may be out, so it is held and watched at first.
+  await expect(form(page).getByRole("alert")).toContainText("not confirmed yet");
+  await expect(page.getByRole("button", { name: "Waiting for Stellar" })).toBeDisabled();
+
+  // Built with a 180 s limit: well past it, no ledger has it, and none ever will.
+  await tick(page, 260);
+  await expect(form(page).getByRole("alert")).toContainText("The repayment did not go through");
+  await expect(form(page).getByRole("alert")).toContainText("Nothing was charged");
+  const transactions = page.getByRole("region", { name: "Transactions" });
+  await expect(transactions.getByText("Pending")).toHaveCount(0);
+  await page.getByRole("button", { name: "50%" }).click();
+  await expect(page.getByRole("button", { name: "Repay 30.00 USDC" })).toBeEnabled();
+  expect(await page.evaluate(() => sessionStorage.getItem("forepay.repayment.inflight"))).toBeNull();
+  expect(chain.contract?.sent ?? []).toEqual([]);
+});
+
+test("an API that never reports a landed repayment lets the form go after two minutes", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.clock.install();
+  const ledger = frameLedger();
+  // The indexer behind #16 never records it.
+  await open(page, "/repayment", ledger, { contract: { onRepaid: () => {} } });
+  await page.getByRole("button", { name: "50%" }).click();
+  await page.getByRole("button", { name: "Repay 30.00 USDC" }).click();
+  await tick(page, 3);
+  await expect(page.getByText("30.00 USDC repaid", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Waiting for Stellar" })).toBeDisabled();
+
+  await tick(page, 125);
+  // The row stays pending, the form opens again, and a note says why the figures have not moved.
+  const transactions = page.getByRole("region", { name: "Transactions" });
+  await expect(transactions.getByText("Pending")).toBeVisible();
+  await expect(form(page).getByRole("status")).toContainText("Your repayment is confirmed on Stellar");
+  await page.getByRole("button", { name: "25%" }).click();
+  await expect(page.getByRole("button", { name: "Repay 15.00 USDC" })).toBeEnabled();
+});
+
+test("a repayment being sent is waited on once, not by the screen and the page both", async ({ page }) => {
+  const ledger = frameLedger();
+  await open(page, "/repayment", ledger, { contract: { holdLedger: true } });
+  let polls = 0;
+  page.on("request", (r) => {
+    if (r.url().includes("rpc.e2e.invalid") && (r.postDataJSON() as { method: string }).method === "getTransaction") polls++;
+  });
+  await page.getByRole("button", { name: "50%" }).click();
+  await page.getByRole("button", { name: "Repay 30.00 USDC" }).click();
+  await expect(page.getByRole("region", { name: "Transactions" }).getByText("Pending")).toBeVisible();
+  const start = polls;
+  await page.waitForTimeout(8000);
+  // About one a second from one waiter (about 8); two would make it about 14.
+  expect(polls - start).toBeLessThanOrEqual(10);
 });
