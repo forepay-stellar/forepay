@@ -32,7 +32,8 @@ import { SignAdvance } from "./components/SignAdvance";
 import { maxFee } from "./fee";
 import { isCapped } from "./cap";
 import { clearPending, loadPending, savePending, type PendingAdvance } from "./pending";
-import { WalletSignError, acceptFailure, proofStillGood, proveFailure, type AdvanceFailure } from "./failures";
+import { WalletSignError } from "@/lib/stellar/wallet-error";
+import { acceptFailure, proofStillGood, proveFailure, type AdvanceFailure } from "./failures";
 
 /** After this long without a confirmation, say so (board row 4, "Taking longer than usual"). */
 const SLOW_AFTER_MS = 30_000;

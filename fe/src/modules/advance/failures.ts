@@ -10,8 +10,6 @@ import { WalletSignError } from "@/lib/stellar/wallet-error";
  */
 export type AdvanceFailure = { code: number } | { kind: ProveFailure } | { kind: "tooSmall"; revenue: string };
 
-export { WalletSignError } from "@/lib/stellar/wallet-error";
-
 /** A failure that is not about the wallet: the Reclaim session, the contract, the network, the build. */
 function sorted(e: unknown): AdvanceFailure {
   if (e instanceof ReclaimCancelledError) return { kind: "cancelled" };

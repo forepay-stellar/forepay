@@ -125,16 +125,9 @@ export type SignFailure = "declined" | "locked" | "wrongNetwork" | "noAnswer";
 
 export function classifySignError(e: WalletSignError): SignFailure {
   if (/passphrase|wrong network|network mismatch|mainnet|public global/i.test(e.message)) return "wrongNetwork";
-  switch (classifyConnectError(e.cause)) {
-    case "declined":
-      return "declined";
-    case "locked":
-      return "locked";
-    case "wrongNetwork":
-      return "wrongNetwork";
-    default:
-      return "noAnswer";
-  }
+  // The connect reasons that also mean something at signing carry over; anything else is no answer.
+  const reason = classifyConnectError(e.cause);
+  return reason === "declined" || reason === "locked" || reason === "wrongNetwork" ? reason : "noAnswer";
 }
 
 /** True when the creator turned down a signature in the wallet. Not a failure to show, just a stop. */

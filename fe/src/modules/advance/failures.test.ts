@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { ReclaimCancelledError, RelayNotReadyError } from "@/lib/reclaim";
 import { ContractError, MissingConfigError, SimulationError, TransactionFailedError } from "@/lib/stellar/contract";
 import { WalletError } from "@/lib/stellar/wallet-error";
-import { WalletSignError, acceptFailure, proofStillGood, proveFailure } from "./failures";
+import { WalletSignError } from "@/lib/stellar/wallet-error";
+import { acceptFailure, proofStillGood, proveFailure } from "./failures";
 
 describe("proveFailure", () => {
   it("names each cause on its own", () => {
