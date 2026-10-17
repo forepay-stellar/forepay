@@ -49,21 +49,28 @@ export function repayFailureCopy(error: unknown, signed: boolean, walletName: st
 }
 
 /**
- * `repay` itself only refuses with 1 NotInitialized, 50 UnknownAdvance, 51 RepaymentExceedsOutstanding
- * and 52 AmountNotPositive (`sc/advance/src/lib.rs`). Any other `Error(Contract, #N)` in a repay
- * simulation is raised by the USDC token contract it calls to move the money, whose numbers mean
- * something else (soroban-env-host `builtin_contracts/contract_error.rs`): 10 BalanceError, 11
- * BalanceDeauthorizedError, 13 TrustlineMissingError. Reading those as advance codes would tell a
- * creator who is short of USDC that "Advances are not open yet".
+ * The codes `repay` itself refuses with that a creator can meet: 50 UnknownAdvance, 51
+ * RepaymentExceedsOutstanding and 52 AmountNotPositive (`sc/advance/src/lib.rs`).
  *
- * Checked on 2026-10-16 against stellar/rs-soroban-env at fced8a124103, the last commit touching that
- * file. The Stellar Raven MCP was not available to confirm it.
+ * Any other `Error(Contract, #N)` in a repay simulation can come from the USDC Stellar Asset Contract
+ * it calls to move the money, whose numbers mean something else. Of those, only four can reach a
+ * creator during `repay`: 6 AccountMissingError, 10 BalanceError, 11 BalanceDeauthorizedError and 13
+ * TrustlineMissingError. 4 and 5 are unused by the SAC, and the rest cannot arise here. Confirmed with
+ * Stellar Raven in #64, against "Stellar Asset Contract, Contract Errors" on developers.stellar.org.
+ *
+ * 1 is both the advance contract's NotInitialized (impossible on a deployed contract) and the SAC's
+ * InternalError, so it is not read as either: it gets the generic words (review S5).
  */
-const REPAY_CODES = new Set([1, 50, 51, 52]);
+const REPAY_CODES = new Set([50, 51, 52]);
 
 function refusalCopy(code: number): FailureCopy {
   if (REPAY_CODES.has(code)) return contractFailureCopy(code);
   switch (code) {
+    case 6:
+      return {
+        title: "Your wallet is not on Stellar testnet",
+        body: "Nothing was charged. Fund the wallet with test XLM, then try again.",
+      };
     case 10:
       return {
         title: "Your wallet does not hold enough USDC",
@@ -71,7 +78,7 @@ function refusalCopy(code: number): FailureCopy {
       };
     case 11:
       return {
-        title: "The USDC in your wallet cannot move right now",
+        title: "Your USDC is on hold",
         body: "Nothing was charged. The USDC issuer has paused this wallet.",
       };
     case 13:

@@ -15,7 +15,13 @@ describe("repayFailureCopy", () => {
       body: "Nothing was charged. Add USDC to your wallet, then try again.",
     });
     expect(repayFailureCopy(new ContractError(13, "Error(Contract, #13)"), false).title).toBe("Your wallet needs to accept USDC first");
-    expect(repayFailureCopy(new ContractError(11, "Error(Contract, #11)"), false).title).toBe("The USDC in your wallet cannot move right now");
+    expect(repayFailureCopy(new ContractError(11, "Error(Contract, #11)"), false).title).toBe("Your USDC is on hold");
+    expect(repayFailureCopy(new ContractError(6, "Error(Contract, #6)"), false)).toEqual({
+      title: "Your wallet is not on Stellar testnet",
+      body: "Nothing was charged. Fund the wallet with test XLM, then try again.",
+    });
+    // 1 is the SAC's InternalError as much as the advance contract's NotInitialized: neither is said.
+    expect(repayFailureCopy(new ContractError(1, "Error(Contract, #1)"), false).title).toBe("The repayment did not go through");
     expect(repayFailureCopy(new ContractError(12, "Error(Contract, #12)"), false).title).toBe("The repayment did not go through");
     expect(repayFailureCopy(new ContractError(52, "Error(Contract, #52)"), false).title).toBe("Enter an amount above zero");
   });
