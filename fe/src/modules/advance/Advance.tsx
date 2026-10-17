@@ -364,6 +364,8 @@ export function Advance() {
   // ---- 2b Review offer ----
   if (flow.at === "offer") {
     const period = formatWindow(flow.req.windowStart, flow.req.windowEnd);
+    // With the figure, so a quote under 1 USDC reads as "too small" with the creator's own number.
+    const offerFailure = offer.isError ? proveFailure(offer.error, flow.req.revenueUsd) : null;
     return (
       <AdvanceScreen title="Your offer" step={1} focusKey={focusKey}>
         {offer.data !== undefined ? (
@@ -376,14 +378,14 @@ export function Advance() {
             onAccept={() => accept(flow.req)}
             onNotNow={toStart}
           />
-        ) : offer.isError ? (
+        ) : offerFailure ? (
           <Centered>
             <FailurePanel
-              failure={proveFailure(offer.error)}
+              failure={offerFailure}
               walletName={wallet}
               beforeOffer
               allowing={allowing}
-              onAction={(action) => onFailureAction(action, proveFailure(offer.error), flow.req, "prove")}
+              onAction={(action) => onFailureAction(action, offerFailure, flow.req, "prove")}
             />
           </Centered>
         ) : (
