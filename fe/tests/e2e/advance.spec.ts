@@ -18,6 +18,8 @@ async function connect(page: Page, chain: Chain, mock: Record<string, string> = 
   await page.goto("/start");
   await page.getByRole("button", { name: "Get started" }).click();
   await page.getByRole("button", { name: "Connect wallet" }).click();
+  // The picker opens in its dialog; the test wallet is its first row.
+  await page.getByRole("dialog", { name: "Connect wallet" }).getByRole("button").first().click();
   await expect(page).toHaveURL(/\/advance$/);
   await page.evaluate((m) => {
     for (const [k, v] of Object.entries(m)) window.localStorage.setItem(k, v);

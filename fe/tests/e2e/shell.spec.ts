@@ -9,6 +9,8 @@ test("the tabs move between Advance, Repayment and History and mark the current 
   await page.goto("/start");
   await page.getByRole("button", { name: "Get started" }).click();
   await page.getByRole("button", { name: "Connect wallet" }).click();
+  // The picker opens in its dialog; the test wallet is its first row.
+  await page.getByRole("dialog", { name: "Connect wallet" }).getByRole("button").first().click();
   await expect(page).toHaveURL(/\/advance$/);
 
   const nav = page.getByRole("navigation", { name: "Main" });
