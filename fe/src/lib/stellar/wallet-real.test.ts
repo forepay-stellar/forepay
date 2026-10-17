@@ -16,6 +16,17 @@ const kit = vi.hoisted(() => ({
 const picks = vi.hoisted(() => ({ listeners: [] as ((p: object) => void)[] }));
 const closes = vi.hoisted(() => ({ count: 0 }));
 const answers = vi.hoisted(() => ({ listeners: [] as ((a: unknown) => void)[] }));
+/** Each module's pending `getAddress`, so a spec decides when, and with what, a wallet answers. */
+const asks = vi.hoisted(() => {
+  type Ask = { resolve: (v: { address: string }) => void; reject: (e: unknown) => void };
+  const pending: Record<string, Ask[]> = {};
+  return {
+    pending,
+    ask(id: string) {
+      return new Promise<{ address: string }>((resolve, reject) => (pending[id] ??= []).push({ resolve, reject }));
+    },
+  };
+});
 const available = vi.hoisted(() => ({
   freighter: (): Promise<boolean> => Promise.resolve(false),
   rabet: (): Promise<boolean> => Promise.resolve(false),
@@ -46,6 +57,8 @@ vi.mock("@creit.tech/stellar-wallets-kit/modules/freighter", () => ({
   FREIGHTER_ID: "freighter",
   FreighterModule: class {
     productId = "freighter";
+    productName = "Freighter";
+    getAddress = () => asks.ask("freighter");
     isAvailable = () => available.freighter();
   },
 }));
@@ -53,12 +66,16 @@ vi.mock("@creit.tech/stellar-wallets-kit/modules/rabet", () => ({
   RABET_ID: "rabet",
   RabetModule: class {
     productId = "rabet";
+    productName = "Rabet";
+    getAddress = () => asks.ask("rabet");
     isAvailable = () => available.rabet();
   },
 }));
 vi.mock("@creit.tech/stellar-wallets-kit/modules/xbull", () => ({
   xBullModule: class {
     productId = "xbull";
+    productName = "xBull";
+    getAddress = () => asks.ask("xbull");
   },
 }));
 vi.mock("@creit.tech/stellar-wallets-kit/modules/wallet-connect", () => ({
@@ -81,6 +98,7 @@ beforeEach(() => {
   picks.listeners = [];
   closes.count = 0;
   answers.listeners = [];
+  for (const id of Object.keys(asks.pending)) delete asks.pending[id];
   available.freighter = () => Promise.resolve(false);
   available.rabet = () => Promise.resolve(false);
   window.localStorage.clear();
@@ -120,14 +138,28 @@ describe("hasWallet", () => {
 });
 
 describe("connect", () => {
-  /** A press on a picker row, as the kit makes it: it selects the wallet, then tells its listeners. */
-  function press(id: string, name: string, icon?: string) {
-    kit.selectedModule = { productId: id, productName: name };
-    for (const l of picks.listeners) l({ id, name, icon });
+  type Module = { productId: string; productName: string; getAddress: () => Promise<{ address: string }> };
+  const modules = () => (kit.init.mock.calls.at(-1)?.[0] as { modules: Module[] }).modules;
+  /**
+   * A press on a picker row, as the kit makes it: select the wallet, tell its listeners, ask the wallet
+   * for its address, and announce the answer on the shared answer event when it comes.
+   */
+  function press(id: string, icon?: string) {
+    const wallet = modules().find((m) => m.productId === id)!;
+    kit.selectedModule = wallet;
+    for (const l of picks.listeners) l({ id, name: wallet.productName, icon });
+    void wallet.getAddress().then(
+      ({ address }) => answer(address),
+      (e) => answer(e),
+    );
   }
-  /** The wallet's answer on the kit's shared answer event. */
   function answer(a: unknown) {
     for (const l of answers.listeners) l(a);
+  }
+  /** The wallet's popup answers the oldest open request. */
+  async function approve(id: string, address: string) {
+    asks.pending[id].shift()!.resolve({ address });
+    await tick();
   }
   const tick = () => new Promise((r) => setTimeout(r, 0));
 
@@ -139,9 +171,9 @@ describe("connect", () => {
     await tick();
     expect(named).toEqual([]);
     // The selected wallet picked again still counts as a pick.
-    press("freighter", "Freighter", "data:freighter");
-    press("xbull", "xBull", "data:xbull");
-    answer("GABC");
+    press("freighter", "data:freighter");
+    press("xbull", "data:xbull");
+    await approve("xbull", "GABC");
     expect(await session).toEqual({ address: "GABC", name: "xBull", id: "xbull" });
     expect(named).toEqual([
       { name: "Freighter", icon: "data:freighter" },
@@ -158,27 +190,60 @@ describe("connect", () => {
     const { connect } = await load();
     const session = connect({ mountPicker: async () => document.createElement("div") });
     await tick();
-    press("rabet", "Rabet");
-    answer("GRABET");
+    press("rabet");
+    await approve("rabet", "GRABET");
     expect(await session).toMatchObject({ address: "GRABET", name: "Rabet" });
     // The kit is told to take down its list.
     expect(closes.count).toBe(1);
   });
 
-  it("ignores a late answer from a wallet other than the one picked", async () => {
+  it("does not connect a wallet whose popup answers after its attempt was cancelled", async () => {
+    kit.authModal.mockImplementation(() => new Promise(() => {}));
+    const { connect, cancelConnect } = await load();
+    // Press Rabet, then Cancel while its popup is still open.
+    const first = connect();
+    await tick();
+    press("rabet");
+    cancelConnect();
+    await expect(first).rejects.toMatchObject({ code: -1 });
+    // Reopen and press Freighter. Then the old Rabet popup approves.
+    const second = connect();
+    await tick();
+    press("freighter");
+    await approve("rabet", "GRABET");
+    await approve("freighter", "GFREIGHTER");
+    expect(await second).toMatchObject({ address: "GFREIGHTER", name: "Freighter", id: "freighter" });
+  });
+
+  it("ignores an earlier request from the same wallet, pressed again", async () => {
     kit.authModal.mockImplementation(() => new Promise(() => {}));
     const { connect } = await load();
     const session = connect();
     await tick();
-    // A popup from a cancelled attempt approves before anything is picked here: not ours.
-    answer("GSTALE");
-    press("xbull", "xBull");
-    // ...or after xBull was picked, while Freighter is still the module that answered: not ours either.
-    kit.selectedModule = { productId: "freighter", productName: "Freighter" };
-    answer("GFREIGHTER");
-    kit.selectedModule = { productId: "xbull", productName: "xBull" };
-    answer("GXBULL");
-    expect(await session).toMatchObject({ address: "GXBULL", name: "xBull", id: "xbull" });
+    press("freighter");
+    press("freighter");
+    // The first popup answers late with another account: only the latest press counts.
+    await approve("freighter", "GOLD");
+    await approve("freighter", "GNEW");
+    expect(await session).toMatchObject({ address: "GNEW" });
+  });
+
+  it("goes back quietly when the kit finishes on an answer that is not this picker's", async () => {
+    // The kit hears a stale popup's answer, resolves its own picker and removes its list. Waiting on
+    // would leave an empty dialog with no way out on a phone.
+    let finishKit: (v: { address: string }) => void = () => {};
+    kit.authModal.mockImplementation(() => new Promise((resolve) => (finishKit = resolve)));
+    const { connect, cancelConnect } = await load();
+    const first = connect();
+    await tick();
+    press("rabet");
+    cancelConnect();
+    await expect(first).rejects.toMatchObject({ code: -1 });
+    const second = connect();
+    await tick();
+    await approve("rabet", "GRABET");
+    finishKit({ address: "GRABET" });
+    await expect(second).rejects.toMatchObject({ name: "WalletError", code: -1 });
   });
 
   it("passes on a wallet's refusal after a pick", async () => {
@@ -186,8 +251,8 @@ describe("connect", () => {
     const { connect } = await load();
     const session = connect();
     await tick();
-    press("freighter", "Freighter");
-    answer({ code: -4, message: "The user rejected this request." });
+    press("freighter");
+    asks.pending.freighter.shift()!.reject({ code: -4, message: "The user rejected this request." });
     await expect(session).rejects.toMatchObject({ name: "WalletError", code: -4 });
   });
 
@@ -206,8 +271,8 @@ describe("connect", () => {
     const session = connect({ mountPicker: async () => container });
     await tick();
     expect(kit.authModal).toHaveBeenCalledWith({ container });
-    press("freighter", "Freighter");
-    answer("GABC");
+    press("freighter");
+    await approve("freighter", "GABC");
     await session;
   });
 
@@ -216,8 +281,8 @@ describe("connect", () => {
     const session = (await load()).connect();
     await tick();
     expect(kit.authModal).toHaveBeenCalledWith(undefined);
-    press("freighter", "Freighter");
-    answer("GABC");
+    press("freighter");
+    await approve("freighter", "GABC");
     await session;
   });
 

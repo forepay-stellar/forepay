@@ -4,6 +4,7 @@ import {
   addressUpdatedEvent,
   closeEvent,
   moduleSelectedEvent,
+  type ModuleInterface,
 } from "@creit.tech/stellar-wallets-kit";
 import { FREIGHTER_ID, FreighterModule } from "@creit.tech/stellar-wallets-kit/modules/freighter";
 import { RABET_ID, RabetModule } from "@creit.tech/stellar-wallets-kit/modules/rabet";
@@ -45,6 +46,28 @@ type WcProvider = Awaited<ReturnType<typeof UniversalProvider.init>>;
 /** Rejects the `connect()` in progress as closed, set while one is. */
 let cancelPending: (() => void) | null = null;
 
+/**
+ * Which press in the picker the kit's last answer belongs to. The kit's answer event carries only an
+ * address or an error, not the wallet or the request it came from, and a wallet popup left open from a
+ * cancelled attempt can still answer later. Every module's `getAddress` is wrapped (`tagAnswers`) to
+ * note, just before the kit announces the answer, which wallet and which press asked.
+ */
+let pressCount = 0;
+let lastAnswer: { productId: string; press: number } | null = null;
+
+function tagAnswers<M extends { productId: string; getAddress: ModuleInterface["getAddress"] }>(module: M): M {
+  const getAddress = module.getAddress.bind(module);
+  module.getAddress = async (params) => {
+    const press = pressCount;
+    try {
+      return await getAddress(params);
+    } finally {
+      lastAnswer = { productId: module.productId, press };
+    }
+  };
+  return module;
+}
+
 let mobileWc: { provider: WcProvider; modal: AppKit; address?: string } | null = null;
 
 const METADATA = {
@@ -64,12 +87,12 @@ function walletConnectProjectId() {
 
 function walletModules() {
   // The three browser wallets the 1b screen names.
-  const extensions = [new FreighterModule(), new xBullModule(), new RabetModule()];
+  const extensions = [new FreighterModule(), new xBullModule(), new RabetModule()].map(tagAnswers);
   const projectId = walletConnectProjectId();
   if (!projectId) return extensions;
   return [
     ...extensions,
-    new ForepayWalletConnectModule({
+    tagAnswers(new ForepayWalletConnectModule({
       projectId,
       allowedChains: [WalletConnectTargetChain.TESTNET],
       metadata: {
@@ -77,7 +100,7 @@ function walletModules() {
         url: window.location.origin,
         icons: [`${window.location.origin}/icon.svg`],
       },
-    }),
+    })),
   ];
 }
 
@@ -268,10 +291,12 @@ export async function connect({
     // in that gap would go unheard and leave the page waiting. So this call listens itself, from before
     // the list appears, and takes the kit's own promise only for its close button.
     //
-    // The answer event is shared by every picker ever opened, so an answer counts only after a wallet
-    // was pressed in this one, and only from that wallet: a popup left open from an attempt that was
-    // cancelled must not connect a different wallet than the one the creator just chose.
+    // The answer event is shared by every picker ever opened, so an answer counts only if it answers
+    // the latest press in this picker, from the wallet pressed (`tagAnswers`): a popup left open from a
+    // cancelled attempt must not connect, least of all under the name of the wallet just chosen.
     let pickedId: string | null = null;
+    let myPress = -1;
+    let accepted = false;
     // moduleSelectedEvent fires each time the picker's row is pressed, the wallet already selected
     // included, and never on subscribe. kit.on(WALLET_SELECTED) is no good here: it is a signals effect
     // that runs once on subscribe with last time's wallet, and not at all when the same wallet is
@@ -279,12 +304,15 @@ export async function connect({
     const unsubscribePick = moduleSelectedEvent.subscribe((picked) => {
       if (!("name" in picked)) return;
       pickedId = picked.id;
+      // Runs before the kit asks the wallet, so the request is tagged with this press.
+      myPress = ++pressCount;
       onWalletSelected?.({ name: picked.name, icon: picked.icon });
     });
     let unsubscribeAnswer = () => {};
     const answered = new Promise<string>((resolve, reject) => {
       unsubscribeAnswer = addressUpdatedEvent.subscribe((answer) => {
-        if (pickedId === null || kit.selectedModule.productId !== pickedId) return;
+        if (lastAnswer?.press !== myPress || lastAnswer.productId !== pickedId) return;
+        accepted = true;
         if (typeof answer === "string") resolve(answer);
         else reject(answer);
       });
@@ -292,10 +320,14 @@ export async function connect({
     const cancelled = new Promise<never>((_, reject) => {
       cancelPending = () => reject({ code: USER_CLOSED_MODAL, message: "The user closed the modal." });
     });
-    // Only the kit's close button is taken from its own promise; its answers are read above.
+    // Answers are read above. From the kit's own promise only two things count: its close button, and
+    // the kit finishing on an answer that was not ours (a stale popup). Then it has already removed its
+    // list, and waiting on would leave an empty dialog, so this ends as closed and the page goes back.
+    const closed = () => Promise.reject({ code: USER_CLOSED_MODAL, message: "The user closed the modal." });
     const closedByKit = kit.authModal(container ? { container } : undefined).then(
-      () => new Promise<never>(() => {}),
-      (e: unknown) => (toWalletError(e).code === USER_CLOSED_MODAL ? Promise.reject(e) : new Promise<never>(() => {})),
+      () => (accepted ? new Promise<never>(() => {}) : closed()),
+      (e: unknown) =>
+        toWalletError(e).code === USER_CLOSED_MODAL || !accepted ? closed() : new Promise<never>(() => {}),
     );
     try {
       const address = await Promise.race([answered, cancelled, closedByKit]);
