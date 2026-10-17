@@ -28,9 +28,10 @@ export class SubmitError extends Error {
 export type Landed = { hash: string; result: rpc.Api.GetSuccessfulTransactionResponse };
 
 /**
- * Send what the wallet signed and wait for the ledger. `onSent` fires with the hash once the network
- * has taken it, before the wait, so a caller can remember a transaction that is out (#20 keeps it
- * across leaving the page). `attempts` is the wait, about one a second.
+ * Send what the wallet signed and wait for the ledger. `onSent` fires with the hash just before the
+ * send, so a caller can remember a transaction that may be out (#20 keeps it across leaving the page):
+ * a send that gets no answer may still have reached the network. A refused send is reported as
+ * `refused`, so the caller knows to forget it again. `attempts` is the wait, about one a second.
  */
 export async function submitSigned(
   server: rpc.Server,
@@ -44,6 +45,8 @@ export async function submitSigned(
   } catch {
     throw new SubmitError("The wallet did not return a transaction", "refused");
   }
+  // The hash is the signed transaction's own, known before it leaves.
+  onSent?.(signed.hash().toString("hex"));
   let sent: rpc.Api.SendTransactionResponse;
   try {
     sent = await server.sendTransaction(signed);
@@ -53,7 +56,6 @@ export async function submitSigned(
   if (sent.status === "ERROR" || sent.status === "TRY_AGAIN_LATER") {
     throw new SubmitError(`The network did not accept the transaction (${sent.status})`, "refused");
   }
-  onSent?.(sent.hash);
   return waitFor(server, sent.hash, attempts);
 }
 

@@ -51,8 +51,12 @@ export type AdvanceChain = {
   holdLedger?: boolean;
   /** Answer this many polls for the sent `request_advance` with a server error, as a node that is down. */
   dropPolls?: number;
+  /** Take the `request_advance` but lose the answer to the send itself, as a connection that drops. */
+  loseSendAnswer?: boolean;
   /** Set by the stub: how many `request_advance` transactions were sent. */
   sent?: number;
+  /** Set by the stub: the hash of the last `request_advance` sent, as the network computes it. */
+  hash?: string;
 };
 
 function accountEntry(accountId: xdr.AccountId) {
@@ -100,7 +104,6 @@ function successResult() {
 const CAP_STROOPS = 1_000_000_000n;
 const MIN_STROOPS = 10_000_000n;
 const OPENED_AT = 1_791_763_200n; // 12 Oct 2026, the date on the 2d frame
-export const ADVANCE_TX_HASH = "ad".repeat(32);
 const NULLIFIER = Buffer.alloc(32, 7);
 
 /** What the real contract's sizing gives (sc/advance/src/sizing.rs), so the stub answers like it. */
@@ -244,13 +247,19 @@ export async function mockRpc(page: Page, chain: Chain) {
         if (call?.fn === "request_advance") {
           const adv = (chain.advance ??= {});
           adv.sent = (adv.sent ?? 0) + 1;
+          // The network answers with the transaction's own hash, which the app also knows before sending.
+          adv.hash = TransactionBuilder.fromXDR(envelope, Networks.TESTNET).hash().toString("hex");
           if (adv.send === "refused") {
-            return reply({ status: "ERROR", hash: ADVANCE_TX_HASH, latestLedger: 100, latestLedgerCloseTime: "0" });
+            return reply({ status: "ERROR", hash: adv.hash, latestLedger: 100, latestLedgerCloseTime: "0" });
           }
           if (adv.send !== "failed" && adv.send !== "pending") {
             sentAdvance = { revenueUsd: scValToNative(call.args[1]) as string, source: call.source };
           }
-          return reply({ status: "PENDING", hash: ADVANCE_TX_HASH, latestLedger: 100, latestLedgerCloseTime: "0" });
+          if (adv.loseSendAnswer) {
+            adv.loseSendAnswer = false;
+            return route.fulfill({ status: 503, body: "unavailable" });
+          }
+          return reply({ status: "PENDING", hash: adv.hash, latestLedger: 100, latestLedgerCloseTime: "0" });
         }
         if (chain.send === "refused") {
           return reply({ status: "ERROR", hash: "e2e".padEnd(64, "0"), latestLedger: 100, latestLedgerCloseTime: "0" });
@@ -259,7 +268,7 @@ export async function mockRpc(page: Page, chain: Chain) {
         return reply({ status: "PENDING", hash: "e2e".padEnd(64, "0"), latestLedger: 100, latestLedgerCloseTime: "0" });
       }
       case "getTransaction": {
-        if (body.params.hash === ADVANCE_TX_HASH) {
+        if (chain.advance?.hash && body.params.hash === chain.advance.hash) {
           const adv = chain.advance ?? {};
           if (adv.dropPolls) {
             adv.dropPolls -= 1;

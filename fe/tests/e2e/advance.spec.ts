@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { ADVANCE_TX_HASH, mockRpc, type Chain } from "./rpc";
+import { mockRpc, type Chain } from "./rpc";
 
 // #20: prove revenue, review the offer, sign, receive, and every state on the "Prove and accept /
 // States and interactions" board. Proving runs on the lib/reclaim mock (#17 is not built). Everything
@@ -87,7 +87,7 @@ test("prove, see the offer with its derivation, accept, and receive the USDC", a
   await expect(page.getByText("90.00 USDC", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "View receipt" })).toHaveAttribute(
     "href",
-    `https://stellar.expert/explorer/testnet/tx/${ADVANCE_TX_HASH}`,
+    `https://stellar.expert/explorer/testnet/tx/${chain.advance?.hash}`,
   );
   expect(chain.advance?.sent).toBe(1);
 
@@ -111,7 +111,7 @@ test("leaving while the USDC is sent still shows its receipt on coming back", as
   await expect(heading(page, "Advance received")).toBeVisible();
   await expect(page.getByRole("link", { name: "View receipt" })).toHaveAttribute(
     "href",
-    `https://stellar.expert/explorer/testnet/tx/${ADVANCE_TX_HASH}`,
+    `https://stellar.expert/explorer/testnet/tx/${chain.advance?.hash}`,
   );
   expect(chain.advance?.sent).toBe(1);
 });
@@ -167,6 +167,19 @@ test("Stellar not answering when coming back to a sent advance keeps it, and Try
   // The node is back and the advance has landed: Try again waits on the same one, sends nothing new.
   chain.advance!.dropPolls = 0;
   chain.advance!.holdLedger = false;
+  await page.getByRole("button", { name: "Try again" }).click();
+  await expect(heading(page, "Advance received")).toBeVisible();
+  expect(chain.advance?.sent).toBe(1);
+});
+
+test("a send whose answer is lost is remembered, and Try again finds it landed", async ({ page }) => {
+  const chain: Chain = { account: true, trustline: true, advance: { loseSendAnswer: true } };
+  await connect(page, chain);
+  await proveToOffer(page);
+  await page.getByRole("button", { name: "Accept 90.00 USDC" }).click();
+  // It may be out, so it is not "took too long" and not "nothing was charged".
+  await expect(heading(page, "We could not reach Stellar")).toBeVisible();
+  await expect(page.getByText("Your advance was already sent.", { exact: false })).toBeVisible();
   await page.getByRole("button", { name: "Try again" }).click();
   await expect(heading(page, "Advance received")).toBeVisible();
   expect(chain.advance?.sent).toBe(1);
