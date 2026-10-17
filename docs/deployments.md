@@ -706,3 +706,67 @@ and the Chapter Lead run (#29) can show a realistic advance instead of a 5 USDC 
 
 No trustline was needed on the contract itself: a `C…` address holds a SAC balance in contract
 storage, and trustlines are a classic-account concept. Only the five `G…` senders needed one.
+
+---
+
+## #63 — the upgrade executed, and the storage rule held (2026-10-17)
+
+The timelock ran. `execute_upgrade` on both contracts, ~8 hours after `executable_at`:
+
+| Contract | Transaction |
+| --- | --- |
+| production `CCQFL2Q6…I2HS` | [`443a902a9db5…`](https://stellar.expert/explorer/testnet/tx/443a902a9db5b10c67a001e385690fe62c2efbe7c60e5b48e6d05ab309b7ef69) |
+| dev `CD25Q4TD…HQN4` | [`4db68f04c267…`](https://stellar.expert/explorer/testnet/tx/4db68f04c2670af7089fd962721c08d45b0361fbf9701a420be1e53a23401b2b) |
+
+`sizing()` now answers on both:
+
+```json
+{"rate_num":"25","rate_den":"100","cap_stroops":"1000000000",
+ "min_stroops":"10000000","stroops_per_cent":"100000"}
+```
+
+`pending_upgrade()` is back to `null` on both — the proposal is consumed, not left armed.
+
+### Still verified, against the new commit
+
+StellarExpert's API for the production contract, read after the upgrade:
+
+```json
+{"wasm":"e5626890659fa2ad44f02f3752a37235768ee78e242d636c820d2b1581725dd6",
+ "validation":{"status":"verified",
+               "repository":"https://github.com/forepay-stellar/forepay",
+               "commit":"2b545287d1285b202cb7ec8cf5e58061b6adb0b2",
+               "path":"sc/advance","package":"forepay-advance"},
+ "versions":2}
+```
+
+`2b54528` is the merge commit of #65. So the chain of custody holds across an upgrade: the deployed
+wasm is the release artifact, the release artifact is attested to a commit, and that commit is in
+this repository. `versions: 2` is StellarExpert counting the upgrade.
+
+This is the part that would have broken silently if the wasm had been built locally instead of
+pulled from the release — same source, different linker ordering, different hash, and the contract
+would read as unverified with no error anywhere to explain it.
+
+### The storage rule, tested rather than asserted
+
+`lib.rs` opens with "storage is append-only forever". An upgrade is the only thing that can disprove
+it, so the dev contract's pre-upgrade state was read back afterwards:
+
+| Read | Before | After |
+| --- | --- | --- |
+| `claim_template()` | four literal parts | unchanged |
+| `is_spent(d0cd01df…c839)` | `true` | `true` |
+| `advance(d0cd01df…c839)` | principal 10000000, repaid 10000000, window 2026-07-01 → 2026-09-30 | identical |
+| `liquidity()` | 20000000 | 20000000 |
+| `admin()` | `GA2CD6PM…WWH2` | unchanged |
+| production `liquidity()` | 1050000000 | 1050000000 |
+
+A spent nullifier that came back `false` after an upgrade would mean a creator could draw a second
+advance against revenue they had already borrowed against. It did not, and now that has been checked
+once on a live ledger rather than reasoned about.
+
+### What is still not true
+
+The production contract continues to answer `10 TemplateNotSet`. `sizing()` being live changes what
+the front end can read; it does not unblock the creator flow, which is #5 and #61.
