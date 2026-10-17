@@ -96,3 +96,14 @@ body {
     animation: none;
   }
 }
+
+/* FAQ: an answer fades in as its question opens. */
+@keyframes faq-answer {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+.faq-answer {
+  animation: faq-answer 220ms ease-out both;
+}
