@@ -1,5 +1,16 @@
 import type { Page, Route } from "@playwright/test";
-import { Asset, xdr } from "@stellar/stellar-sdk";
+import {
+  Address,
+  Asset,
+  FeeBumpTransaction,
+  Networks,
+  SorobanDataBuilder,
+  TransactionBuilder,
+  nativeToScVal,
+  scValToNative,
+  xdr,
+  type Operation,
+} from "@stellar/stellar-sdk";
 
 /**
  * A stand-in for Stellar RPC. The app under test points at https://rpc.e2e.invalid (see
@@ -17,6 +28,35 @@ export type Chain = {
   down?: boolean;
   /** How a submitted changeTrust ends: lands (default), refused before the ledger, or failed on it. */
   send?: "ok" | "refused" | "failed";
+  /** How the advance contract answers (#20). Leave it out and it accepts every proof. */
+  advance?: AdvanceChain;
+};
+
+/** The advance contract, as far as 02 Prove and accept can see it. */
+export type AdvanceChain = {
+  /**
+   * A code from docs/interface.md §7 that `request_advance` refuses with, from its `from`-th simulation
+   * on. The stub cannot tell a check from an accept (both are the same simulation), so it counts them:
+   * 1 is the check before the offer, 2 is the next one, the accept in a plain run, or the re-check
+   * after Allow USDC or Try again. `from: 2` is a proof that expired while the offer was open.
+   */
+  refuse?: { code: number; from: number };
+  /** How a sent `request_advance` ends: lands (default), refused before the ledger, failed on it, or never confirmed. */
+  send?: "ok" | "refused" | "failed" | "pending";
+  /** Refuse every `request_advance` simulation with a host error that carries no contract code. */
+  simulationFails?: boolean;
+  /** Hold every `request_advance` simulation after the first this long, so 2c can be seen. */
+  acceptDelayMs?: number;
+  /** While true, a sent `request_advance` is not on the ledger yet; set it false to let it land. */
+  holdLedger?: boolean;
+  /** Answer this many polls for the sent `request_advance` with a server error, as a node that is down. */
+  dropPolls?: number;
+  /** Take the `request_advance` but lose the answer to the send itself, as a connection that drops. */
+  loseSendAnswer?: boolean;
+  /** Set by the stub: how many `request_advance` transactions were sent. */
+  sent?: number;
+  /** Set by the stub: the hash of the last `request_advance` sent, as the network computes it. */
+  hash?: string;
 };
 
 function accountEntry(accountId: xdr.AccountId) {
@@ -61,7 +101,85 @@ function successResult() {
   }).toXDR("base64");
 }
 
+const CAP_STROOPS = 1_000_000_000n;
+const MIN_STROOPS = 10_000_000n;
+const OPENED_AT = 1_791_763_200n; // 12 Oct 2026, the date on the 2d frame
+const NULLIFIER = Buffer.alloc(32, 7);
+
+/** What the real contract's sizing gives (sc/advance/src/sizing.rs), so the stub answers like it. */
+function size(revenueUsd: string): bigint {
+  const [whole, frac = ""] = revenueUsd.split(".");
+  const cents = BigInt(whole) * 100n + BigInt(frac.padEnd(2, "0") || "0");
+  const stroops = (cents * 100_000n * 25n) / 100n;
+  return stroops > CAP_STROOPS ? CAP_STROOPS : stroops;
+}
+
+function i128(v: bigint) {
+  return nativeToScVal(v, { type: "i128" });
+}
+
+/** The stored `Advance` struct: an ScMap with its fields sorted, as a Soroban contracttype is. */
+function storedAdvance(borrower: string, revenueUsd: string) {
+  const principal = size(revenueUsd);
+  const field = (k: string, v: xdr.ScVal) => new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol(k), val: v });
+  return xdr.ScVal.scvMap([
+    field("borrower", new Address(borrower).toScVal()),
+    field("opened_at", nativeToScVal(OPENED_AT, { type: "u64" })),
+    field("principal", i128(principal)),
+    field("pub_id", nativeToScVal("pub-4021783466891204", { type: "string" })),
+    field("repaid", i128(0n)),
+    field("revenue_cents", i128(principal * 4n / 100_000n)),
+    field("window_end", nativeToScVal("2026-09-30", { type: "string" })),
+    field("window_start", nativeToScVal("2026-07-01", { type: "string" })),
+  ]);
+}
+
+/** The contract call inside a transaction, or null for a classic one (changeTrust). */
+function contractCall(envelope: string): { fn: string; args: xdr.ScVal[]; source: string } | null {
+  const tx = TransactionBuilder.fromXDR(envelope, Networks.TESTNET);
+  if (tx instanceof FeeBumpTransaction) return null;
+  const op = tx.operations[0] as Operation.InvokeHostFunction;
+  if (op.type !== "invokeHostFunction") return null;
+  const call = op.func.invokeContract();
+  return { fn: call.functionName().toString(), args: call.args(), source: tx.source };
+}
+
+function contractError(code: number) {
+  return { error: `HostError: Error(Contract, #${code})\n\nEvent log (newest first)`, events: [], latestLedger: 100 };
+}
+
+function simulated(retval: xdr.ScVal) {
+  return {
+    transactionData: new SorobanDataBuilder().build().toXDR("base64"),
+    minResourceFee: "100",
+    results: [{ auth: [], xdr: retval.toXDR("base64") }],
+    events: [],
+    latestLedger: 100,
+  };
+}
+
+/** A soroban meta carrying the returned value: what the SDK reads `returnValue` from. */
+function metaWithReturn(retval: xdr.ScVal) {
+  return new xdr.TransactionMeta(
+    3,
+    new xdr.TransactionMetaV3({
+      ext: new xdr.ExtensionPoint(0),
+      txChangesBefore: [],
+      operations: [],
+      txChangesAfter: [],
+      sorobanMeta: new xdr.SorobanTransactionMeta({
+        ext: new xdr.SorobanTransactionMetaExt(0),
+        events: [],
+        returnValue: retval,
+        diagnosticEvents: [],
+      }),
+    }),
+  ).toXDR("base64");
+}
+
 export async function mockRpc(page: Page, chain: Chain) {
+  let checks = 0;
+  let sentAdvance: { revenueUsd: string; source: string } | null = null;
   let envelope = "";
   // Friendbot funds the account, as the real one does.
   await page.route("https://friendbot.stellar.org/**", (route) => {
@@ -91,14 +209,95 @@ export async function mockRpc(page: Page, chain: Chain) {
         }
         return reply({ entries, latestLedger: 100 });
       }
-      case "sendTransaction":
+      case "simulateTransaction": {
+        const call = contractCall(body.params.transaction as string);
+        const adv = chain.advance ?? {};
+        if (!call) return route.fulfill({ status: 400, body: "not a contract call" });
+        switch (call.fn) {
+          case "quote": {
+            const stroops = size(scValToNative(call.args[0]) as string);
+            return reply(stroops < MIN_STROOPS ? contractError(31) : simulated(i128(stroops)));
+          }
+          case "request_advance": {
+            checks += 1;
+            const revenueUsd = scValToNative(call.args[1]) as string;
+            const stroops = size(revenueUsd);
+            if (checks > 1 && adv.acceptDelayMs) await new Promise((r) => setTimeout(r, adv.acceptDelayMs));
+            if (stroops < MIN_STROOPS) return reply(contractError(31));
+            if (adv.simulationFails) {
+              return reply({ error: "HostError: Error(Auth, InvalidAction)", events: [], latestLedger: 100 });
+            }
+            if (adv.refuse && checks >= adv.refuse.from) return reply(contractError(adv.refuse.code));
+            if (!chain.trustline) return reply(contractError(41));
+            return reply(simulated(i128(stroops)));
+          }
+          case "nullifier_for":
+            return reply(simulated(xdr.ScVal.scvBytes(NULLIFIER)));
+          case "advance":
+            return reply(
+              simulated(sentAdvance ? storedAdvance(sentAdvance.source, sentAdvance.revenueUsd) : xdr.ScVal.scvVoid()),
+            );
+          default:
+            return route.fulfill({ status: 400, body: `unexpected contract call ${call.fn}` });
+        }
+      }
+      case "sendTransaction": {
         envelope = body.params.transaction as string;
+        const call = contractCall(envelope);
+        if (call?.fn === "request_advance") {
+          const adv = (chain.advance ??= {});
+          adv.sent = (adv.sent ?? 0) + 1;
+          // The network answers with the transaction's own hash, which the app also knows before sending.
+          adv.hash = TransactionBuilder.fromXDR(envelope, Networks.TESTNET).hash().toString("hex");
+          if (adv.send === "refused") {
+            return reply({ status: "ERROR", hash: adv.hash, latestLedger: 100, latestLedgerCloseTime: "0" });
+          }
+          if (adv.send !== "failed" && adv.send !== "pending") {
+            sentAdvance = { revenueUsd: scValToNative(call.args[1]) as string, source: call.source };
+          }
+          if (adv.loseSendAnswer) {
+            adv.loseSendAnswer = false;
+            return route.fulfill({ status: 503, body: "unavailable" });
+          }
+          return reply({ status: "PENDING", hash: adv.hash, latestLedger: 100, latestLedgerCloseTime: "0" });
+        }
         if (chain.send === "refused") {
           return reply({ status: "ERROR", hash: "e2e".padEnd(64, "0"), latestLedger: 100, latestLedgerCloseTime: "0" });
         }
         if (chain.send !== "failed") chain.trustline = true;
         return reply({ status: "PENDING", hash: "e2e".padEnd(64, "0"), latestLedger: 100, latestLedgerCloseTime: "0" });
-      case "getTransaction":
+      }
+      case "getTransaction": {
+        if (chain.advance?.hash && body.params.hash === chain.advance.hash) {
+          const adv = chain.advance ?? {};
+          if (adv.dropPolls) {
+            adv.dropPolls -= 1;
+            return route.fulfill({ status: 503, body: "unavailable" });
+          }
+          if (adv.send === "pending" || adv.holdLedger) {
+            return reply({
+              status: "NOT_FOUND",
+              latestLedger: 101,
+              latestLedgerCloseTime: "0",
+              oldestLedger: 1,
+              oldestLedgerCloseTime: "0",
+            });
+          }
+          return reply({
+            status: adv.send === "failed" ? "FAILED" : "SUCCESS",
+            latestLedger: 101,
+            latestLedgerCloseTime: "0",
+            oldestLedger: 1,
+            oldestLedgerCloseTime: "0",
+            ledger: 101,
+            createdAt: "0",
+            applicationOrder: 1,
+            feeBump: false,
+            envelopeXdr: envelope,
+            resultXdr: successResult(),
+            resultMetaXdr: metaWithReturn(i128(size(sentAdvance?.revenueUsd ?? "0"))),
+          });
+        }
         return reply({
           status: chain.send === "failed" ? "FAILED" : "SUCCESS",
           latestLedger: 101,
@@ -113,6 +312,7 @@ export async function mockRpc(page: Page, chain: Chain) {
           resultXdr: successResult(),
           resultMetaXdr: xdr.TransactionMeta.fromXDR(Buffer.from([0, 0, 0, 0, 0, 0, 0, 0])).toXDR("base64"),
         });
+      }
       default:
         return route.fulfill({ status: 400, body: `unexpected method ${body.method}` });
     }

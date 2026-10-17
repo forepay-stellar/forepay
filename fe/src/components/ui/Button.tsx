@@ -5,7 +5,7 @@ import { cn } from "@/lib/cn";
 
 // Button/Primary, Secondary, Outline, Ghost and Danger from "04 Base components". Primary is the near
 // black pill; orange is never the main button. Hover and pressed come from "Primary button states".
-const button = cva(
+export const button = cva(
   // The focus ring is a box-shadow ring, so it never fights the Outline variant's 1px outline.
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-pill font-medium transition-colors focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:pointer-events-none [&_svg]:shrink-0",
   {
