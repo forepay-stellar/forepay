@@ -107,3 +107,14 @@ body {
 .faq-answer {
   animation: faq-answer 220ms ease-out both;
 }
+
+/* /preview intro A: the mark's waves draw left to right. */
+@keyframes intro-wave {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+.intro-wave {
+  stroke-dasharray: 1;
+  animation: intro-wave 480ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
