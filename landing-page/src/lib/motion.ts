@@ -41,24 +41,19 @@ export function canRender3D(env: { reducedMotion: boolean; webgl: boolean }): bo
 
 let webglCache: boolean | undefined;
 
-function hasWebGL(): boolean {
+// Whether this browser can draw WebGL. Creating the first context is a synchronous GPU start-up
+// on the main thread (hundreds of ms on some machines), so call this only once the page has
+// painted, never during render or hydration. The probe context is released straight away.
+export function hasWebGL(): boolean {
   if (webglCache === undefined) {
     try {
       const canvas = document.createElement("canvas");
-      webglCache = Boolean(canvas.getContext("webgl2") ?? canvas.getContext("webgl"));
+      const gl = canvas.getContext("webgl2") ?? canvas.getContext("webgl");
+      webglCache = Boolean(gl);
+      gl?.getExtension("WEBGL_lose_context")?.loseContext();
     } catch {
       webglCache = false;
     }
   }
   return webglCache;
-}
-
-export function useCanRender3D(): boolean {
-  const reducedMotion = usePrefersReducedMotion();
-  const webgl = useSyncExternalStore(
-    () => () => {},
-    hasWebGL,
-    () => false,
-  );
-  return canRender3D({ reducedMotion, webgl });
 }

@@ -164,8 +164,10 @@ export function Canvas3D() {
   const host = useRef<HTMLDivElement>(null);
   const input = useRef<Input>({ drop: 0, px: 0, py: 0, tilt: false });
   const [visible, setVisible] = useState(true);
-  // Phones get fewer segments and a lower pixel ratio; below 2 the bevels look cut, not clay.
-  const [detail] = useState(() => (window.innerWidth < 768 ? 2 : 3));
+  // Phones get a lower pixel ratio.
+  const [phone] = useState(() => window.innerWidth < 768);
+  // Below 2 segments the bevels look cut, not clay; above it the geometry costs more than it shows.
+  const detail = 2;
 
   useEffect(() => {
     const stage = host.current?.closest<HTMLElement>("[data-hero-stage]");
@@ -221,7 +223,7 @@ export function Canvas3D() {
         orthographic
         flat
         frameloop={visible ? "always" : "never"}
-        dpr={[1, detail === 2 ? 1.5 : 2]}
+        dpr={[1, phone ? 1.5 : 2]}
         camera={{ position: [0, 0, 10], zoom: 100, near: 0.1, far: 50 }}
         gl={{ alpha: true, antialias: true, powerPreference: "low-power" }}
         onCreated={({ gl }) => {
