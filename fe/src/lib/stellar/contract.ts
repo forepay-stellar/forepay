@@ -1,8 +1,6 @@
 import {
-  Account,
   Address,
   BASE_FEE,
-  Keypair,
   Contract,
   TransactionBuilder,
   nativeToScVal,
@@ -11,6 +9,7 @@ import {
   xdr,
 } from "@stellar/stellar-sdk";
 import { NETWORK_PASSPHRASE, RPC_URL } from "./network";
+import { sourceAccount } from "./account";
 import { SubmitError, submitSigned, waitFor } from "./submit";
 
 /**
@@ -96,23 +95,8 @@ export function contractCode(message: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
-/**
- * The source account, read with `getLedgerEntries` rather than the SDK's `getAccount`. That helper
- * catches every failure, a timeout or a 503 included, and rethrows it as "Account not found", so a node
- * that did not answer would read as an account that does not exist. Here a transport failure throws as
- * itself, and only an empty answer means the account is not there.
- */
-async function sourceAccount(source: string): Promise<Account> {
-  const accountId = Keypair.fromPublicKey(source).xdrPublicKey();
-  const key = xdr.LedgerKey.account(new xdr.LedgerKeyAccount({ accountId }));
-  const { entries } = await server().getLedgerEntries(key);
-  const entry = entries[0];
-  if (!entry) throw new Error(`Account not found: ${source}`);
-  return new Account(source, entry.val.account().seqNum().toString());
-}
-
 async function build(source: string, method: string, args: xdr.ScVal[]) {
-  const account = await sourceAccount(source);
+  const account = await sourceAccount(server(), source);
   return new TransactionBuilder(account, { fee: BASE_FEE, networkPassphrase: NETWORK_PASSPHRASE })
     .addOperation(contract().call(method, ...args))
     .setTimeout(180)
@@ -248,26 +232,39 @@ export function checkAdvance(borrower: string, req: AdvanceRequest): Promise<big
 }
 
 /**
+ * The stroops a landed `request_advance` returned. One that landed without them is not shown as
+ * "0 USDC received": it is an answer we did not expect, and History has the truth.
+ */
+function disbursed(value: unknown): bigint {
+  if (typeof value !== "bigint") throw new Error("The ledger answered without the amount disbursed");
+  return value;
+}
+
+/**
  * Prove, size and disburse in one call (#20). Resolves with the stroops disbursed. `onSent` gets the
  * hash once the network has taken it, so a caller can come back to it (`awaitAdvance`).
  */
-export function requestAdvance(
+export async function requestAdvance(
   borrower: string,
   req: AdvanceRequest,
   signTransaction: (xdr: string) => Promise<string>,
   onSent?: (hash: string) => void,
 ): Promise<{ hash: string; value: bigint }> {
-  return write<bigint>(borrower, "request_advance", advanceArgs(borrower, req), signTransaction, onSent);
+  const args = advanceArgs(borrower, req);
+  const { hash, value } = await write<unknown>(borrower, "request_advance", args, signTransaction, onSent);
+  return { hash, value: disbursed(value) };
 }
 
 /** Wait again for a `request_advance` already sent: the same answer `requestAdvance` would have given. */
 export async function awaitAdvance(hash: string): Promise<{ hash: string; value: bigint }> {
+  let returned: unknown;
   try {
     const { result } = await waitFor(server(), hash, WRITE_ATTEMPTS);
-    return { hash, value: (result.returnValue ? scValToNative(result.returnValue) : 0n) as bigint };
+    returned = result.returnValue ? scValToNative(result.returnValue) : undefined;
   } catch (e) {
     throw asTransactionFailed(e);
   }
+  return { hash, value: disbursed(returned) };
 }
 
 /** Repay part or all of an advance (#21). Resolves with what is still outstanding, in stroops. */

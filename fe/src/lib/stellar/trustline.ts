@@ -1,5 +1,6 @@
 import { Asset, BASE_FEE, Keypair, Operation, TransactionBuilder, rpc, xdr } from "@stellar/stellar-sdk";
 import { NETWORK_PASSPHRASE, RPC_URL, USDC } from "./network";
+import { sourceAccount } from "./account";
 import { SubmitError, submitSigned } from "./submit";
 
 /**
@@ -74,8 +75,8 @@ export async function addUsdcTrustline(
   address: string,
   signTransaction: (xdr: string) => Promise<string>,
 ): Promise<string> {
-  const rpcServer = server();
-  const account = await rpcServer.getAccount(address);
+  const client = server();
+  const account = await sourceAccount(client, address);
   const tx = new TransactionBuilder(account, { fee: BASE_FEE, networkPassphrase: NETWORK_PASSPHRASE })
     .addOperation(Operation.changeTrust({ asset: usdcAsset() }))
     .setTimeout(180)
@@ -83,7 +84,7 @@ export async function addUsdcTrustline(
 
   const signedXdr = await signTransaction(tx.toXDR());
   try {
-    const { hash } = await submitSigned(rpcServer, signedXdr, { attempts: 30 });
+    const { hash } = await submitSigned(client, signedXdr, { attempts: 30 });
     return hash;
   } catch (e) {
     if (e instanceof SubmitError) throw new TrustlineError(e.message, e.outcome);
