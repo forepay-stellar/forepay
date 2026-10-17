@@ -8,8 +8,8 @@ import {
   scValToNative,
   xdr,
 } from "@stellar/stellar-sdk";
-import { NETWORK_PASSPHRASE, RPC_URL } from "./network";
 import { sourceAccount } from "./account";
+import { ADVANCE_CONTRACT_ID as CONTRACT_ID, NETWORK_PASSPHRASE, RPC_URL } from "./network";
 import { SubmitError, submitSigned, waitFor } from "./submit";
 
 /**
@@ -22,7 +22,6 @@ import { SubmitError, submitSigned, waitFor } from "./submit";
  * Amounts are i128 stroops on chain (7 decimals for USDC) and `bigint` here. Convert only in
  * `lib/format.ts`.
  */
-const CONTRACT_ID = process.env.NEXT_PUBLIC_ADVANCE_CONTRACT_ID ?? "";
 
 /** A refusal by the advance contract. `code` is the number in `docs/interface.md` §7. */
 export class ContractError extends Error {

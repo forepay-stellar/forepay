@@ -2,7 +2,7 @@ import { Check, CircleAlert } from "lucide-react";
 import type { ReactNode } from "react";
 import { IlloAllowUsdc } from "@/components/illustrations/AllowUsdc";
 import { OnboardingShell, StepText } from "@/components/layout/OnboardingShell";
-import { SuccessAlert } from "@/components/ui/Alert";
+import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogSlot } from "@/components/ui/Dialog";
 import { TextButton } from "@/components/ui/TextLink";
@@ -55,7 +55,7 @@ export function AllowUsdc({
         body="Stellar wallets accept a new currency only after you approve it once. It costs a tiny network fee and nothing else."
       />
       {allowed ? (
-        <SuccessAlert className="w-full" title="Your wallet can receive USDC" body="You are ready to prove your revenue." />
+        <Alert tone="success" className="w-full" title="Your wallet can receive USDC" body="You are ready to prove your revenue." />
       ) : (
         <dl className="flex w-full flex-col gap-3.5 rounded-tile bg-surface p-[22px]">
           <div className="flex items-center justify-between">
