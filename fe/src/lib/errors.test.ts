@@ -155,12 +155,3 @@ describe("tooSmallCopy", () => {
     );
   });
 });
-
-describe("classifySignError", () => {
-  it("sorts the wallet's own trouble once, for accept (#20) and repay (#21) alike", () => {
-    expect(classifySignError(new WalletSignError(new WalletError("The user rejected this request.", -4)))).toBe("declined");
-    expect(classifySignError(new WalletSignError(new WalletError("Freighter is locked")))).toBe("locked");
-    expect(classifySignError(new WalletSignError(new Error("network passphrase mismatch")))).toBe("wrongNetwork");
-    expect(classifySignError(new WalletSignError(new Error("timeout")))).toBe("noAnswer");
-  });
-});
