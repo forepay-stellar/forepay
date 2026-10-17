@@ -136,8 +136,14 @@ test("more than is left is stopped in the form, before the contract", async ({ p
   const chain = await open(page, "/repayment", frameLedger());
   await amount(page).fill("75");
   await expect(form(page)).toContainText("Only 60.00 USDC left");
-  await expect(page.getByRole("button", { name: "Repay 60.00 USDC instead" })).toBeDisabled();
   await expect(amount(page)).toHaveAttribute("aria-invalid", "true");
+  expect(chain.contract?.sent ?? []).toEqual([]);
+
+  // The offer acts: it fills what is left, and nothing is sent until the creator repays that (S7).
+  await page.getByRole("button", { name: "Repay 60.00 USDC instead" }).click();
+  await expect(amount(page)).toHaveValue("60.00");
+  await expect(page.getByRole("button", { name: "Full amount" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Repay 60.00 USDC" })).toBeEnabled();
   expect(chain.contract?.sent ?? []).toEqual([]);
 });
 

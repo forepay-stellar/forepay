@@ -379,6 +379,7 @@ function Ledger({
           balance={walletUsdc}
           check={check}
           onSubmit={submit}
+          onUseOutstanding={() => fill(left, "full")}
           locked={locked}
           busyLabel={busyLabel}
           failure={failure}

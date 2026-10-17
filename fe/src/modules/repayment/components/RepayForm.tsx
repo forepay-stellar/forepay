@@ -27,6 +27,7 @@ export function RepayForm({
   balance,
   check,
   onSubmit,
+  onUseOutstanding,
   locked,
   busyLabel,
   failure,
@@ -43,6 +44,8 @@ export function RepayForm({
   balance: bigint | null | undefined;
   check: AmountCheck;
   onSubmit: (amount: bigint) => void;
+  /** "Repay {left} instead": put what is still outstanding in the field, to review before repaying. */
+  onUseOutstanding: () => void;
   /** A repayment is under way: nothing can be sent again until it settles. */
   locked: boolean;
   /**
@@ -178,16 +181,35 @@ export function RepayForm({
 
       {failure && <Alert tone="danger" className="w-full" title={failure.title} body={failure.body} />}
 
-      <Button
-        type="submit"
-        size="lg"
-        className="w-full lg:px-6"
-        disabled={check.kind !== "ok" || settled}
-        loading={busy}
-        loadingLabel={busyLabel ?? undefined}
-      >
-        {action}
-      </Button>
+      {check.kind === "overOutstanding" && !settled ? (
+        // An offer, so it acts: it fills the outstanding amount, and the creator then repays that (S7).
+        <Button
+          type="button"
+          size="lg"
+          className="w-full lg:px-6"
+          onClick={(e) => {
+            // The fill turns this into the submit button before the click finishes; without this the
+            // same click would then send the repayment the creator only asked to see.
+            e.preventDefault();
+            onUseOutstanding();
+          }}
+          loading={busy}
+          loadingLabel={busyLabel ?? undefined}
+        >
+          {action}
+        </Button>
+      ) : (
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full lg:px-6"
+          disabled={check.kind !== "ok" || settled}
+          loading={busy}
+          loadingLabel={busyLabel ?? undefined}
+        >
+          {action}
+        </Button>
+      )}
     </form>
   );
 }
