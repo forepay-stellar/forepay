@@ -118,3 +118,13 @@ body {
   stroke-dasharray: 1;
   animation: intro-wave 480ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
+
+/* /preview intro A2: the tide's wavy edge slides sideways as it ebbs. */
+@keyframes intro-tide {
+  to {
+    transform: translateX(-160px);
+  }
+}
+.intro-tide {
+  animation: intro-tide 900ms linear infinite;
+}
