@@ -321,13 +321,15 @@ export async function connect({
       cancelPending = () => reject({ code: USER_CLOSED_MODAL, message: "The user closed the modal." });
     });
     // Answers are read above. From the kit's own promise only two things count: its close button, and
-    // the kit finishing on an answer that was not ours (a stale popup). Then it has already removed its
-    // list, and waiting on would leave an empty dialog, so this ends as closed and the page goes back.
+    // the kit finishing on an answer that was not ours (a stale popup) before anything was pressed here.
+    // Then it has already removed its list, and waiting on would leave an empty dialog, so this ends as
+    // closed and the page goes back. Once a wallet was pressed here, the dialog shows "Waiting for …"
+    // with Cancel instead of the list, so a stale answer is ignored and the wallet asked is still heard.
     const closed = () => Promise.reject({ code: USER_CLOSED_MODAL, message: "The user closed the modal." });
-    const closedByKit = kit.authModal(container ? { container } : undefined).then(
-      () => (accepted ? new Promise<never>(() => {}) : closed()),
-      (e: unknown) =>
-        toWalletError(e).code === USER_CLOSED_MODAL || !accepted ? closed() : new Promise<never>(() => {}),
+    const never = () => new Promise<never>(() => {});
+    const strayFinish = () => (accepted || myPress !== -1 ? never() : closed());
+    const closedByKit = kit.authModal(container ? { container } : undefined).then(strayFinish, (e: unknown) =>
+      toWalletError(e).code === USER_CLOSED_MODAL ? closed() : strayFinish(),
     );
     try {
       const address = await Promise.race([answered, cancelled, closedByKit]);

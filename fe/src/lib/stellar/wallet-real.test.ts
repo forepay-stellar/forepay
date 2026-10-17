@@ -246,6 +246,28 @@ describe("connect", () => {
     await expect(second).rejects.toMatchObject({ name: "WalletError", code: -1 });
   });
 
+  it("keeps waiting on the wallet asked when a stale answer finishes the kit", async () => {
+    let finishKit: (v: { address: string }) => void = () => {};
+    kit.authModal.mockImplementation(() => new Promise((resolve) => (finishKit = resolve)));
+    const { connect, cancelConnect } = await load();
+    const first = connect();
+    await tick();
+    press("rabet");
+    cancelConnect();
+    await expect(first).rejects.toMatchObject({ code: -1 });
+    // Reopen and press Freighter: "Waiting for Freighter". Then the old Rabet popup approves, and the
+    // kit finishes its own picker on that answer.
+    const second = connect();
+    await tick();
+    press("freighter");
+    await approve("rabet", "GRABET");
+    finishKit({ address: "GRABET" });
+    await tick();
+    // Freighter's popup is still open and still counts.
+    await approve("freighter", "GFREIGHTER");
+    expect(await second).toMatchObject({ address: "GFREIGHTER", name: "Freighter" });
+  });
+
   it("passes on a wallet's refusal after a pick", async () => {
     kit.authModal.mockImplementation(() => new Promise(() => {}));
     const { connect } = await load();
