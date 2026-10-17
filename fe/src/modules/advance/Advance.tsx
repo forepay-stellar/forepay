@@ -10,6 +10,7 @@ import { isSignatureDeclined } from "@/lib/errors";
 import { formatUsd, formatWindow } from "@/lib/format";
 import { proveRevenue, type ProveSession, type ProveStage } from "@/lib/reclaim";
 import {
+  TransactionFailedError,
   awaitAdvance,
   checkAdvance,
   getAdvance,
@@ -144,6 +145,9 @@ export function Advance() {
 
   function toStart() {
     leave();
+    // While an advance sent earlier is still being waited on, the start is that wait, not 2a.
+    const pending = loadPending(me);
+    if (pending) return void resume(pending);
     setFlow({ at: "start" });
   }
 
@@ -238,9 +242,7 @@ export function Advance() {
       landed(r, hash, value);
     } catch (e) {
       if (id !== attempt.current) return;
-      clearPending();
-      clearTimeout(slowTimer.current);
-      setFlow({ at: "failed", failure: acceptFailure(e, signed), req: r, during: "accept" });
+      stopped(e, r, signed);
     }
   }
 
@@ -269,10 +271,23 @@ export function Advance() {
       landed(p.req, hash, value);
     } catch (e) {
       if (id !== attempt.current) return;
-      clearPending();
-      clearTimeout(slowTimer.current);
-      setFlow({ at: "failed", failure: acceptFailure(e, true), req: p.req, during: "accept" });
+      stopped(e, p.req, true);
     }
+  }
+
+  /**
+   * Waiting on a sent advance ended without it landing. If the network gave no answer at all, the
+   * transaction is still out: it stays remembered, and Try again waits on it again. Otherwise the ledger
+   * has answered (failed, or not confirmed after the full wait), and it is forgotten.
+   */
+  function stopped(e: unknown, r: AdvanceRequest, signed: boolean) {
+    clearTimeout(slowTimer.current);
+    if (e instanceof TransactionFailedError && e.noAnswer && loadPending(me)) {
+      setFlow({ at: "failed", failure: { kind: "sentUnreachable" }, req: r, during: "accept" });
+      return;
+    }
+    clearPending();
+    setFlow({ at: "failed", failure: acceptFailure(e, signed), req: r, during: "accept" });
   }
 
   async function allowUsdc(r: AdvanceRequest | undefined) {
@@ -314,6 +329,8 @@ export function Advance() {
       case "reviewOffer":
         return r ? toOffer(r) : toStart();
       case "retry":
+        // Waiting on an advance already sent: wait on it again. Never sign or send a second one.
+        if ("kind" in failure && failure.kind === "sentUnreachable") return toStart();
         if (!r) return void prove();
         if (during === "accept") return void accept(r);
         leave();

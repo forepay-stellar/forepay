@@ -40,11 +40,14 @@ export class TransactionFailedError extends Error {
   charged: boolean;
   /** Sent, but not confirmed while we waited. It may still land, so nothing is known either way. */
   unconfirmed: boolean;
-  constructor(message: string, charged: boolean, unconfirmed = false) {
+  /** Unconfirmed because the network gave no answer at all, not because the ledger said "not yet". */
+  noAnswer: boolean;
+  constructor(message: string, charged: boolean, unconfirmed = false, noAnswer = false) {
     super(message);
     this.name = "TransactionFailedError";
     this.charged = charged;
     this.unconfirmed = unconfirmed;
+    this.noAnswer = noAnswer;
   }
 }
 
@@ -127,7 +130,7 @@ const WRITE_ATTEMPTS = 120;
 /** `submit.ts`'s outcome in the words the contract's callers use. */
 function asTransactionFailed(e: unknown): unknown {
   if (!(e instanceof SubmitError)) return e;
-  return new TransactionFailedError(e.message, e.outcome === "failed", e.outcome === "unconfirmed");
+  return new TransactionFailedError(e.message, e.outcome === "failed", e.outcome === "unconfirmed", e.noAnswer);
 }
 
 /** A write, signed in the wallet. Resolves with the transaction hash and the returned value. */

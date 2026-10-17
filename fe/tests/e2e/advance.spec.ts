@@ -148,6 +148,30 @@ test("a high revenue is capped at 100 USDC and says so", async ({ page }) => {
   await expect(page.getByText("A quarter of $1,240.00 is more than 100 USDC. Each advance is limited to 100 USDC.")).toBeVisible();
 });
 
+test("Stellar not answering when coming back to a sent advance keeps it, and Try again waits on it", async ({
+  page,
+}) => {
+  const chain: Chain = { account: true, trustline: true, advance: { holdLedger: true } };
+  await connect(page, chain);
+  await proveToOffer(page);
+  await page.getByRole("button", { name: "Accept 90.00 USDC" }).click();
+  await expect(heading(page, "Sending your USDC")).toBeVisible();
+
+  // Back on the page with the node down: the advance is not given up on.
+  chain.advance!.dropPolls = 1000;
+  await page.reload();
+  await expect(heading(page, "We could not reach Stellar")).toBeVisible();
+  await expect(page.getByText("Your advance was already sent.", { exact: false })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open History" })).toBeVisible();
+
+  // The node is back and the advance has landed: Try again waits on the same one, sends nothing new.
+  chain.advance!.dropPolls = 0;
+  chain.advance!.holdLedger = false;
+  await page.getByRole("button", { name: "Try again" }).click();
+  await expect(heading(page, "Advance received")).toBeVisible();
+  expect(chain.advance?.sent).toBe(1);
+});
+
 test("exactly $400.00 reaches 100 USDC without the limit doing anything, and says so", async ({ page }) => {
   await connect(page, { account: true, trustline: true }, { "forepay.mock.revenue": "400.00" });
   await proveToOffer(page);
