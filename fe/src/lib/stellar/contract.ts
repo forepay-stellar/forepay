@@ -9,6 +9,7 @@ import {
   xdr,
 } from "@stellar/stellar-sdk";
 import { NETWORK_PASSPHRASE, RPC_URL } from "./network";
+import { SubmitError, submitSigned } from "./submit";
 
 /**
  * The advance contract, as the app calls it (ARCHITECTURE.md §6). Shared by #20 and #21.
@@ -116,30 +117,33 @@ async function read<T>(source: string, method: string, args: xdr.ScVal[] = []): 
   return (value ? scValToNative(value) : undefined) as T;
 }
 
+/** About two minutes, one attempt a second: the "Timed out" state on the Prove and accept board. */
+const WRITE_ATTEMPTS = 120;
+
+/** `submit.ts`'s outcome in the words the contract's callers use. */
+function asTransactionFailed(e: unknown): unknown {
+  if (!(e instanceof SubmitError)) return e;
+  return new TransactionFailedError(e.message, e.outcome === "failed", e.outcome === "unconfirmed");
+}
+
 /** A write, signed in the wallet. Resolves with the transaction hash and the returned value. */
 async function write<T>(
   source: string,
   method: string,
   args: xdr.ScVal[],
   signTransaction: (xdr: string) => Promise<string>,
+  onSent?: (hash: string) => void,
 ): Promise<{ hash: string; value: T }> {
   const { tx, sim } = await simulate(source, method, args);
   const prepared = rpc.assembleTransaction(tx, sim).build();
   const signed = await signTransaction(prepared.toXDR());
-  const sent = await server().sendTransaction(TransactionBuilder.fromXDR(signed, NETWORK_PASSPHRASE));
-  if (sent.status === "ERROR" || sent.status === "TRY_AGAIN_LATER") {
-    throw new TransactionFailedError(`The network did not accept the transaction (${sent.status})`, false);
-  }
-  // About two minutes, one attempt a second: the "Timed out" state on the Prove and accept board.
-  const result = await server().pollTransaction(sent.hash, { attempts: 120 });
-  if (result.status === rpc.Api.GetTransactionStatus.SUCCESS) {
+  try {
+    const { hash, result } = await submitSigned(server(), signed, { attempts: WRITE_ATTEMPTS, onSent });
     const value = result.returnValue ? scValToNative(result.returnValue) : undefined;
-    return { hash: sent.hash, value: value as T };
+    return { hash, value: value as T };
+  } catch (e) {
+    throw asTransactionFailed(e);
   }
-  if (result.status === rpc.Api.GetTransactionStatus.FAILED) {
-    throw new TransactionFailedError("The transaction failed on the ledger", true);
-  }
-  throw new TransactionFailedError(`The transaction was not confirmed (${result.status})`, false, true);
 }
 
 const str = (v: string) => nativeToScVal(v, { type: "string" });
