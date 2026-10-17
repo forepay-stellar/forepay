@@ -272,8 +272,11 @@ test("the stepper stays centred on desktop once the wallet chip shows", async ({
   test.skip(isMobile, "the phone header has no stepper");
   await mockRpc(page, { account: true, trustline: false });
   await connectFromStart(page);
-  await expect(page.getByRole("button", { name: /^Wallet / }).first()).toBeVisible();
-  const box = await page.getByRole("list", { name: "Onboarding progress" }).boundingBox();
+  // Measure on 1c itself, not on the checking screen whose top bar 1c's replaces.
+  await expect(page.getByText("Not allowed yet")).toBeVisible();
+  const stepper = page.getByRole("list", { name: "Onboarding progress" });
+  await expect(stepper).toBeVisible();
+  const box = await stepper.boundingBox();
   // 1440 wide: the 480px stepper sits at 480 to 960, as in the frames.
   expect(box?.x).toBeCloseTo(480, 0);
   expect(box?.width).toBeCloseTo(480, 0);
@@ -281,7 +284,7 @@ test("the stepper stays centred on desktop once the wallet chip shows", async ({
   // 1024, where the top bar first shows: it still fits, the stepper narrower but between the sides.
   await page.setViewportSize({ width: 1024, height: 768 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(1024);
-  const narrow = await page.getByRole("list", { name: "Onboarding progress" }).boundingBox();
+  const narrow = await stepper.boundingBox();
   expect(narrow?.width).toBeGreaterThan(200);
   expect((narrow?.x ?? 0) + (narrow?.width ?? 0) / 2).toBeCloseTo(512, 0);
 });
