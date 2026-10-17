@@ -33,7 +33,7 @@ landing-page/
       step-proof.png  step-offer.png  step-wallet.png
       lock.png  quarter-coin.png  sunrise-wallet.png
     brand/
-      wordmark.svg  mark.svg  wordmark-cream.png
+      wordmark.svg  mark.svg  wordmark-cream.webp
   src/
     app/
       layout.tsx              fonts, metadata, body
@@ -371,9 +371,9 @@ export const landing = {
     eyebrow: "How it works",
     title: "Prove it, see it, get it",
     steps: [
-      { number: "01", title: "Prove your revenue", body: "Log in to AdSense. We only read three months of revenue.", image: "/clay/step-proof.png" },
-      { number: "02", title: "See your offer", body: "A quarter of it, up to 100 USDC, with the math shown.", image: "/clay/step-offer.png" },
-      { number: "03", title: "Get USDC", body: "Approve in your wallet. Repay any amount, any time.", image: "/clay/step-wallet.png" },
+      { number: "01", title: "Prove your revenue", body: "Log in to AdSense. We only read three months of revenue.", image: "/clay/step-proof.webp" },
+      { number: "02", title: "See your offer", body: "A quarter of it, up to 100 USDC, with the math shown.", image: "/clay/step-offer.webp" },
+      { number: "03", title: "Get USDC", body: "Approve in your wallet. Repay any amount, any time.", image: "/clay/step-wallet.webp" },
     ],
   },
   yourData: {
@@ -467,8 +467,8 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ### Task 3: Brand and clay assets exported from the pen file
 
 **Files:**
-- Create: `landing-page/public/brand/wordmark.svg`, `landing-page/public/brand/mark.svg`, `landing-page/public/brand/wordmark-cream.png`
-- Create: `landing-page/public/clay/hero-still.png`, `step-proof.png`, `step-offer.png`, `step-wallet.png`, `lock.png`, `quarter-coin.png`, `sunrise-wallet.png`
+- Create: `landing-page/public/brand/wordmark.svg`, `landing-page/public/brand/mark.svg`, `landing-page/public/brand/wordmark-cream.webp`
+- Create: `landing-page/public/clay/hero-still.webp`, `step-proof.png`, `step-offer.png`, `step-wallet.png`, `lock.png`, `quarter-coin.png`, `sunrise-wallet.png`
 - Create: `landing-page/src/components/Wordmark.tsx`, `landing-page/src/components/Mark.tsx`
 - Modify: `landing-page/src/app/` favicon (replace `favicon.ico` with `icon.svg`)
 
@@ -484,7 +484,7 @@ The source nodes in `docs/design/forepay.pen` (open it in pen.dev from this work
 | `lock.png` | `Landing / Desktop` → Your data → `Clay lock` | PNG, scale 2 |
 | `quarter-coin.png` | `Landing / Desktop` → The math → Big card → `Coin stage` | PNG, scale 2 |
 | `sunrise-wallet.png` | `Landing / Desktop` → CTA and footer → CTA → `Clay` | PNG, scale 2 |
-| `wordmark-cream.png` | CTA and footer → Footer → `Wordmark band` | PNG, scale 3 |
+| `wordmark-cream.webp` | CTA and footer → Footer → `Wordmark band` | PNG, scale 3 |
 | `wordmark.svg`, `mark.svg` | `Logo/Wordmark 28`, `Logo/Mark 32` (reusable components) | `html-css` export, then copy the `<svg>` out |
 
 - [ ] **Step 1: Export the PNGs**
@@ -937,7 +937,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `landing-page/src/app/page.tsx`
 
 **Interfaces:**
-- Consumes: `landing.hero`, `ButtonLink`, `APP_URL`, `/clay/hero-still.png`.
+- Consumes: `landing.hero`, `ButtonLink`, `APP_URL`, `/clay/hero-still.webp`.
 - Produces: `<Hero />` with a stage slot `<div data-hero-stage>` that Task 7 fills; the still image stays as the fallback.
 
 - [ ] **Step 1: Implement the hero**
@@ -961,7 +961,7 @@ export function Hero() {
         <span aria-hidden className="absolute left-20 top-[60px] text-[180px] font-semibold leading-[0.9] tracking-[-8.5px]">{h.wordLeft}</span>
         <span aria-hidden className="absolute right-20 top-[470px] text-[180px] font-semibold leading-[0.9] tracking-[-8.5px]">{h.wordRight}</span>
         <div data-hero-stage className="absolute left-1/2 top-[60px] h-[640px] w-[616px] -translate-x-1/2">
-          <Image src="/clay/hero-still.png" alt="" fill priority sizes="616px" className="object-contain" />
+          <Image src="/clay/hero-still.webp" alt="" fill priority sizes="616px" className="object-contain" />
           <HeroScene />
         </div>
         <div className="absolute bottom-[110px] left-20 flex w-[440px] flex-col gap-3.5">
@@ -980,7 +980,7 @@ export function Hero() {
       {/* Phone, from Landing / Mobile → Hero (option C) */}
       <div className="flex flex-col gap-5 px-5 pb-10 lg:hidden">
         <div data-hero-stage className="relative mx-auto h-[300px] w-[300px]">
-          <Image src="/clay/hero-still.png" alt="" fill priority sizes="300px" className="object-contain" />
+          <Image src="/clay/hero-still.webp" alt="" fill priority sizes="300px" className="object-contain" />
           <HeroScene />
         </div>
         <h1 className="text-[76px] font-semibold leading-[0.95] tracking-[-3.6px]">{`${h.wordLeft} ${h.wordRight}`}</h1>
@@ -1361,7 +1361,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `landing-page/src/app/globals.css`, `landing-page/src/app/page.tsx`
 
 **Interfaces:**
-- Consumes: `landing.yourData`, `/clay/lock.png`.
+- Consumes: `landing.yourData`, `/clay/lock.webp`.
 - Produces: `<Marquee words: readonly string[] direction: "left" | "right" className?: string>` that repeats the words to fill twice the row width, is `aria-hidden`, and animates with CSS that stops under reduced motion.
 
 - [ ] **Step 1: Write the failing test**
@@ -1444,7 +1444,7 @@ export function YourData() {
         <h2 className="mt-2 text-[44px] font-medium leading-none tracking-[-1.6px] lg:text-[96px] lg:tracking-[-3.8px]">{s.titleTop}</h2>
         <div aria-hidden className="absolute left-1/2 top-[200px] size-[380px] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,#F3EEE8_35%,#F3EEE800)] lg:top-[200px] lg:size-[600px]" />
         <div className="absolute left-1/2 top-[200px] h-[212px] w-[161px] -translate-x-1/2 lg:top-[260px] lg:h-[343px] lg:w-[260px]">
-          <Image src="/clay/lock.png" alt="" fill sizes="260px" className="object-contain" />
+          <Image src="/clay/lock.webp" alt="" fill sizes="260px" className="object-contain" />
         </div>
         <p className="absolute bottom-[160px] right-5 text-right text-[44px] font-medium leading-none tracking-[-1.6px] lg:bottom-[124px] lg:right-20 lg:text-[96px] lg:tracking-[-3.8px]">{s.titleBottom}</p>
         <p className="absolute bottom-8 left-5 w-[350px] text-base leading-normal text-fg-muted lg:bottom-[110px] lg:left-20 lg:w-[470px] lg:text-lg">{s.body}</p>
@@ -1480,7 +1480,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `landing-page/src/app/page.tsx`
 
 **Interfaces:**
-- Consumes: `landing.theMath`, `countUpValue` (Task 4), `usePrefersReducedMotion`, `/clay/quarter-coin.png`.
+- Consumes: `landing.theMath`, `countUpValue` (Task 4), `usePrefersReducedMotion`, `/clay/quarter-coin.webp`.
 - Produces: `<CountUp to: number durationMs?: number>` that counts from 0 to `to` once it enters the viewport, or shows `to` at once with reduced motion. Its accessible text is always the final number.
 
 - [ ] **Step 1: CountUp**
@@ -1574,7 +1574,7 @@ export function TheMath() {
             <span>{s.big.tag}</span>
           </div>
           <div className="relative mx-auto h-[230px] w-[270px] lg:h-[300px] lg:w-[290px]">
-            <Image src="/clay/quarter-coin.png" alt="" fill sizes="300px" className="object-contain" />
+            <Image src="/clay/quarter-coin.webp" alt="" fill sizes="300px" className="object-contain" />
           </div>
           <div className="flex flex-col gap-2">
             <h3 className="text-[26px] font-medium tracking-[-0.8px] lg:text-4xl lg:tracking-[-1.2px]">{s.big.title}</h3>
@@ -1758,7 +1758,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `landing-page/src/app/layout.tsx` (Open Graph and Twitter metadata), `landing-page/src/app/page.tsx`
 
 **Interfaces:**
-- Consumes: `landing.closing`, `landing.footer`, `APP_URL`, `CONTRACT_URL`, `/clay/sunrise-wallet.png`, `/brand/wordmark-cream.png`.
+- Consumes: `landing.closing`, `landing.footer`, `APP_URL`, `CONTRACT_URL`, `/clay/sunrise-wallet.webp`, `/brand/wordmark-cream.webp`.
 
 - [ ] **Step 1: Closing and footer**
 
@@ -1789,7 +1789,7 @@ export function ClosingAndFooter() {
           <span className="hidden lg:inline">{c.headline}</span>
         </h2>
         <div className="absolute left-1/2 top-[205px] h-[262px] w-[252px] -translate-x-1/2 lg:top-[105px] lg:h-[525px] lg:w-[505px]">
-          <Image src="/clay/sunrise-wallet.png" alt="" fill sizes="505px" className="object-contain" />
+          <Image src="/clay/sunrise-wallet.webp" alt="" fill sizes="505px" className="object-contain" />
         </div>
         <div className="absolute inset-x-5 top-[500px] flex flex-col items-center gap-3.5 lg:inset-x-0 lg:top-[640px] lg:gap-[18px]">
           <ButtonLink href={APP_URL} variant="light" className="w-full lg:w-auto">{c.cta}</ButtonLink>
@@ -1816,7 +1816,7 @@ export function ClosingAndFooter() {
             <span>{f.testnet}</span>
           </div>
           <div className="relative h-[60px] overflow-hidden lg:h-[240px]">
-            <Image src="/brand/wordmark-cream.png" alt="Forepay" width={1280} height={200} className="h-auto w-full" />
+            <Image src="/brand/wordmark-cream.webp" alt="Forepay" width={1280} height={200} className="h-auto w-full" />
           </div>
         </div>
       </footer>
@@ -1981,7 +1981,7 @@ From the repo root, `pnpm install --frozen-lockfile`, then `cd landing-page && p
 
 Every word is in `src/content/landing.ts`, checked by `landing.test.ts` against the copy rules.
 Sections are in `src/sections/`, one file each. The 3D hero is `src/sections/scene/`, with
-`public/clay/hero-still.png` as the fallback for reduced motion and no WebGL.
+`public/clay/hero-still.webp` as the fallback for reduced motion and no WebGL.
 ```
 
 - [ ] **Step 3: Full check from the repo root**
