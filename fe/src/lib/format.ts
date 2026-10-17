@@ -74,7 +74,8 @@ const MONTH_NAMES = [
 
 /**
  * A revenue window from its `YYYY-MM-DD` ends: `short` is `Jul to Sep 2026` (the offer breakdown),
- * `long` is `July to September` (the sentence on the offer).
+ * `long` is `July to September` (the sentence on the offer). A window that crosses a new year names
+ * both years in both forms, `November 2026 to January 2027`, so it never reads as one year's months.
  */
 export function formatWindow(start: string, end: string): { short: string; long: string } {
   const [sy, sm] = start.split("-").map(Number);
@@ -82,7 +83,10 @@ export function formatWindow(start: string, end: string): { short: string; long:
   const startShort = sy === ey ? MONTHS[sm - 1] : `${MONTHS[sm - 1]} ${sy}`;
   return {
     short: `${startShort} to ${MONTHS[em - 1]} ${ey}`,
-    long: `${MONTH_NAMES[sm - 1]} to ${MONTH_NAMES[em - 1]}`,
+    long:
+      sy === ey
+        ? `${MONTH_NAMES[sm - 1]} to ${MONTH_NAMES[em - 1]}`
+        : `${MONTH_NAMES[sm - 1]} ${sy} to ${MONTH_NAMES[em - 1]} ${ey}`,
   };
 }
 

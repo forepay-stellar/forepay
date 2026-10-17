@@ -55,7 +55,10 @@ describe("formatWindow", () => {
   });
 
   it("keeps both years when the window crosses one", () => {
-    expect(formatWindow("2026-11-01", "2027-01-31").short).toBe("Nov 2026 to Jan 2027");
+    expect(formatWindow("2026-11-01", "2027-01-31")).toEqual({
+      short: "Nov 2026 to Jan 2027",
+      long: "November 2026 to January 2027",
+    });
   });
 });
 
