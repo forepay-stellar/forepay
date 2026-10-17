@@ -9,7 +9,7 @@ import {
   xdr,
 } from "@stellar/stellar-sdk";
 import { NETWORK_PASSPHRASE, RPC_URL } from "./network";
-import { SubmitError, submitSigned } from "./submit";
+import { SubmitError, submitSigned, waitFor } from "./submit";
 
 /**
  * The advance contract, as the app calls it (ARCHITECTURE.md §6). Shared by #20 and #21.
@@ -227,13 +227,27 @@ export function checkAdvance(borrower: string, req: AdvanceRequest): Promise<big
   return read<bigint>(borrower, "request_advance", advanceArgs(borrower, req));
 }
 
-/** Prove, size and disburse in one call (#20). Resolves with the stroops disbursed. */
+/**
+ * Prove, size and disburse in one call (#20). Resolves with the stroops disbursed. `onSent` gets the
+ * hash once the network has taken it, so a caller can come back to it (`awaitAdvance`).
+ */
 export function requestAdvance(
   borrower: string,
   req: AdvanceRequest,
   signTransaction: (xdr: string) => Promise<string>,
+  onSent?: (hash: string) => void,
 ): Promise<{ hash: string; value: bigint }> {
-  return write<bigint>(borrower, "request_advance", advanceArgs(borrower, req), signTransaction);
+  return write<bigint>(borrower, "request_advance", advanceArgs(borrower, req), signTransaction, onSent);
+}
+
+/** Wait again for a `request_advance` already sent: the same answer `requestAdvance` would have given. */
+export async function awaitAdvance(hash: string): Promise<{ hash: string; value: bigint }> {
+  try {
+    const { result } = await waitFor(server(), hash, WRITE_ATTEMPTS);
+    return { hash, value: (result.returnValue ? scValToNative(result.returnValue) : 0n) as bigint };
+  } catch (e) {
+    throw asTransactionFailed(e);
+  }
 }
 
 /** Repay part or all of an advance (#21). Resolves with what is still outstanding, in stroops. */
