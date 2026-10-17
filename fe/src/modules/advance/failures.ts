@@ -65,9 +65,13 @@ export function acceptFailure(e: unknown, signed: boolean): AdvanceFailure {
   return sorted(e);
 }
 
-/** Back from a failed accept may return to the offer only if the contract never refused the proof. */
+/**
+ * Back from a failed accept may return to the offer only if the proof still stands. Of the contract's
+ * refusals only 41 (no USDC trustline) leaves it so: the panel says "Your proof is still valid", and
+ * nothing was spent.
+ */
 export function proofStillGood(failure: AdvanceFailure): boolean {
-  if (!("kind" in failure)) return false;
+  if (!("kind" in failure)) return failure.code === 41;
   return ["refused", "charged", "unreachable", "simulationFailed", "walletLocked", "walletWrongNetwork", "walletNoAnswer"].includes(
     failure.kind,
   );

@@ -200,7 +200,7 @@ test("a wallet that cannot receive USDC is asked to allow it, then gets its offe
   await expect(page.getByRole("button", { name: "Accept 90.00 USDC" })).toBeVisible();
 });
 
-test("USDC no longer allowed when accepting: the board's panel, and Not now goes back to 2a", async ({ page }) => {
+test("USDC no longer allowed when accepting: the board's panel, and Not now keeps the offer", async ({ page }) => {
   const chain: Chain = { account: true, trustline: true };
   await connect(page, chain);
   await proveToOffer(page);
@@ -211,8 +211,9 @@ test("USDC no longer allowed when accepting: the board's panel, and Not now goes
     page.getByText("Approve USDC in your wallet, then accept the offer again. Your proof is still valid."),
   ).toBeVisible();
   expect(chain.advance?.sent ?? 0).toBe(0);
+  // The proof was not used, as the panel says: back to the same offer, not to a new Reclaim session.
   await page.getByRole("button", { name: "Not now" }).click();
-  await expect(heading(page, "See how much you can get")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Accept 90.00 USDC" })).toBeVisible();
 });
 
 test("Open the window again keeps waiting for the AdSense login, then goes on", async ({ page }) => {
