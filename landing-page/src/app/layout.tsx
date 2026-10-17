@@ -27,9 +27,17 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", title, description },
 };
 
+// A reload starts at the top, where the hero and its motion begin, instead of wherever the
+// browser left off. A link to a section (/#faq) still lands on that section. Runs in <head>,
+// before the browser restores the old position.
+const startAtTop = `if(!location.hash){history.scrollRestoration="manual";scrollTo(0,0)}`;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: startAtTop }} />
+      </head>
       <body className="min-h-dvh bg-canvas text-fg">
         <SmoothScroll />
         {children}
