@@ -54,6 +54,8 @@ describe("acceptFailure", () => {
 describe("proofStillGood", () => {
   it("is false once the contract refused the proof", () => {
     expect(proofStillGood({ code: 12 })).toBe(false);
+    // No USDC trustline refuses the transfer, not the proof.
+    expect(proofStillGood({ code: 41 })).toBe(true);
     expect(proofStillGood({ kind: "unconfirmed" })).toBe(false);
     expect(proofStillGood({ kind: "refused" })).toBe(true);
     expect(proofStillGood({ kind: "unreachable" })).toBe(true);
