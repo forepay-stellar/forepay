@@ -9,6 +9,7 @@ import { isSignatureDeclined } from "@/lib/errors";
 import { formatUsd, formatWindow } from "@/lib/format";
 import { proveRevenue, type ProveSession, type ProveStage } from "@/lib/reclaim";
 import {
+  awaitAdvance,
   checkAdvance,
   getAdvance,
   nullifierFor,
@@ -27,6 +28,7 @@ import { ProveRevenue } from "./components/ProveRevenue";
 import { ReviewOffer } from "./components/ReviewOffer";
 import { SignAdvance } from "./components/SignAdvance";
 import { maxFee } from "./fee";
+import { clearPending, loadPending, savePending, type PendingAdvance } from "./pending";
 import { WalletSignError, acceptFailure, proofStillGood, proveFailure, type AdvanceFailure } from "./failures";
 
 /** After this long without a confirmation, say so (board row 4, "Taking longer than usual"). */
@@ -79,6 +81,16 @@ export function Advance() {
     },
     [],
   );
+
+  // Back on /advance with a `request_advance` still out from an earlier visit: wait on that one. Each
+  // mount waits afresh; the unmount above drops the answer of the one before.
+  useEffect(() => {
+    if (!address) return;
+    const pending = loadPending(address);
+    if (pending) void resume(pending);
+    // `resume` only reads refs and setters; it runs per mount and per wallet.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address]);
 
   // The offer on 2b and 2c. Read in `check` before 2b opens, so it is already here.
   const req = "req" in flow ? flow.req : undefined;
@@ -182,20 +194,48 @@ export function Advance() {
       return out;
     };
 
+    // Once the network has it, the transaction is remembered: leaving the page no longer loses it.
+    const remember = (hash: string) => savePending({ address: me, hash, req: r });
     try {
-      const { hash, value } = await requestAdvance(me, r, sign);
+      const { hash, value } = await requestAdvance(me, r, sign, remember);
       if (id !== attempt.current) return;
-      clearTimeout(slowTimer.current);
-      setFlow({ at: "received", req: r, hash, amount: value });
-      // New money and a new advance: let every screen read them again from chain.
-      void queryClient.invalidateQueries({ queryKey: ["advance"] });
-      void queryClient.invalidateQueries({ queryKey: ["advances"] });
-      void queryClient.invalidateQueries({ queryKey: ["repayment"] });
-      void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      landed(r, hash, value);
     } catch (e) {
       if (id !== attempt.current) return;
+      clearPending();
       clearTimeout(slowTimer.current);
       setFlow({ at: "failed", failure: acceptFailure(e, signed), req: r, during: "accept" });
+    }
+  }
+
+  /** The advance landed: 2d, and every screen reads the new money and the new advance again. */
+  function landed(r: AdvanceRequest, hash: string, amount: bigint) {
+    clearPending();
+    clearTimeout(slowTimer.current);
+    setFlow({ at: "received", req: r, hash, amount });
+    void queryClient.invalidateQueries({ queryKey: ["advance"] });
+    void queryClient.invalidateQueries({ queryKey: ["advances"] });
+    void queryClient.invalidateQueries({ queryKey: ["repayment"] });
+    void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+  }
+
+  /** "Sending your USDC" again, for a transaction sent before the creator left the page. */
+  async function resume(p: PendingAdvance) {
+    leave();
+    const id = attempt.current;
+    setFlow({ at: "signing", req: p.req, sent: true, slow: false });
+    slowTimer.current = setTimeout(() => {
+      if (id === attempt.current) setFlow({ at: "signing", req: p.req, sent: true, slow: true });
+    }, SLOW_AFTER_MS);
+    try {
+      const { hash, value } = await awaitAdvance(p.hash);
+      if (id !== attempt.current) return;
+      landed(p.req, hash, value);
+    } catch (e) {
+      if (id !== attempt.current) return;
+      clearPending();
+      clearTimeout(slowTimer.current);
+      setFlow({ at: "failed", failure: acceptFailure(e, true), req: p.req, during: "accept" });
     }
   }
 

@@ -47,6 +47,8 @@ export type AdvanceChain = {
   simulationFails?: boolean;
   /** Hold every `request_advance` simulation after the first this long, so 2c can be seen. */
   acceptDelayMs?: number;
+  /** While true, a sent `request_advance` is not on the ledger yet; set it false to let it land. */
+  holdLedger?: boolean;
   /** Set by the stub: how many `request_advance` transactions were sent. */
   sent?: number;
 };
@@ -257,7 +259,7 @@ export async function mockRpc(page: Page, chain: Chain) {
       case "getTransaction": {
         if (body.params.hash === ADVANCE_TX_HASH) {
           const adv = chain.advance ?? {};
-          if (adv.send === "pending") {
+          if (adv.send === "pending" || adv.holdLedger) {
             return reply({
               status: "NOT_FOUND",
               latestLedger: 101,

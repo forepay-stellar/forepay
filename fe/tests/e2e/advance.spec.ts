@@ -91,6 +91,42 @@ test("prove, see the offer with its derivation, accept, and receive the USDC", a
   await expect(page).toHaveURL(/\/repayment$/);
 });
 
+test("leaving while the USDC is sent still shows its receipt on coming back", async ({ page }) => {
+  const chain: Chain = { account: true, trustline: true, advance: { holdLedger: true } };
+  await connect(page, chain);
+  await proveToOffer(page);
+  await page.getByRole("button", { name: "Accept 90.00 USDC" }).click();
+  await expect(heading(page, "Sending your USDC")).toBeVisible();
+
+  // The tab bar is right there: the creator leaves, and the transaction lands meanwhile.
+  await page.getByRole("link", { name: "Repayment" }).click();
+  await expect(page).toHaveURL(/\/repayment$/);
+  chain.advance!.holdLedger = false;
+  await page.getByRole("link", { name: "Advance" }).click();
+
+  await expect(heading(page, "Advance received")).toBeVisible();
+  await expect(page.getByRole("link", { name: "View receipt" })).toHaveAttribute(
+    "href",
+    `https://stellar.expert/explorer/testnet/tx/${ADVANCE_TX_HASH}`,
+  );
+  expect(chain.advance?.sent).toBe(1);
+});
+
+test("a reload while the USDC is sent goes on waiting for it", async ({ page }) => {
+  const chain: Chain = { account: true, trustline: true, advance: { holdLedger: true } };
+  await connect(page, chain);
+  await proveToOffer(page);
+  await page.getByRole("button", { name: "Accept 90.00 USDC" }).click();
+  await expect(heading(page, "Sending your USDC")).toBeVisible();
+  await page.reload();
+  await expect(heading(page, "Sending your USDC")).toBeVisible();
+  chain.advance!.holdLedger = false;
+  await expect(heading(page, "Advance received")).toBeVisible();
+  // Landed and shown: a later visit starts over at 2a.
+  await page.reload();
+  await expect(heading(page, "See how much you can get")).toBeVisible();
+});
+
 test("a high revenue is capped at 100 USDC and says so", async ({ page }) => {
   await connect(page, { account: true, trustline: true }, { "forepay.mock.revenue": "1240.00" });
   await proveToOffer(page);
