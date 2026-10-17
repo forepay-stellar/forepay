@@ -374,3 +374,13 @@ test("a repayment not confirmed in two minutes stays held and watched, then land
   await expect(transactions.getByText("Pending")).toHaveCount(0);
   expect(chain.contract?.sent).toHaveLength(1);
 });
+
+test("an amount with more than two decimals is shown as it is sent (S4)", async ({ page }) => {
+  const ledger = frameLedger();
+  const chain = await open(page, "/repayment", ledger);
+  await amount(page).fill("12.509");
+  await expect(form(page).getByText("Left after this").locator("..")).toContainText("47.491 USDC");
+  await page.getByRole("button", { name: "Repay 12.509 USDC" }).click();
+  await expect(page.getByText("12.509 USDC repaid", { exact: true })).toBeVisible();
+  expect(chain.contract?.sent?.map((c) => c.args[2])).toEqual([125_090_000n]);
+});

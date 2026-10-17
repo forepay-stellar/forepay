@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatLedgerTime, formatUsd, formatUsdc, formatWindow, formatXlmFee, parseUsdc, shortAddress, usdcParts } from "./format";
+import { formatLedgerTime, formatUsd, formatUsdc, formatUsdcExact, formatWindow, formatXlmFee, parseUsdc, shortAddress, usdcParts } from "./format";
 
 describe("shortAddress", () => {
   it("keeps the first and last four characters, as the wallet chip shows them", () => {
@@ -71,5 +71,14 @@ describe("formatXlmFee", () => {
     expect(formatXlmFee(100_000n)).toBe("Up to 0.01 XLM");
     expect(formatXlmFee(312_345n)).toBe("Up to 0.04 XLM");
     expect(formatXlmFee(12_000_001n)).toBe("Up to 1.21 XLM");
+  });
+});
+
+describe("formatUsdcExact", () => {
+  it("shows every decimal an amount has, and at least two", () => {
+    expect(formatUsdcExact(125_090_000n)).toBe("12.509 USDC");
+    expect(formatUsdcExact(300_000_000n)).toBe("30.00 USDC");
+    expect(formatUsdcExact(1n)).toBe("0.0000001 USDC");
+    expect(formatUsdcExact(12_345_678_900_000n)).toBe("1,234,567.89 USDC");
   });
 });

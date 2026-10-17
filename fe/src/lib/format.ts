@@ -27,6 +27,20 @@ export function formatUsdc(stroops: bigint): string {
   return `${whole}${decimals} USDC`;
 }
 
+/**
+ * `12.509 USDC`: the exact amount, for what a creator signs. Two decimals at least, and every further
+ * one the amount has (USDC has 7), so the figure on a button or in the wallet dialog is never a
+ * rounded-down version of what is sent (#21 review S4).
+ */
+export function formatUsdcExact(stroops: bigint): string {
+  const negative = stroops < 0n;
+  const abs = negative ? -stroops : stroops;
+  const whole = (abs / STROOPS_PER_USDC).toLocaleString("en-US");
+  let decimals = (abs % STROOPS_PER_USDC).toString().padStart(7, "0").replace(/0+$/, "");
+  if (decimals.length < 2) decimals = decimals.padEnd(2, "0");
+  return `${negative ? "-" : ""}${whole}.${decimals} USDC`;
+}
+
 /** Whole USDC, as a user typed it, to stroops. Up to 7 decimals. Null when it is not a plain amount. */
 export function parseUsdc(input: string): bigint | null {
   const m = /^(\d+)(?:\.(\d{1,7}))?$/.exec(input.trim());

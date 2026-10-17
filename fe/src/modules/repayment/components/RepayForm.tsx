@@ -2,7 +2,7 @@ import type { Ref } from "react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import type { FailureCopy } from "@/lib/errors";
-import { formatUsdc } from "@/lib/format";
+import { formatUsdc, formatUsdcExact } from "@/lib/format";
 import { amountDisplay, type AmountCheck, type Chip } from "../model";
 import { Alert } from "@/components/ui/Alert";
 
@@ -59,15 +59,16 @@ export function RepayForm({
   const invalid = check.kind === "overOutstanding" || check.kind === "overBalance";
   const lit = !invalid && (check.kind === "ok" || chip !== null);
 
-  let after = formatUsdc(left);
-  if (check.kind === "ok") after = formatUsdc(left - check.amount);
-  if (check.kind === "overOutstanding") after = `Only ${formatUsdc(left)} left`;
+  // What is signed is shown exactly, never rounded down to the cent (review S4).
+  let after = formatUsdcExact(left);
+  if (check.kind === "ok") after = formatUsdcExact(left - check.amount);
+  if (check.kind === "overOutstanding") after = `Only ${formatUsdcExact(left)} left`;
   if (check.kind === "overBalance") after = "Not enough USDC in wallet";
 
   let action = "Enter an amount";
   if (settled) action = "Nothing left to repay";
-  else if (check.kind === "ok") action = `Repay ${formatUsdc(check.amount)}`;
-  else if (check.kind === "overOutstanding") action = `Repay ${formatUsdc(left)} instead`;
+  else if (check.kind === "ok") action = `Repay ${formatUsdcExact(check.amount)}`;
+  else if (check.kind === "overOutstanding") action = `Repay ${formatUsdcExact(left)} instead`;
   else if (check.kind === "overBalance") action = "Add USDC to your wallet";
 
   return (
