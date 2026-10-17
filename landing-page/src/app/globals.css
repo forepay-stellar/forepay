@@ -47,3 +47,26 @@ body {
 .menu-bottom {
   animation: menu-fade 260ms ease-out 320ms both;
 }
+
+/* Hero: the still image hands over to the 3D scene once its first frames are drawn. */
+[data-hero-stage] > img,
+[data-hero-stage] canvas,
+[data-hero-stage] .hero-live-only {
+  transition: opacity 400ms ease-out;
+}
+[data-hero-stage][data-live] > img,
+[data-hero-stage]:not([data-live]) canvas,
+[data-hero-stage]:not([data-live]) .hero-live-only {
+  opacity: 0;
+}
+
+/* Hero words fade up 16 px on load, before the canvas loads, so text never waits for 3D. */
+@keyframes hero-word-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+.hero-word-in {
+  animation: hero-word-in 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}

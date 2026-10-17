@@ -20,6 +20,19 @@ export function usePrefersReducedMotion(): boolean {
   );
 }
 
+// True while the media query matches. False on the server.
+export function useMediaQuery(query: string): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      const list = window.matchMedia(query);
+      list.addEventListener("change", onChange);
+      return () => list.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia(query).matches,
+    () => false,
+  );
+}
+
 // The 3D hero runs only with WebGL and without reduced motion. Otherwise the still image
 // exported from forepay.pen stays in its place. Phones get a simpler scene, not no scene.
 export function canRender3D(env: { reducedMotion: boolean; webgl: boolean }): boolean {

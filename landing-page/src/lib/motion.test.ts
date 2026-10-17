@@ -29,3 +29,17 @@ describe("usePrefersReducedMotion", () => {
     expect(renderHook(() => usePrefersReducedMotion()).result.current).toBe(false);
   });
 });
+
+describe("useMediaQuery", () => {
+  it("reports whether the query matches", async () => {
+    const { useMediaQuery } = await import("./motion");
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: query === "(min-width: 1024px)",
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+    expect(renderHook(() => useMediaQuery("(min-width: 1024px)")).result.current).toBe(true);
+    expect(renderHook(() => useMediaQuery("(max-width: 1023.98px)")).result.current).toBe(false);
+  });
+});
