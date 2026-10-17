@@ -74,13 +74,19 @@ const CATCH_UP_MAX_MS = 15_000;
 const CATCH_UP_LIMIT_MS = 120_000;
 /** How long to rest before asking Stellar again about a repayment it has not confirmed. */
 const REWATCH_MS = 5_000;
-/** Slack past a transaction's time limit before calling it gone, for clocks that disagree. */
-const EXPIRY_GRACE_S = 60;
-
-/** A repayment past its time limit that no ledger has seen: it never went out, so nothing was charged. */
+/** A repayment the ledger says is past its time limit and not there: it never went out, so nothing was charged. */
 const neverLanded: FailureCopy = {
   title: "The repayment did not go through",
   body: "Nothing was charged. Try again in a moment.",
+};
+
+/**
+ * Said while Stellar gives no answer about a repayment already sent. It may have landed, so this never
+ * says nothing was charged, and the repayment stays held and watched.
+ */
+const cannotReach: FailureCopy = {
+  title: "We could not reach Stellar",
+  body: "Your repayment was sent. We keep checking, and the balance updates here once it lands.",
 };
 
 /** Said while the API is more than CATCH_UP_LIMIT_MS behind a repayment Stellar has confirmed. */
@@ -112,18 +118,27 @@ function RepaymentScreen({ address }: { address: string }) {
       while (alive) {
         try {
           await awaitRepay(watching.hash);
-          if (alive && markLanded(watching.hash)) notify(`${formatUsdc(watching.amount)} repaid`);
+          if (!alive) return;
+          setWatchFailure(null);
+          if (markLanded(watching.hash)) notify(`${formatUsdc(watching.amount)} repaid`);
           return;
         } catch (e) {
           if (!alive) return;
           if (stillOpen(e)) {
-            // Past its time limit and still not on a ledger, it never will be (review: B3 held forever).
-            if (watching.validUntil && Date.now() / 1000 > watching.validUntil + EXPIRY_GRACE_S) {
-              clearInflight(watching.hash);
-              setWatchFailure(neverLanded);
-              void queryClient.invalidateQueries({ queryKey: usdcBalanceKey(address) });
-              return;
+            const err = e as TransactionFailedError;
+            // "Never" is the ledger's word alone: it answered "not found" from a ledger that closed after
+            // the transaction's time limit, so no ledger can take it now (review: B3 held forever). A
+            // node that does not answer says nothing either way: held and watched, never "nothing
+            // was charged". The browser's clock is not asked; it may be off.
+            if (!err.noAnswer && err.ledgerTime !== undefined && watching.validUntil !== undefined) {
+              if (err.ledgerTime > watching.validUntil) {
+                clearInflight(watching.hash);
+                setWatchFailure(neverLanded);
+                void queryClient.invalidateQueries({ queryKey: usdcBalanceKey(address) });
+                return;
+              }
             }
+            setWatchFailure(err.noAnswer ? cannotReach : null);
             await new Promise((r) => setTimeout(r, REWATCH_MS));
             continue;
           }

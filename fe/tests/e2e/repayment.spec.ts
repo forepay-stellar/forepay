@@ -419,7 +419,9 @@ test("a repayment that never reached Stellar is let go once it is past its time 
   await expect(form(page).getByRole("alert")).toContainText("not confirmed yet");
   await expect(page.getByRole("button", { name: "Waiting for Stellar" })).toBeDisabled();
 
-  // Built with a 180 s limit: well past it, no ledger has it, and none ever will.
+  // Built with a 180 s limit. The ledger's clock, not the browser's, says when that has passed: once a
+  // "not found" comes from a ledger closed after it, none ever will have it.
+  chain.ledgerAheadS = 600;
   await tick(page, 260);
   await expect(form(page).getByRole("alert")).toContainText("The repayment did not go through");
   await expect(form(page).getByRole("alert")).toContainText("Nothing was charged");
@@ -466,4 +468,31 @@ test("a repayment being sent is waited on once, not by the screen and the page b
   await page.waitForTimeout(8000);
   // About one a second from one waiter (about 8); two would make it about 14.
   expect(polls - start).toBeLessThanOrEqual(10);
+});
+
+test("a repayment the network took is never called uncharged while Stellar does not answer", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.clock.install();
+  const ledger = frameLedger();
+  const chain = await open(page, "/repayment", ledger, { contract: { holdLedger: true } });
+  await page.getByRole("button", { name: "50%" }).click();
+  await page.getByRole("button", { name: "Repay 30.00 USDC" }).click();
+  const transactions = page.getByRole("region", { name: "Transactions" });
+  await expect(transactions.getByText("Pending")).toBeVisible();
+
+  // The network has it; then the node stops answering, well past the transaction's time limit.
+  chain.contract!.dropPolls = true;
+  await tick(page, 400);
+  await expect(form(page).getByRole("alert")).toContainText("We could not reach Stellar");
+  await expect(page.getByText("Nothing was charged")).toHaveCount(0);
+  await expect(transactions.getByText("Pending")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Waiting for Stellar" })).toBeDisabled();
+
+  // The node is back, and the repayment had landed.
+  chain.contract!.dropPolls = false;
+  chain.contract!.holdLedger = false;
+  await tick(page, 10);
+  await expect(card(page)).toContainText("60.00 of 90.00 USDC repaid");
+  await expect(form(page).getByRole("alert")).toHaveCount(0);
+  expect(chain.contract?.sent).toHaveLength(1);
 });

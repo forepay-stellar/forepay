@@ -79,6 +79,16 @@ describe("waitFor", () => {
     });
   });
 
+  it("carries the ledger's close time with a not found, so a time limit is judged on its clock", async () => {
+    const answer = { status: rpc.Api.GetTransactionStatus.NOT_FOUND, latestLedgerCloseTime: "1792000000" };
+    const node = { pollTransaction: vi.fn(async () => answer) } as unknown as rpc.Server;
+    await expect(waitFor(node, HASH, 5)).rejects.toMatchObject({
+      outcome: "unconfirmed",
+      noAnswer: false,
+      ledgerTime: 1_792_000_000,
+    });
+  });
+
   it("tells a node that did not answer from a ledger that said not yet", async () => {
     const down = {
       pollTransaction: vi.fn(async () => {

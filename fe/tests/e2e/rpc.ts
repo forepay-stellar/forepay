@@ -26,6 +26,11 @@ export type Chain = {
   trustline: boolean;
   /** Answer every call with a server error instead. */
   down?: boolean;
+  /**
+   * How far the ledger's clock is ahead of now, in seconds, as NOT_FOUND answers report it
+   * (`latestLedgerCloseTime`). Set it past a transaction's time limit to say "that one can never land".
+   */
+  ledgerAheadS?: number;
   /** How a submitted changeTrust ends: lands (default), refused before the ledger, or failed on it. */
   send?: "ok" | "refused" | "failed";
   /** How the advance contract answers (#20). Leave it out and it accepts every proof. */
@@ -50,6 +55,8 @@ export type ContractStub = {
   holdLedger?: boolean;
   /** The send never reaches the node: no answer to it (503), and the call is never taken. */
   dropSend?: boolean;
+  /** The node stops answering polls for the sent call (503), whatever happened to it. */
+  dropPolls?: boolean;
   /** Called once a `repay` lands, with its amount in stroops and its hash. */
   onRepaid?: (amount: bigint, hash: string) => void;
   /** The method and arguments of every call that reached the ledger, for assertions. */
@@ -222,7 +229,7 @@ export async function mockRpc(page: Page, chain: Chain) {
   const notFound = () => ({
     status: "NOT_FOUND",
     latestLedger: 101,
-    latestLedgerCloseTime: "0",
+    latestLedgerCloseTime: String(Math.floor(Date.now() / 1000) + (chain.ledgerAheadS ?? 0)),
     oldestLedger: 1,
     oldestLedgerCloseTime: "0",
   });
@@ -377,6 +384,7 @@ export async function mockRpc(page: Page, chain: Chain) {
           });
         }
         let failed = chain.send === "failed";
+        if (other && chain.contract?.dropPolls) return route.fulfill({ status: 503, body: "unavailable" });
         // A contract call the network never took (refused, or not sent yet) is not on any ledger.
         if (other && chain.contract && !taken.has(body.params.hash as string)) return reply(notFound());
         if (other && chain.contract && body.params.hash === otherHash) {

@@ -17,11 +17,17 @@ export class SubmitError extends Error {
   outcome: SubmitOutcome;
   /** No answer at all, as opposed to a ledger that answered "not yet": the network may be the trouble. */
   noAnswer: boolean;
-  constructor(message: string, outcome: SubmitOutcome, noAnswer = false) {
+  /**
+   * For "not yet": the close time (s) of the latest ledger the node had when it answered. Compared with
+   * a transaction's time limit, it tells "not yet" from "never": only the ledger's own clock can.
+   */
+  ledgerTime?: number;
+  constructor(message: string, outcome: SubmitOutcome, noAnswer = false, ledgerTime?: number) {
     super(message);
     this.name = "SubmitError";
     this.outcome = outcome;
     this.noAnswer = noAnswer;
+    this.ledgerTime = ledgerTime;
   }
 }
 
@@ -74,5 +80,11 @@ export async function waitFor(server: rpc.Server, hash: string, attempts: number
   if (result.status === rpc.Api.GetTransactionStatus.FAILED) {
     throw new SubmitError("The transaction failed on the ledger", "failed");
   }
-  throw new SubmitError(`The transaction was not confirmed (${result.status})`, "unconfirmed");
+  const closed = Number(result.latestLedgerCloseTime);
+  throw new SubmitError(
+    `The transaction was not confirmed (${result.status})`,
+    "unconfirmed",
+    false,
+    closed > 0 ? closed : undefined,
+  );
 }
