@@ -15,12 +15,11 @@ const MARK = 112;
 type Variant = { id: string; name: string; note: string };
 
 const VARIANTS: Variant[] = [
-  { id: "A", name: "Fly to nav", note: "The first one, for comparison" },
-  { id: "A1", name: "Flood", note: "The mark grows until its orange fills the screen, then the page opens from the middle" },
-  { id: "A2", name: "Tide", note: "The cover ebbs upward with a wavy edge" },
-  { id: "A3", name: "Into the wallet", note: "The mark settles into the hero coin above the wallet" },
-  { id: "A4", name: "Ripple", note: "The mark pulses, rings spread, the page opens with the first ring" },
-  { id: "A5", name: "Split", note: "Cover and mark split, the top half rises, the bottom half falls" },
+  { id: "F1", name: "Classic", note: "The flood from before: the page opens from the middle" },
+  { id: "F2", name: "Drain", note: "The orange drains away downward with a wavy edge" },
+  { id: "F3", name: "Dive", note: "Dive into a cream wave until the screen is cream, which is the page" },
+  { id: "F4", name: "Message", note: "Paid early. appears on the orange, then the page opens" },
+  { id: "F5", name: "Soft", note: "A feathered opening, the hero eases back as it appears" },
 ];
 
 const WAVE_D = (y: number) => `M-2 ${y}c4.5-3 8.5-3 12.5 0 4 3 8 3 12 0 4-3 8-3 11.5 0`;
@@ -51,23 +50,27 @@ function WaveMark({ size }: { size: number }) {
   );
 }
 
-// A wavy edge for the tide: one period every 160 px, long enough to slide sideways.
-function TideEdge() {
+// A wavy edge: one period every 160 px, long enough to slide sideways. Below its sheet by
+// default; flipped, it sits on top.
+function TideEdge({ color = "#F3EEE8", flip = false }: { color?: string; flip?: boolean }) {
   const period = 160;
   const count = 40;
   let d = "M0 0 L0 30";
   for (let i = 0; i < count; i++) d += ` q${period / 4} 24 ${period / 2} 0 t${period / 2} 0`;
   d += ` L${period * count} 0 Z`;
   return (
-    <svg
-      className="intro-tide absolute top-full left-0 h-[54px]"
-      width={period * count}
-      viewBox={`0 0 ${period * count} 54`}
-      preserveAspectRatio="none"
-      aria-hidden
-    >
-      <path d={d} fill="#F3EEE8" />
-    </svg>
+    // The flip sits on a wrapper: the sliding animation owns the svg's own transform.
+    <div className={`absolute left-0 h-[54px] ${flip ? "bottom-full -scale-y-100" : "top-full"}`}>
+      <svg
+        className="intro-tide h-full"
+        width={period * count}
+        viewBox={`0 0 ${period * count} 54`}
+        preserveAspectRatio="none"
+        aria-hidden
+      >
+        <path d={d} fill={color} />
+      </svg>
+    </div>
   );
 }
 
@@ -76,7 +79,7 @@ function visible<T extends HTMLElement>(selector: string) {
 }
 
 // The hero words slide in from their sides and the scene rises, as the intro hands over.
-function heroIn(at: number) {
+function heroIn(at: number, zoom = false) {
   const anims: Animation[] = [];
   visible<HTMLElement>("[data-hero-word] > span").forEach((w, i) =>
     anims.push(
@@ -92,7 +95,7 @@ function heroIn(at: number) {
   const stage = visible<HTMLElement>("[data-hero-stage]")[0];
   if (stage)
     anims.push(
-      stage.animate([{ opacity: 0, transform: "translateY(24px) scale(0.96)" }, { opacity: 1, transform: "none" }], {
+      stage.animate([{ opacity: 0, transform: zoom ? "scale(1.06)" : "translateY(24px) scale(0.96)" }, { opacity: 1, transform: "none" }], {
         duration: 800,
         delay: at,
         easing: EASE_OUT,
@@ -121,9 +124,14 @@ function registerIris() {
 }
 
 const IRIS_MASK = "radial-gradient(circle at 50% 50%, #0000 var(--iris), #000 calc(var(--iris) + 1px))";
+const SOFT_IRIS_MASK = "radial-gradient(circle at 50% 50%, #0000 var(--iris), #000 calc(var(--iris) + 180px))";
+
+// The point where the first wave starts its second crest, on the stroke itself: (10.5, 18.5)
+// in the mark's 32 × 32 box. Diving in around it fills the screen with the wave's cream.
+const WAVE_POINT = `${(10.5 / 32) * 100}% ${(18.5 / 32) * 100}%`;
 
 export function IntroLab() {
-  const [variant, setVariant] = useState("A1");
+  const [variant, setVariant] = useState("F1");
   const [run, setRun] = useState(0);
   const [playing, setPlaying] = useState(true);
   const root = useRef<HTMLDivElement>(null);
@@ -144,154 +152,90 @@ export function IntroLab() {
     marks.forEach((m) => add(settle(m)));
     const mark = marks[0];
 
-    if (variant === "A") {
-      const logo = visible<HTMLElement>("header a[aria-label]")[0];
-      const from = mark.getBoundingClientRect();
-      const to = logo?.getBoundingClientRect();
-      if (to) {
-        const dx = to.left + to.height / 2 - (from.left + from.width / 2);
-        const dy = to.top + to.height / 2 - (from.top + from.height / 2);
-        add(
-          mark.animate(
-            [
-              { transform: "none", opacity: 1 },
-              { transform: `translate(${dx}px, ${dy}px) scale(${to.height / from.height})`, opacity: 0 },
-            ],
-            { duration: 600, delay: HAND_OVER + 30, easing: EASE_IN_OUT, fill: "forwards" },
-          ),
-        );
-      }
-      add(r.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 450, delay: 900, easing: "ease", fill: "forwards" }));
-      add(heroIn(950));
-      done = 1400;
-    }
+    const cover = (Math.hypot(innerWidth, innerHeight) / MARK) * 1.15;
+    // Further still: the waves sit below the mark's centre, so at this size they pass below the
+    // screen and it is plain orange.
+    const pastWaves = Math.max(cover, (innerHeight / 2 / ((2.5 / 32) * MARK)) * 1.25);
+    // The flood: the mark grows past the corners of the screen, its waves become broad bands.
+    const flood = (duration: number, scale = cover) =>
+      mark.animate([{ transform: "scale(1)" }, { transform: `scale(${scale})` }], {
+        duration,
+        delay: HAND_OVER,
+        easing: EASE_IN_OUT,
+        fill: "forwards",
+      });
+    const iris = (at: number, duration: number, to = "120vmax") =>
+      r.animate([{ "--iris": "0px" }, { "--iris": to }], { duration, delay: at, easing: EASE_IN_OUT, fill: "forwards" });
+    // Instant switches, so one layer can take over from another mid intro.
+    const swap = (el: HTMLElement | null, at: number, from: number, to: number) =>
+      el?.animate([{ opacity: from }, { opacity: to }], { duration: 1, delay: at, fill: "both" });
 
-    if (variant === "A1") {
-      // The mark grows past the corners of the screen: its orange floods it and the waves
-      // become two broad cream bands. Then the page opens from the middle.
-      const cover = (Math.hypot(innerWidth, innerHeight) / MARK) * 1.15;
-      add(
-        mark.animate([{ transform: "scale(1)" }, { transform: `scale(${cover})` }], {
-          duration: 650,
-          delay: HAND_OVER,
-          easing: EASE_IN_OUT,
-          fill: "forwards",
-        }),
-      );
-      add(
-        r.animate([{ "--iris": "0px" }, { "--iris": "120vmax" }], {
-          duration: 650,
-          delay: HAND_OVER + 560,
-          easing: EASE_IN_OUT,
-          fill: "forwards",
-        }),
-      );
+    if (variant === "F1") {
+      add(flood(650), iris(HAND_OVER + 560, 650));
       add(heroIn(HAND_OVER + 620));
       done = 1550;
     }
 
-    if (variant === "A2") {
-      // The cover ebbs upward like a tide going out, its wavy edge sliding sideways.
-      const cover = q("[data-cover]");
-      add(
-        mark.animate([{ transform: "none" }, { transform: "translateY(-30px)", opacity: 0 }], {
-          duration: 450,
-          delay: HAND_OVER,
-          easing: EASE_OUT,
-          fill: "forwards",
-        }),
-      );
-      if (cover)
+    if (variant === "F2") {
+      // The flood grows past the waves until the screen is plain orange; then an identical orange
+      // sheet with a wavy top takes over, invisibly, and drains down.
+      const sheet = q("[data-sheet]");
+      const full = HAND_OVER + 620;
+      add(flood(620, pastWaves), swap(q("[data-bg]"), full, 1, 0), swap(sheet, full, 0, 1), swap(mark, full + 1, 1, 0));
+      if (sheet)
         add(
-          cover.animate([{ transform: "translateY(0)" }, { transform: "translateY(calc(-100% - 60px))" }], {
+          sheet.animate([{ transform: "translateY(0)" }, { transform: "translateY(calc(100% + 60px))" }], {
             duration: 800,
-            delay: HAND_OVER + 80,
+            delay: full + 40,
             easing: EASE_IN_OUT,
             fill: "forwards",
           }),
         );
-      add(heroIn(HAND_OVER + 380));
-      done = 1600;
+      add(heroIn(full + 200));
+      done = 1650;
     }
 
-    if (variant === "A3") {
-      // The mark becomes the hero coin: it travels to the coin above the wallet and settles
-      // there as the scene appears around it.
-      const stage = visible<HTMLElement>("[data-hero-stage]")[0];
-      const from = mark.getBoundingClientRect();
-      if (stage) {
-        const s = stage.getBoundingClientRect();
-        const coinX = s.left + s.width * (306 / 616);
-        const coinY = s.top + s.height * (148 / 640);
-        const scale = (s.width * (156 / 616)) / from.width;
-        const dx = coinX - (from.left + from.width / 2);
-        const dy = coinY - (from.top + from.height / 2);
-        add(
-          mark.animate(
-            [
-              { transform: "none", opacity: 1 },
-              { transform: `translate(${dx}px, ${dy}px) scale(${scale})`, opacity: 1, offset: 0.85 },
-              { transform: `translate(${dx}px, ${dy}px) scale(${scale})`, opacity: 0 },
-            ],
-            { duration: 800, delay: HAND_OVER, easing: EASE_IN_OUT, fill: "forwards" },
-          ),
-        );
-      }
-      const bg = q("[data-bg]");
-      if (bg)
-        add(bg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, delay: HAND_OVER + 150, easing: "ease", fill: "forwards" }));
-      add(heroIn(HAND_OVER + 250));
-      done = 1550;
-    }
-
-    if (variant === "A4") {
-      // A small pulse, then rings spread from the mark; the page opens with the first ring.
+    if (variant === "F3") {
+      // Dive into the first wave: the cream stroke grows around a point on itself until it
+      // covers the screen. The cream is the page's own canvas colour, so the cover just leaves.
+      mark.style.transformOrigin = WAVE_POINT;
       add(
-        mark.animate([{ transform: "scale(1)" }, { transform: "scale(0.92)", offset: 0.4 }, { transform: "scale(1.04)" }], {
-          duration: 320,
-          delay: HAND_OVER - 60,
-          easing: EASE_OUT,
+        mark.animate([{ transform: "scale(1)" }, { transform: "scale(420)" }], {
+          duration: 900,
+          delay: HAND_OVER,
+          easing: "cubic-bezier(0.7, 0, 0.84, 0)",
+          fill: "forwards",
         }),
       );
-      r.querySelectorAll<HTMLElement>("[data-ring]").forEach((ring, i) =>
+      add(swap(q("[data-bg]"), HAND_OVER + 900, 1, 0), swap(mark, HAND_OVER + 901, 1, 0));
+      add(heroIn(HAND_OVER + 860, true));
+      done = 1700;
+    }
+
+    if (variant === "F4") {
+      // The flood carries the message: Paid early. rises in cream on the orange, then the page opens.
+      const words = q("[data-message]");
+      // Grow past the waves, so the message stands on plain orange.
+      add(flood(620, pastWaves));
+      if (words)
         add(
-          ring.animate([{ transform: "scale(1)", opacity: 0.55 }, { transform: "scale(14)", opacity: 0 }], {
-            duration: 1000,
-            delay: HAND_OVER + 120 + i * 140,
+          words.animate([{ opacity: 0, transform: "translateY(30px)" }, { opacity: 1, transform: "none" }], {
+            duration: 450,
+            delay: HAND_OVER + 480,
             easing: EASE_OUT,
             fill: "both",
           }),
-        ),
-      );
-      add(
-        r.animate([{ "--iris": "0px" }, { "--iris": "120vmax" }], {
-          duration: 900,
-          delay: HAND_OVER + 160,
-          easing: EASE_OUT,
-          fill: "forwards",
-        }),
-      );
-      add(
-        mark.animate([{ opacity: 1, transform: "scale(1.04)" }, { opacity: 0, transform: "scale(0.9)" }], {
-          duration: 300,
-          delay: HAND_OVER + 260,
-          easing: EASE_OUT,
-          fill: "forwards",
-        }),
-      );
-      add(heroIn(HAND_OVER + 260));
-      done = 1550;
+        );
+      add(iris(HAND_OVER + 1050, 650));
+      add(heroIn(HAND_OVER + 1100));
+      done = 2000;
     }
 
-    if (variant === "A5") {
-      // Cover and mark split along the middle: the top half rises, the bottom half falls.
-      const top = q("[data-half='top']");
-      const bottom = q("[data-half='bottom']");
-      const split = { duration: 750, delay: HAND_OVER + 60, easing: EASE_IN_OUT, fill: "forwards" as const };
-      if (top) add(top.animate([{ transform: "none" }, { transform: "translateY(-55%)" }], split));
-      if (bottom) add(bottom.animate([{ transform: "none" }, { transform: "translateY(55%)" }], split));
-      add(heroIn(HAND_OVER + 300));
-      done = 1550;
+    if (variant === "F5") {
+      // As F1, but the opening has a wide feathered edge and the hero eases back into place.
+      add(flood(650), iris(HAND_OVER + 520, 800, "140vmax"));
+      add(heroIn(HAND_OVER + 560, true));
+      done = 1650;
     }
 
     const end = window.setTimeout(() => setPlaying(false), done);
@@ -327,36 +271,31 @@ export function IntroLab() {
         ref={root}
         aria-hidden
         className={`fixed inset-0 z-[60] overflow-hidden ${playing ? "" : "pointer-events-none"}`}
-        style={variant === "A1" || variant === "A4" ? { maskImage: IRIS_MASK, WebkitMaskImage: IRIS_MASK } : undefined}
+        style={
+          variant === "F1" || variant === "F4"
+            ? { maskImage: IRIS_MASK, WebkitMaskImage: IRIS_MASK }
+            : variant === "F5"
+              ? { maskImage: SOFT_IRIS_MASK, WebkitMaskImage: SOFT_IRIS_MASK }
+              : undefined
+        }
       >
-        {variant === "A2" ? (
-          <div data-cover className="absolute inset-0 grid place-items-center bg-canvas">
-            {markEl}
-            <TideEdge />
+        <div data-bg className="absolute inset-0 bg-canvas" />
+        {variant === "F2" && (
+          <div data-sheet className="absolute inset-0 bg-brand opacity-0">
+            <TideEdge color="#F2620F" flip />
           </div>
-        ) : variant === "A5" ? (
-          (["top", "bottom"] as const).map((half) => (
-            <div
-              key={half}
-              data-half={half}
-              className="absolute inset-0 grid place-items-center bg-canvas"
-              style={{ clipPath: half === "top" ? "inset(0 0 50% 0)" : "inset(50% 0 0 0)" }}
-            >
-              {markEl}
-            </div>
-          ))
-        ) : (
-          <>
-            <div data-bg className="absolute inset-0 bg-canvas" />
-            <div className="absolute inset-0 grid place-items-center">
-              {variant === "A4" &&
-                [0, 1, 2].map((i) => (
-                  <span key={i} data-ring className="absolute size-28 rounded-full border-2 border-brand opacity-0" />
-                ))}
-              {markEl}
-            </div>
-          </>
         )}
+        <div className="absolute inset-0 grid place-items-center">
+          {markEl}
+          {variant === "F4" && (
+            <p
+              data-message
+              className="absolute text-[min(16vw,230px)] leading-[0.9] font-semibold tracking-[-0.048em] whitespace-nowrap text-cream opacity-0"
+            >
+              Paid early.
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="fixed bottom-5 left-1/2 z-[70] flex max-w-[calc(100vw-24px)] -translate-x-1/2 items-center gap-1 rounded-pill bg-fg/90 p-1.5 text-sm text-white shadow-nav backdrop-blur">
