@@ -381,12 +381,19 @@ test("a repayment not confirmed in two minutes stays held and watched, then land
   expect(chain.contract?.sent).toHaveLength(1);
 });
 
-test("an amount with more than two decimals is shown as it is sent (S4)", async ({ page }) => {
+test("an amount with more than two decimals is shown as it is sent, everywhere (S4)", async ({ page }) => {
   const ledger = frameLedger();
-  const chain = await open(page, "/repayment", ledger);
+  const chain = await open(page, "/repayment", ledger, { contract: { holdLedger: true } });
   await amount(page).fill("12.509");
   await expect(form(page).getByText("Left after this").locator("..")).toContainText("47.491 USDC");
   await page.getByRole("button", { name: "Repay 12.509 USDC" }).click();
+  const transactions = page.getByRole("region", { name: "Transactions" });
+  await expect(transactions.getByText("−12.509 USDC")).toBeVisible();
+  chain.contract!.holdLedger = false;
   await expect(page.getByText("12.509 USDC repaid", { exact: true })).toBeVisible();
+  // The card and the row read back from the API carry the same decimals.
+  await expect(card(page)).toContainText("47.491");
+  await expect(card(page)).toContainText("42.509 of 90.00 USDC repaid");
+  await expect(transactions.getByText("−12.509 USDC")).toBeVisible();
   expect(chain.contract?.sent?.map((c) => c.args[2])).toEqual([125_090_000n]);
 });

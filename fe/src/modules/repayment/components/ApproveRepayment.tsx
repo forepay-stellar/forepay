@@ -4,7 +4,7 @@ import { PenLine } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogSlot } from "@/components/ui/Dialog";
 import { Spinner } from "@/components/ui/Spinner";
-import { formatUsdcExact } from "@/lib/format";
+import { formatUsdc } from "@/lib/format";
 import { useDesktop } from "@/lib/useDesktop";
 
 // "3a Approve repayment": the wallet window is open, and the amount is repeated so the creator can
@@ -27,8 +27,8 @@ export function ApproveRepayment({
   const desktop = useDesktop();
   const name = walletName ?? "Your wallet";
   const rows = [
-    { label: "You repay", value: formatUsdcExact(amount) },
-    { label: "Left after this", value: formatUsdcExact(after) },
+    { label: "You repay", value: formatUsdc(amount) },
+    { label: "Left after this", value: formatUsdc(after) },
   ];
   const cancel = (
     <Button variant="outline" className="w-full" onClick={onCancel}>

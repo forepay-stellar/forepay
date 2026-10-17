@@ -4,7 +4,6 @@ import {
   formatUsd,
   formatUsdCents,
   formatUsdc,
-  formatUsdcExact,
   formatWindow,
   formatXlmFee,
   parseUsdc,
@@ -25,8 +24,9 @@ describe("usdcParts and formatUsdc", () => {
     expect(formatUsdc(1_000_000_000n)).toBe("100.00 USDC");
   });
 
-  it("rounds down to the cent", () => {
-    expect(usdcParts(1_999_999n)).toEqual({ whole: "0", decimals: ".19" });
+  it("never rounds: every decimal the amount has, two at least", () => {
+    expect(usdcParts(1_999_999n)).toEqual({ whole: "0", decimals: ".1999999" });
+    expect(usdcParts(125_090_000n)).toEqual({ whole: "12", decimals: ".509" });
   });
 });
 
@@ -85,12 +85,12 @@ describe("formatXlmFee", () => {
   });
 });
 
-describe("formatUsdcExact", () => {
+describe("formatUsdc", () => {
   it("shows every decimal an amount has, and at least two", () => {
-    expect(formatUsdcExact(125_090_000n)).toBe("12.509 USDC");
-    expect(formatUsdcExact(300_000_000n)).toBe("30.00 USDC");
-    expect(formatUsdcExact(1n)).toBe("0.0000001 USDC");
-    expect(formatUsdcExact(12_345_678_900_000n)).toBe("1,234,567.89 USDC");
+    expect(formatUsdc(125_090_000n)).toBe("12.509 USDC");
+    expect(formatUsdc(300_000_000n)).toBe("30.00 USDC");
+    expect(formatUsdc(1n)).toBe("0.0000001 USDC");
+    expect(formatUsdc(12_345_678_900_000n)).toBe("1,234,567.89 USDC");
   });
 });
 

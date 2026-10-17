@@ -8,37 +8,24 @@ export function shortAddress(address: string): string {
 const STROOPS_PER_USDC = 10_000_000n;
 
 /**
- * A stroop amount split the way the design shows money: whole part solid, two decimals faded
- * (`300` + `.00`). Rounds down to the cent, so the screen never shows more than the ledger holds.
- * Thousands are grouped: `1,240`.
+ * A stroop amount split the way the design shows money: whole part solid, decimals faded (`300` +
+ * `.00`). Two decimals at least, and every further one the amount has (USDC has 7): a figure is never a
+ * rounded version of what the ledger holds or what a creator signs, so `12.509` stays `12.509`
+ * (#21 review S4). Thousands are grouped: `1,240`.
  */
 export function usdcParts(stroops: bigint): { whole: string; decimals: string } {
-  const negative = stroops < 0n;
-  const abs = negative ? -stroops : stroops;
-  const cents = abs / 100_000n;
-  const whole = (cents / 100n).toLocaleString("en-US");
-  const decimals = `.${(cents % 100n).toString().padStart(2, "0")}`;
-  return { whole: negative ? `-${whole}` : whole, decimals };
-}
-
-/** `300.00 USDC`, for places that show the figure as one string. */
-export function formatUsdc(stroops: bigint): string {
-  const { whole, decimals } = usdcParts(stroops);
-  return `${whole}${decimals} USDC`;
-}
-
-/**
- * `12.509 USDC`: the exact amount, for what a creator signs. Two decimals at least, and every further
- * one the amount has (USDC has 7), so the figure on a button or in the wallet dialog is never a
- * rounded-down version of what is sent (#21 review S4).
- */
-export function formatUsdcExact(stroops: bigint): string {
   const negative = stroops < 0n;
   const abs = negative ? -stroops : stroops;
   const whole = (abs / STROOPS_PER_USDC).toLocaleString("en-US");
   let decimals = (abs % STROOPS_PER_USDC).toString().padStart(7, "0").replace(/0+$/, "");
   if (decimals.length < 2) decimals = decimals.padEnd(2, "0");
-  return `${negative ? "-" : ""}${whole}.${decimals} USDC`;
+  return { whole: negative ? `-${whole}` : whole, decimals: `.${decimals}` };
+}
+
+/** `300.00 USDC`, `12.509 USDC`: for places that show the figure as one string. */
+export function formatUsdc(stroops: bigint): string {
+  const { whole, decimals } = usdcParts(stroops);
+  return `${whole}${decimals} USDC`;
 }
 
 /** Whole USDC, as a user typed it, to stroops. Up to 7 decimals. Null when it is not a plain amount. */

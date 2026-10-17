@@ -18,7 +18,7 @@ import {
 } from "@/lib/api/queries";
 import type { AdvanceSummary, LedgerTransaction } from "@/lib/api/types";
 import { isSignatureDeclined, type FailureCopy } from "@/lib/errors";
-import { formatUsdcExact } from "@/lib/format";
+import { formatUsdc } from "@/lib/format";
 import { latestRows, outstanding, percentRepaid, pickAdvance, type Row } from "@/lib/ledger";
 import { TransactionFailedError, awaitRepay, repay } from "@/lib/stellar/contract";
 import { explorerAccountUrl, explorerContractUrl, explorerTxUrl } from "@/lib/stellar/network";
@@ -94,7 +94,7 @@ function RepaymentScreen({ address }: { address: string }) {
       while (alive) {
         try {
           await awaitRepay(watching.hash);
-          if (alive && markLanded(watching.hash)) notify(`${formatUsdcExact(watching.amount)} repaid`);
+          if (alive && markLanded(watching.hash)) notify(`${formatUsdc(watching.amount)} repaid`);
           return;
         } catch (e) {
           if (!alive) return;
@@ -289,7 +289,7 @@ function Ledger({
           setDialogOpen(false);
         }
       }, remember);
-      if (markLanded(hash)) notify(`${formatUsdcExact(amount)} repaid`);
+      if (markLanded(hash)) notify(`${formatUsdc(amount)} repaid`);
       setInput("");
       setChip(null);
     } catch (e) {
