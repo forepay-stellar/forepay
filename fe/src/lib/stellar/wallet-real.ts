@@ -1,4 +1,10 @@
-import { Networks, StellarWalletsKit, closeEvent, moduleSelectedEvent } from "@creit.tech/stellar-wallets-kit";
+import {
+  Networks,
+  StellarWalletsKit,
+  addressUpdatedEvent,
+  closeEvent,
+  moduleSelectedEvent,
+} from "@creit.tech/stellar-wallets-kit";
 import { FREIGHTER_ID, FreighterModule } from "@creit.tech/stellar-wallets-kit/modules/freighter";
 import { RABET_ID, RabetModule } from "@creit.tech/stellar-wallets-kit/modules/rabet";
 import {
@@ -257,21 +263,42 @@ export async function connect({
     }
     const kit = getKit();
     const container = mountPicker ? await mountPicker() : undefined;
+    // The kit has a gap: it shows its wallet list at once, but only listens for its close event and for
+    // the wallet's answer once it has checked every wallet, up to a second later. A cancel or an approval
+    // in that gap would go unheard and leave the page waiting. So this call listens itself, from before
+    // the list appears, and takes the kit's own promise only for its close button.
+    //
+    // The answer event is shared by every picker ever opened, so an answer counts only after a wallet
+    // was pressed in this one, and only from that wallet: a popup left open from an attempt that was
+    // cancelled must not connect a different wallet than the one the creator just chose.
+    let pickedId: string | null = null;
     // moduleSelectedEvent fires each time the picker's row is pressed, the wallet already selected
     // included, and never on subscribe. kit.on(WALLET_SELECTED) is no good here: it is a signals effect
     // that runs once on subscribe with last time's wallet, and not at all when the same wallet is
     // picked again, which is the usual case (Freighter is selected by default).
-    const unsubscribe = moduleSelectedEvent.subscribe((picked) => {
-      if ("name" in picked) onWalletSelected?.({ name: picked.name, icon: picked.icon });
+    const unsubscribePick = moduleSelectedEvent.subscribe((picked) => {
+      if (!("name" in picked)) return;
+      pickedId = picked.id;
+      onWalletSelected?.({ name: picked.name, icon: picked.icon });
     });
-    // The kit only listens for its close event once it has checked every wallet, up to two seconds
-    // without Freighter, while its list is already on screen. A cancel in that gap would go unheard and
-    // leave the connection hanging, so a cancel also ends this call directly.
+    let unsubscribeAnswer = () => {};
+    const answered = new Promise<string>((resolve, reject) => {
+      unsubscribeAnswer = addressUpdatedEvent.subscribe((answer) => {
+        if (pickedId === null || kit.selectedModule.productId !== pickedId) return;
+        if (typeof answer === "string") resolve(answer);
+        else reject(answer);
+      });
+    });
     const cancelled = new Promise<never>((_, reject) => {
       cancelPending = () => reject({ code: USER_CLOSED_MODAL, message: "The user closed the modal." });
     });
+    // Only the kit's close button is taken from its own promise; its answers are read above.
+    const closedByKit = kit.authModal(container ? { container } : undefined).then(
+      () => new Promise<never>(() => {}),
+      (e: unknown) => (toWalletError(e).code === USER_CLOSED_MODAL ? Promise.reject(e) : new Promise<never>(() => {})),
+    );
     try {
-      const { address } = await Promise.race([kit.authModal(container ? { container } : undefined), cancelled]);
+      const address = await Promise.race([answered, cancelled, closedByKit]);
       const id = getWalletId();
       try {
         window.localStorage.setItem(WALLET_ID_KEY, id);
@@ -281,7 +308,10 @@ export async function connect({
       return { address, name: getWalletName(), id };
     } finally {
       cancelPending = null;
-      unsubscribe();
+      unsubscribePick();
+      unsubscribeAnswer();
+      // Have the kit take down its list if it never heard the answer itself. Harmless if it did.
+      closeEvent.next();
     }
   } catch (e) {
     throw toWalletError(e);
