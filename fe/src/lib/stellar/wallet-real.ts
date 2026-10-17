@@ -1,4 +1,4 @@
-import { Networks, StellarWalletsKit, moduleSelectedEvent } from "@creit.tech/stellar-wallets-kit";
+import { Networks, StellarWalletsKit, closeEvent, moduleSelectedEvent } from "@creit.tech/stellar-wallets-kit";
 import { FREIGHTER_ID, FreighterModule } from "@creit.tech/stellar-wallets-kit/modules/freighter";
 import { RABET_ID, RabetModule } from "@creit.tech/stellar-wallets-kit/modules/rabet";
 import {
@@ -12,7 +12,8 @@ import { mainnet } from "@reown/appkit/networks";
 import { FeeBumpTransaction, TransactionBuilder } from "@stellar/stellar-sdk";
 import { UniversalProvider } from "@walletconnect/universal-provider";
 import { anyBrowserWallet } from "./wallet-detect";
-import { isUnsupportedCall, toWalletError } from "./wallet-error";
+import { USER_CLOSED_MODAL, isUnsupportedCall, toWalletError } from "./wallet-error";
+import type { ConnectHooks } from "./wallet-picker";
 
 // Ported from Sorosense `frontend/lib/wallet-real.ts`.
 //
@@ -34,6 +35,9 @@ const WC_TESTNET = "stellar:testnet";
 type StellarWindow = Window &
   typeof globalThis & { stellar?: { provider?: string; platform?: string }; xBullSDK?: unknown };
 type WcProvider = Awaited<ReturnType<typeof UniversalProvider.init>>;
+
+/** Rejects the `connect()` in progress as closed, set while one is. */
+let cancelPending: (() => void) | null = null;
 
 let mobileWc: { provider: WcProvider; modal: AppKit; address?: string } | null = null;
 
@@ -237,27 +241,37 @@ export async function hasWallet(): Promise<boolean> {
 }
 
 /**
- * Open the picker and connect. `onWalletSelected` fires once the creator picks a wallet, before that
- * wallet asks for permission, so the page can say "Waiting for Freighter".
+ * Open the picker and connect. The kit renders its wallet list into the element `mountPicker` gives,
+ * inside the page's own dialog, so that dialog can turn into "Waiting for Freighter" once a wallet is
+ * pressed: the kit's own modal shows nothing while a wallet asks. `onWalletSelected` fires on each
+ * press, before that wallet asks for permission.
  */
-export async function connect(
-  onWalletSelected?: (name: string) => void,
-): Promise<{ address: string; name: string; id: string }> {
+export async function connect({
+  mountPicker,
+  onWalletSelected,
+}: ConnectHooks = {}): Promise<{ address: string; name: string; id: string }> {
   try {
     if (viaMobileWalletConnect()) {
-      onWalletSelected?.("Freighter");
+      onWalletSelected?.({ name: "Freighter" });
       return await connectMobileWalletConnect();
     }
     const kit = getKit();
+    const container = mountPicker ? await mountPicker() : undefined;
     // moduleSelectedEvent fires each time the picker's row is pressed, the wallet already selected
     // included, and never on subscribe. kit.on(WALLET_SELECTED) is no good here: it is a signals effect
     // that runs once on subscribe with last time's wallet, and not at all when the same wallet is
     // picked again, which is the usual case (Freighter is selected by default).
     const unsubscribe = moduleSelectedEvent.subscribe((picked) => {
-      if ("name" in picked) onWalletSelected?.(picked.name);
+      if ("name" in picked) onWalletSelected?.({ name: picked.name, icon: picked.icon });
+    });
+    // The kit only listens for its close event once it has checked every wallet, up to two seconds
+    // without Freighter, while its list is already on screen. A cancel in that gap would go unheard and
+    // leave the connection hanging, so a cancel also ends this call directly.
+    const cancelled = new Promise<never>((_, reject) => {
+      cancelPending = () => reject({ code: USER_CLOSED_MODAL, message: "The user closed the modal." });
     });
     try {
-      const { address } = await kit.authModal();
+      const { address } = await Promise.race([kit.authModal(container ? { container } : undefined), cancelled]);
       const id = getWalletId();
       try {
         window.localStorage.setItem(WALLET_ID_KEY, id);
@@ -266,11 +280,22 @@ export async function connect(
       }
       return { address, name: getWalletName(), id };
     } finally {
+      cancelPending = null;
       unsubscribe();
     }
   } catch (e) {
     throw toWalletError(e);
   }
+}
+
+/**
+ * Stop a pending `connect()`: it rejects with code -1 ("The user closed the modal"), as the kit's own
+ * close button does, so the page treats it as a choice. The kit hears its close event too and removes
+ * its list.
+ */
+export function cancelConnect(): void {
+  closeEvent.next();
+  cancelPending?.();
 }
 
 /**

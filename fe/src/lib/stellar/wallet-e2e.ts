@@ -1,4 +1,5 @@
-import { WalletError } from "./wallet-error";
+import { USER_CLOSED_MODAL, WalletError } from "./wallet-error";
+import type { ConnectHooks } from "./wallet-picker";
 
 /**
  * The wallet layer Playwright drives (ported from Sorosense). A browser extension cannot be automated
@@ -49,11 +50,64 @@ export async function hasWallet(): Promise<boolean> {
   return scenario() !== "no-wallet";
 }
 
-export async function connect(
-  onWalletSelected?: (name: string) => void,
-): Promise<{ address: string; name: string; id: string }> {
-  const name = walletName();
-  onWalletSelected?.(name);
+/** The names the stub picker lists, the configured wallet first. */
+const PICKER_WALLETS = ["Freighter", "xBull", "Rabet"];
+
+/** How long the wallet takes to answer once picked, so a spec can see "Waiting for …". */
+const APPROVE_MS_KEY = "forepay.e2e.approveMs";
+
+let cancelPending: (() => void) | null = null;
+
+/**
+ * Like the real picker: list the wallets in the page's dialog and wait for a press. The press names the
+ * wallet, then the wallet "asks" for `forepay.e2e.approveMs` (0 by default) before it answers.
+ */
+async function pick(hooks: ConnectHooks): Promise<string> {
+  const container = await hooks.mountPicker?.();
+  return new Promise<string>((resolve, reject) => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const done = () => {
+      clearTimeout(timer);
+      cancelPending = null;
+      container?.replaceChildren();
+    };
+    cancelPending = () => {
+      done();
+      reject(new WalletError("The user closed the modal.", USER_CLOSED_MODAL));
+    };
+    if (!container) {
+      hooks.onWalletSelected?.({ name: walletName() });
+      return resolve(walletName());
+    }
+    // Shaped like the kit's card (a full-width white list with roomy rows), so a spec meets the
+    // layout the real picker has and not a few bare buttons in a corner.
+    const list = document.createElement("ul");
+    list.style.cssText = "width:100%;display:grid;gap:8px;padding:56px 8px 48px;background:#fff;border-radius:22px";
+    const names = [walletName(), ...PICKER_WALLETS.filter((n) => n !== walletName())];
+    for (const name of names) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = name;
+      button.style.cssText = "width:100%;height:48px;text-align:left;padding:0 16px";
+      button.onclick = () => {
+        hooks.onWalletSelected?.({ name });
+        list.remove();
+        const wait = Number(window.localStorage.getItem(APPROVE_MS_KEY) ?? 0);
+        timer = setTimeout(() => {
+          done();
+          resolve(name);
+        }, wait);
+      };
+      const item = document.createElement("li");
+      item.append(button);
+      list.append(item);
+    }
+    container.append(list);
+  });
+}
+
+export async function connect(hooks: ConnectHooks = {}): Promise<{ address: string; name: string; id: string }> {
+  const name = await pick(hooks);
   // The same shapes Freighter rejects with, through the kit (see lib/errors.ts).
   if (scenario() === "declined") throw new WalletError("The user rejected this request.", -4);
   if (scenario() === "locked") {
@@ -62,6 +116,10 @@ export async function connect(
   if (scenario() === "broken") throw new WalletError("Unhandled error from the wallet");
   window.localStorage.setItem(CONNECTED_KEY, "1");
   return { address: E2E_ADDRESS, name, id: E2E_WALLET_ID };
+}
+
+export async function cancelConnect(): Promise<void> {
+  cancelPending?.();
 }
 
 export async function getAddress(): Promise<string> {

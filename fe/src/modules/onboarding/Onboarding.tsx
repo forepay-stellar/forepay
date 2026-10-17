@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { WalletChip } from "@/components/elements/WalletChip";
 import { notify } from "@/components/ui/Toaster";
 import {
@@ -23,6 +23,7 @@ import { CheckingWallet } from "./components/CheckingWallet";
 import { ConnectFailurePanel } from "./components/ConnectFailurePanel";
 import { ConnectWallet } from "./components/ConnectWallet";
 import { ConnectedFailurePanel } from "./components/ConnectedFailurePanel";
+import { WalletPickerDialog } from "./components/WalletPickerDialog";
 import { useUsdcStatus } from "./hooks/useUsdcStatus";
 
 const TRUSTLINE_FAILURE = {
@@ -64,7 +65,28 @@ export function Onboarding() {
   // Not connected: which step, and what went wrong connecting.
   const [view, setView] = useState<"before" | "connect">("before");
   const [connecting, setConnecting] = useState(false);
-  const [waitingFor, setWaitingFor] = useState<string | null>(null);
+  // The picker dialog, and the wallet pressed in it, which it then shows as "Waiting for …".
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [waitingFor, setWaitingFor] = useState<wallet.PickedWallet | null>(null);
+  // `connect()` asks for the element the kit renders its wallet list into. It exists only once the
+  // dialog has opened and mounted, so the request waits for the ref.
+  const pickerEl = useRef<HTMLDivElement | null>(null);
+  const pickerWaiter = useRef<((el: HTMLDivElement) => void) | null>(null);
+  const pickerRef = useCallback((el: HTMLDivElement | null) => {
+    pickerEl.current = el;
+    if (el && pickerWaiter.current) {
+      pickerWaiter.current(el);
+      pickerWaiter.current = null;
+    }
+  }, []);
+  const mountPicker = useCallback(
+    () =>
+      new Promise<HTMLElement>((resolve) => {
+        pickerWaiter.current = resolve;
+        setPickerOpen(true);
+      }),
+    [],
+  );
   const [connectFailure, setConnectFailure] = useState<ConnectFailure | null>(null);
   const [failedWallet, setFailedWallet] = useState("Freighter");
 
@@ -98,9 +120,12 @@ export function Onboarding() {
         setConnectFailure("notFound");
         return;
       }
-      const session = await wallet.connect((name) => {
-        setFailedWallet(name);
-        setWaitingFor(name);
+      const session = await wallet.connect({
+        mountPicker,
+        onWalletSelected: (picked) => {
+          setFailedWallet(picked.name);
+          setWaitingFor(picked);
+        },
       });
       // A wallet that cannot report its network (xBull, Rabet, WalletConnect) is not refused for it.
       const network = await wallet.getNetworkPassphrase();
@@ -114,7 +139,9 @@ export function Onboarding() {
       setConnectFailure(classifyConnectError(e));
     } finally {
       setConnecting(false);
+      setPickerOpen(false);
       setWaitingFor(null);
+      pickerWaiter.current = null;
     }
   }
 
@@ -257,5 +284,15 @@ export function Onboarding() {
 
   if (view === "before") return <BeforeYouStart onStart={() => setView("connect")} />;
 
-  return <ConnectWallet onBack={back} onConnect={handleConnect} connecting={connecting} waitingFor={waitingFor} />;
+  return (
+    <>
+      <ConnectWallet onBack={back} onConnect={handleConnect} connecting={connecting} />
+      <WalletPickerDialog
+        open={pickerOpen}
+        waitingFor={waitingFor}
+        pickerRef={pickerRef}
+        onCancel={() => void wallet.cancelConnect()}
+      />
+    </>
+  );
 }

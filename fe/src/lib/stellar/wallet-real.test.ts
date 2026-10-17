@@ -14,6 +14,7 @@ const kit = vi.hoisted(() => ({
   selectedModule: {} as Record<string, unknown>,
 }));
 const picks = vi.hoisted(() => ({ listeners: [] as ((p: object) => void)[] }));
+const closes = vi.hoisted(() => ({ count: 0 }));
 const available = vi.hoisted(() => ({
   freighter: (): Promise<boolean> => Promise.resolve(false),
   rabet: (): Promise<boolean> => Promise.resolve(false),
@@ -22,6 +23,7 @@ const available = vi.hoisted(() => ({
 vi.mock("@creit.tech/stellar-wallets-kit", () => ({
   Networks: { TESTNET: "Test SDF Network ; September 2015" },
   StellarWalletsKit: kit,
+  closeEvent: { next: () => closes.count++ },
   moduleSelectedEvent: {
     subscribe: (fn: (p: object) => void) => {
       picks.listeners.push(fn);
@@ -68,6 +70,7 @@ beforeEach(() => {
   }
   kit.selectedModule = { productId: "freighter", productName: "Freighter" };
   picks.listeners = [];
+  closes.count = 0;
   available.freighter = () => Promise.resolve(false);
   available.rabet = () => Promise.resolve(false);
   window.localStorage.clear();
@@ -108,19 +111,23 @@ describe("hasWallet", () => {
 
 describe("connect", () => {
   it("names each wallet the creator picks, and nothing on opening the picker", async () => {
-    const named: string[] = [];
+    const named: unknown[] = [];
     let resolveModal: (v: { address: string }) => void = () => {};
     kit.authModal.mockImplementation(() => new Promise((resolve) => (resolveModal = resolve)));
     const { connect } = await load();
-    const session = connect((name) => named.push(name));
+    const session = connect({ onWalletSelected: (w) => named.push(w) });
+    await Promise.resolve();
     expect(named).toEqual([]);
     // The selected wallet picked again still counts as a pick.
-    for (const l of picks.listeners) l({ name: "Freighter" });
-    for (const l of picks.listeners) l({ name: "xBull" });
+    for (const l of picks.listeners) l({ name: "Freighter", icon: "data:freighter" });
+    for (const l of picks.listeners) l({ name: "xBull", icon: "data:xbull" });
     kit.selectedModule = { productId: "xbull", productName: "xBull" };
     resolveModal({ address: "GABC" });
     expect(await session).toEqual({ address: "GABC", name: "xBull", id: "xbull" });
-    expect(named).toEqual(["Freighter", "xBull"]);
+    expect(named).toEqual([
+      { name: "Freighter", icon: "data:freighter" },
+      { name: "xBull", icon: "data:xbull" },
+    ]);
     expect(picks.listeners).toHaveLength(0);
     expect(window.localStorage.getItem("forepay.wallet.id")).toBe("xbull");
   });
@@ -128,7 +135,37 @@ describe("connect", () => {
   it("stops listening when the picker is closed", async () => {
     kit.authModal.mockRejectedValue({ code: -1, message: "The user closed the modal." });
     const { connect } = await load();
-    await expect(connect(() => {})).rejects.toMatchObject({ name: "WalletError", code: -1 });
+    await expect(connect({ onWalletSelected: () => {} })).rejects.toMatchObject({ name: "WalletError", code: -1 });
+    expect(picks.listeners).toHaveLength(0);
+  });
+
+  it("renders the picker into the page's own element when the page gives one", async () => {
+    kit.authModal.mockResolvedValue({ address: "GABC" });
+    const container = document.createElement("div");
+    const { connect } = await load();
+    await connect({ mountPicker: async () => container });
+    expect(kit.authModal).toHaveBeenCalledWith({ container });
+  });
+
+  it("opens the kit's own modal when the page gives no element", async () => {
+    kit.authModal.mockResolvedValue({ address: "GABC" });
+    await (await load()).connect();
+    expect(kit.authModal).toHaveBeenCalledWith(undefined);
+  });
+
+  it("cancels through the kit's close event, the same path as its close button", async () => {
+    (await load()).cancelConnect();
+    expect(closes.count).toBe(1);
+  });
+
+  it("ends the connection on cancel even before the kit listens for it", async () => {
+    // The kit is still checking wallets: its close event goes unheard and its promise never settles.
+    kit.authModal.mockImplementation(() => new Promise(() => {}));
+    const { connect, cancelConnect } = await load();
+    const session = connect({ mountPicker: async () => document.createElement("div") });
+    await new Promise((r) => setTimeout(r, 0));
+    cancelConnect();
+    await expect(session).rejects.toMatchObject({ name: "WalletError", code: -1 });
     expect(picks.listeners).toHaveLength(0);
   });
 });

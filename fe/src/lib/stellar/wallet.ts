@@ -1,6 +1,8 @@
 import * as e2e from "./wallet-e2e";
+import type { ConnectHooks } from "./wallet-picker";
 
 export { WalletError, USER_CLOSED_MODAL } from "./wallet-error";
+export type { ConnectHooks, PickedWallet } from "./wallet-picker";
 
 /**
  * Next inlines NEXT_PUBLIC_* at build time, so in a production build this reads `"" === "1"` and every
@@ -22,8 +24,13 @@ export async function hasWallet(): Promise<boolean> {
   return E2E ? e2e.hasWallet() : (await real()).hasWallet();
 }
 
-export async function connect(onWalletSelected?: (name: string) => void): Promise<Session> {
-  return E2E ? e2e.connect(onWalletSelected) : (await real()).connect(onWalletSelected);
+export async function connect(hooks: ConnectHooks = {}): Promise<Session> {
+  return E2E ? e2e.connect(hooks) : (await real()).connect(hooks);
+}
+
+/** Close the picker or stop waiting for the wallet: the pending `connect()` rejects as closed. */
+export async function cancelConnect(): Promise<void> {
+  return E2E ? e2e.cancelConnect() : (await real()).cancelConnect();
 }
 
 export async function getAddress(): Promise<string> {

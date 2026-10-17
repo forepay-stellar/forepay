@@ -3,10 +3,14 @@ import { mockRpc, type Chain } from "./rpc";
 
 // #19: connect, the USDC trustline check, disconnect and reload, with the test wallet.
 
-async function connectFromStart(page: Page) {
+const picker = (page: Page) => page.getByRole("dialog", { name: "Connect wallet" });
+
+/** Get started, Connect wallet, then the configured wallet: the first row of the picker. */
+async function connectFromStart(page: Page, { pick = true } = {}) {
   await page.goto("/start");
   await page.getByRole("button", { name: "Get started" }).click();
   await page.getByRole("button", { name: "Connect wallet" }).click();
+  if (pick) await picker(page).getByRole("button").first().click();
 }
 
 test("a wallet without USDC is asked to allow it, then moves on", async ({ page }) => {
@@ -88,7 +92,7 @@ for (const f of failures) {
   test(`connecting can fail with "${f.heading}"`, async ({ page }) => {
     await mockRpc(page, { account: true, trustline: false });
     await page.addInitScript((s) => window.localStorage.setItem("forepay.e2e.scenario", s), f.scenario);
-    await connectFromStart(page);
+    await connectFromStart(page, { pick: f.scenario !== "no-wallet" });
     await expect(page.getByRole("heading", { name: f.heading })).toBeVisible();
     await expect(page.getByRole(f.role, { name: f.action })).toBeVisible();
     // A failed connect never leaves a half-saved session behind.
@@ -280,4 +284,44 @@ test("the stepper stays centred on desktop once the wallet chip shows", async ({
   const narrow = await page.getByRole("list", { name: "Onboarding progress" }).boundingBox();
   expect(narrow?.width).toBeGreaterThan(200);
   expect((narrow?.x ?? 0) + (narrow?.width ?? 0) / 2).toBeCloseTo(512, 0);
+});
+
+test("the picker opens in a dialog, then waits on the picked wallet by name", async ({ page }) => {
+  await mockRpc(page, { account: true, trustline: false });
+  await page.addInitScript(() => window.localStorage.setItem("forepay.e2e.approveMs", "1500"));
+  await connectFromStart(page, { pick: false });
+  await expect(picker(page).getByRole("button", { name: "Freighter" })).toBeVisible();
+  await picker(page).getByRole("button", { name: "xBull" }).click();
+
+  const waiting = page.getByRole("dialog", { name: "Waiting for xBull" });
+  await expect(waiting.getByRole("heading", { name: "Waiting for xBull" })).toBeVisible();
+  await expect(waiting.getByText("Approve the connection in the xBull window.")).toBeVisible();
+  await expect(waiting.getByRole("button", { name: "Cancel" })).toBeVisible();
+
+  // The wallet answers: the dialog closes and the session is on.
+  await expect(page.getByText("xBull connected").first()).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("Cancel while waiting stops the connection without an error", async ({ page }) => {
+  await mockRpc(page, { account: true, trustline: false });
+  await page.addInitScript(() => window.localStorage.setItem("forepay.e2e.approveMs", "60000"));
+  await connectFromStart(page);
+  await page.getByRole("dialog", { name: "Waiting for Freighter" }).getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Connect your wallet" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Connect wallet" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: /^Wallet / })).toHaveCount(0);
+});
+
+test("Escape closes the picker, and Connect wallet opens it again", async ({ page }) => {
+  await mockRpc(page, { account: true, trustline: false });
+  await connectFromStart(page, { pick: false });
+  await expect(picker(page)).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "You closed the wallet window" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Connect wallet" }).click();
+  await picker(page).getByRole("button").first().click();
+  await expect(page.getByText("Freighter connected").first()).toBeVisible();
 });
