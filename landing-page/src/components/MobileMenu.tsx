@@ -2,6 +2,7 @@
 
 import { ArrowUpRight, FlaskConical, X } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { lockScroll } from "@/lib/scroll";
 import { landing } from "@/content/landing";
 import { APP_URL } from "@/lib/env";
 import { Mark } from "./brand/Logo";
@@ -14,15 +15,14 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
 
   useEffect(() => {
     if (!open) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const unlock = lockScroll();
     firstLink.current?.focus();
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
     document.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = previous;
+      unlock();
       document.removeEventListener("keydown", onKey);
     };
   }, [open, onClose]);

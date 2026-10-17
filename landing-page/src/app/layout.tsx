@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { SmoothScroll } from "@/components/SmoothScroll";
+import "lenis/dist/lenis.css";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -21,7 +23,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-      <body className="min-h-dvh bg-canvas text-fg">{children}</body>
+      <body className="min-h-dvh bg-canvas text-fg">
+        <SmoothScroll />
+        {children}
+      </body>
     </html>
   );
 }

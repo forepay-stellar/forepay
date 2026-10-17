@@ -1,8 +1,10 @@
 @import "tailwindcss";
 @import "./tokens.css";
 
+/* Anchor jumps land below the sticky nav. Lenis takes the same offset in SmoothScroll. */
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 72px;
 }
 
 body {
