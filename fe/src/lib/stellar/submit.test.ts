@@ -41,6 +41,7 @@ describe("submitSigned", () => {
   it("reads a send with no answer as unconfirmed, and a wallet answer that is not a transaction as refused", async () => {
     await expect(submitSigned(server(new TypeError("fetch failed")), signed, { attempts: 5 })).rejects.toMatchObject({
       outcome: "unconfirmed",
+      noAnswer: true,
     });
     await expect(submitSigned(server("PENDING"), "not a transaction", { attempts: 5 })).rejects.toMatchObject({
       outcome: "refused",
@@ -55,6 +56,16 @@ describe("waitFor", () => {
     });
     await expect(waitFor(server("PENDING", rpc.Api.GetTransactionStatus.NOT_FOUND), HASH, 5)).rejects.toMatchObject({
       outcome: "unconfirmed",
+      noAnswer: false,
     });
+  });
+
+  it("tells a node that did not answer from a ledger that said not yet", async () => {
+    const down = {
+      pollTransaction: vi.fn(async () => {
+        throw new Error("Request failed with status code 503");
+      }),
+    } as unknown as rpc.Server;
+    await expect(waitFor(down, HASH, 5)).rejects.toMatchObject({ outcome: "unconfirmed", noAnswer: true });
   });
 });

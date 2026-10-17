@@ -15,10 +15,13 @@ export type SubmitOutcome = "refused" | "failed" | "unconfirmed";
 
 export class SubmitError extends Error {
   outcome: SubmitOutcome;
-  constructor(message: string, outcome: SubmitOutcome) {
+  /** No answer at all, as opposed to a ledger that answered "not yet": the network may be the trouble. */
+  noAnswer: boolean;
+  constructor(message: string, outcome: SubmitOutcome, noAnswer = false) {
     super(message);
     this.name = "SubmitError";
     this.outcome = outcome;
+    this.noAnswer = noAnswer;
   }
 }
 
@@ -45,7 +48,7 @@ export async function submitSigned(
   try {
     sent = await server.sendTransaction(signed);
   } catch {
-    throw new SubmitError("Sending got no answer", "unconfirmed");
+    throw new SubmitError("Sending got no answer", "unconfirmed", true);
   }
   if (sent.status === "ERROR" || sent.status === "TRY_AGAIN_LATER") {
     throw new SubmitError(`The network did not accept the transaction (${sent.status})`, "refused");
@@ -60,7 +63,7 @@ export async function waitFor(server: rpc.Server, hash: string, attempts: number
   try {
     result = await server.pollTransaction(hash, { attempts });
   } catch {
-    throw new SubmitError("Waiting for the ledger got no answer", "unconfirmed");
+    throw new SubmitError("Waiting for the ledger got no answer", "unconfirmed", true);
   }
   if (result.status === rpc.Api.GetTransactionStatus.SUCCESS) return { hash, result };
   if (result.status === rpc.Api.GetTransactionStatus.FAILED) {

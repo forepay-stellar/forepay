@@ -49,6 +49,8 @@ export type AdvanceChain = {
   acceptDelayMs?: number;
   /** While true, a sent `request_advance` is not on the ledger yet; set it false to let it land. */
   holdLedger?: boolean;
+  /** Answer this many polls for the sent `request_advance` with a server error, as a node that is down. */
+  dropPolls?: number;
   /** Set by the stub: how many `request_advance` transactions were sent. */
   sent?: number;
 };
@@ -259,6 +261,10 @@ export async function mockRpc(page: Page, chain: Chain) {
       case "getTransaction": {
         if (body.params.hash === ADVANCE_TX_HASH) {
           const adv = chain.advance ?? {};
+          if (adv.dropPolls) {
+            adv.dropPolls -= 1;
+            return route.fulfill({ status: 503, body: "unavailable" });
+          }
           if (adv.send === "pending" || adv.holdLedger) {
             return reply({
               status: "NOT_FOUND",

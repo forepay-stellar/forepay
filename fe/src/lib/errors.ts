@@ -224,6 +224,7 @@ export type ProveFailure =
   | "refused"
   | "charged"
   | "unconfirmed"
+  | "sentUnreachable"
   | "unreachable"
   | "unexpected"
   | "simulationFailed"
@@ -259,6 +260,13 @@ export function proveFailureCopy(kind: ProveFailure, walletName = "Freighter"): 
       return {
         title: "This took too long",
         body: "We stopped waiting. Check History before you try again. The same proof can never pay out twice.",
+      };
+    case "sentUnreachable":
+      // Coming back to an advance already sent, with no answer from Stellar. It was sent, so this does
+      // not say nothing was charged, and Try again waits on the same transaction: nothing is sent twice.
+      return {
+        title: "We could not reach Stellar",
+        body: "Your advance was already sent. Check your connection, then try again to see whether it landed.",
       };
     case "unreachable":
       return {

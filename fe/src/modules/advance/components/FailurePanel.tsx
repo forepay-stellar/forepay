@@ -168,6 +168,17 @@ export function FailurePanel({
         illustration = <IlloNothingCharged data-illo="nothing-charged" />;
         actions = back;
         break;
+      case "sentUnreachable":
+        illustration = <IlloConnectWallet data-illo="connect-wallet" />;
+        actions = (
+          <>
+            <Button onClick={a.onRetry}>Try again</Button>
+            <Link href="/history" className={button({ variant: "outline" })}>
+              Open History
+            </Link>
+          </>
+        );
+        break;
     }
   }
 
