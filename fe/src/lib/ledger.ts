@@ -1,5 +1,5 @@
 import type { AdvanceSummary, LedgerTransaction } from "@/lib/api/types";
-import { formatDate, usdcParts } from "@/lib/format";
+import { MONTH_NAMES, formatDate, formatUsdCents, usdcParts } from "@/lib/format";
 
 /**
  * What 3a Repayment and 3b All transactions read off an advance and its transactions (#21), kept out of
@@ -36,36 +36,6 @@ export function percentRepaid(advance: AdvanceSummary): number {
   return Number(p > 100n ? 100n : p);
 }
 
-/** `$360.00` from cents, with thousands grouped. */
-export function formatUsd(cents: bigint): string {
-  return `$${(cents / 100n).toLocaleString("en-US")}.${(cents % 100n).toString().padStart(2, "0")}`;
-}
-
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const MONTHS_LONG = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
-
-/** The attested window, `2026-07-01` and `2026-09-30` → `Jul to Sep 2026`. */
-export function windowLabel(start: string, end: string): string {
-  const [sy, sm] = start.split("-").map(Number);
-  const [ey, em] = end.split("-").map(Number);
-  if (!sy || !sm || !ey || !em) return `${start} to ${end}`;
-  if (sy === ey) return `${MONTHS[sm - 1]} to ${MONTHS[em - 1]} ${ey}`;
-  return `${MONTHS[sm - 1]} ${sy} to ${MONTHS[em - 1]} ${ey}`;
-}
-
 /**
  * "How it was sized" in Advance details. The rule is the contract's (`docs/interface.md` §5, 25% of the
  * proven revenue, capped). The screen only says which side of the cap this advance landed on, by
@@ -77,7 +47,7 @@ export function sizingLabel(advance: AdvanceSummary): string {
     const { whole, decimals } = usdcParts(advance.principal);
     return `Capped at ${whole}${decimals} USDC`;
   }
-  return `25% of ${formatUsd(advance.revenueCents)}`;
+  return `25% of ${formatUsdCents(advance.revenueCents)}`;
 }
 
 // ---- Transactions ----
@@ -138,7 +108,7 @@ export function groupByMonth(rows: Row[]): { month: string; rows: Row[] }[] {
   const groups: { month: string; rows: Row[] }[] = [];
   for (const row of rows) {
     const d = new Date(Number("at" in row ? row.at : 0n) * 1000);
-    const month = `${MONTHS_LONG[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+    const month = `${MONTH_NAMES[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
     const last = groups[groups.length - 1];
     if (last && last.month === month) last.rows.push(row);
     else groups.push({ month, rows: [row] });

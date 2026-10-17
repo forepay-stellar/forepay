@@ -9,7 +9,6 @@ import {
   pickAdvance,
   rowDate,
   sizingLabel,
-  windowLabel,
 } from "./ledger";
 
 const USDC = 10_000_000n;
@@ -58,9 +57,8 @@ describe("the advance on screen", () => {
     expect(outstanding(advance({ repaid: 90n * USDC }))).toBe(0n);
   });
 
-  it("names the window and how the advance was sized", () => {
-    expect(windowLabel("2026-07-01", "2026-09-30")).toBe("Jul to Sep 2026");
-    expect(windowLabel("2025-11-01", "2026-01-31")).toBe("Nov 2025 to Jan 2026");
+  // The window itself is formatWindow's (lib/format.ts), shared with 2b.
+  it("names how the advance was sized", () => {
     expect(sizingLabel(advance())).toBe("25% of $360.00");
     expect(sizingLabel(advance({ revenueCents: 124_000n, principal: 100n * USDC }))).toBe("Capped at 100.00 USDC");
   });

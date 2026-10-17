@@ -71,7 +71,13 @@ export function formatUsd(revenueUsd: string): string {
   return `$${whole}.${(m[2] ?? "").padEnd(2, "0")}`;
 }
 
-const MONTH_NAMES = [
+/** `$360.00` from cents, as the API gives proven revenue, with thousands grouped. */
+export function formatUsdCents(cents: bigint): string {
+  return `$${(cents / 100n).toLocaleString("en-US")}.${(cents % 100n).toString().padStart(2, "0")}`;
+}
+
+/** January to December, for a month written out (the offer sentence, the History month headings). */
+export const MONTH_NAMES = [
   "January",
   "February",
   "March",

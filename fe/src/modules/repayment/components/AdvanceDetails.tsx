@@ -1,8 +1,8 @@
 import { Check } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { AdvanceSummary } from "@/lib/api/types";
-import { formatLedgerTime, formatUsdc } from "@/lib/format";
-import { formatUsd, sizingLabel, windowLabel } from "@/lib/ledger";
+import { formatLedgerTime, formatUsdCents, formatUsdc, formatWindow } from "@/lib/format";
+import { sizingLabel } from "@/lib/ledger";
 import { explorerTxUrl } from "@/lib/stellar/network";
 
 // Advance details from "05 Product components": what was advanced, the proven revenue it was sized
@@ -10,7 +10,10 @@ import { explorerTxUrl } from "@/lib/stellar/network";
 export function AdvanceDetails({ advance, className }: { advance: AdvanceSummary; className?: string }) {
   const rows: { label: string; value: string }[] = [
     { label: "Advanced", value: formatUsdc(advance.principal) },
-    { label: `AdSense revenue, ${windowLabel(advance.windowStart, advance.windowEnd)}`, value: formatUsd(advance.revenueCents) },
+    {
+      label: `AdSense revenue, ${formatWindow(advance.windowStart, advance.windowEnd).short}`,
+      value: formatUsdCents(advance.revenueCents),
+    },
     { label: "How it was sized", value: sizingLabel(advance) },
     { label: "Received on", value: formatLedgerTime(advance.openedAt) },
   ];

@@ -1,6 +1,6 @@
 import { TransactionRow } from "@/components/elements/TransactionRow";
-import { formatUsdc } from "@/lib/format";
-import { formatUsd, rowDate, type Row } from "@/lib/ledger";
+import { formatUsdCents, formatUsdc } from "@/lib/format";
+import { rowDate, type Row } from "@/lib/ledger";
 import { explorerTxUrl } from "@/lib/stellar/network";
 
 // One line of 3a "Transactions" and 3b "All transactions", in the frames' words. Money leaving the
@@ -56,7 +56,7 @@ export function LedgerRow({ row }: { row: Row }) {
           title={{ text: "Revenue proof verified", short: "Proof verified" }}
           {...completed}
           date={rowDate(row.at)}
-          amount={{ text: `${formatUsd(row.revenueCents)} proven`, short: formatUsd(row.revenueCents) }}
+          amount={{ text: `${formatUsdCents(row.revenueCents)} proven`, short: formatUsdCents(row.revenueCents) }}
           amountTone="muted"
           receiptHref={explorerTxUrl(row.hash)}
         />

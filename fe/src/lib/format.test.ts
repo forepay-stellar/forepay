@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { formatLedgerTime, formatUsd, formatUsdc, formatUsdcExact, formatWindow, formatXlmFee, parseUsdc, shortAddress, usdcParts } from "./format";
+import {
+  formatLedgerTime,
+  formatUsd,
+  formatUsdCents,
+  formatUsdc,
+  formatUsdcExact,
+  formatWindow,
+  formatXlmFee,
+  parseUsdc,
+  shortAddress,
+  usdcParts,
+} from "./format";
 
 describe("shortAddress", () => {
   it("keeps the first and last four characters, as the wallet chip shows them", () => {
@@ -80,5 +91,12 @@ describe("formatUsdcExact", () => {
     expect(formatUsdcExact(300_000_000n)).toBe("30.00 USDC");
     expect(formatUsdcExact(1n)).toBe("0.0000001 USDC");
     expect(formatUsdcExact(12_345_678_900_000n)).toBe("1,234,567.89 USDC");
+  });
+});
+
+describe("formatUsdCents", () => {
+  it("reads the API's cents as dollars, grouped", () => {
+    expect(formatUsdCents(36_000n)).toBe("$360.00");
+    expect(formatUsdCents(124_000_05n)).toBe("$124,000.05");
   });
 });
