@@ -58,6 +58,8 @@ describe("proofStillGood", () => {
     expect(proofStillGood({ code: 41 })).toBe(true);
     expect(proofStillGood({ kind: "unconfirmed" })).toBe(false);
     expect(proofStillGood({ kind: "refused" })).toBe(true);
+    // Failed on the ledger: most likely the contract refusing there, so the offer is not trusted.
+    expect(proofStillGood({ kind: "charged" })).toBe(false);
     expect(proofStillGood({ kind: "unreachable" })).toBe(true);
   });
 });
