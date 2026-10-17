@@ -1,6 +1,7 @@
 import { Nav } from "@/components/Nav";
 import { Hero } from "@/sections/Hero";
 import { HowItWorks } from "@/sections/HowItWorks";
+import { TheMath } from "@/sections/TheMath";
 import { YourData } from "@/sections/YourData";
 
 export default function Home() {
@@ -11,6 +12,7 @@ export default function Home() {
         <Hero />
         <HowItWorks />
         <YourData />
+        <TheMath />
         <div className="h-[60vh]" />
       </main>
     </>
