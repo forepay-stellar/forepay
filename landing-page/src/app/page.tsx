@@ -1,5 +1,6 @@
 import { Nav } from "@/components/Nav";
 import { Hero } from "@/sections/Hero";
+import { HowItWorks } from "@/sections/HowItWorks";
 
 export default function Home() {
   return (
@@ -7,7 +8,8 @@ export default function Home() {
       <Nav />
       <main id="top">
         <Hero />
-        <div id="how-it-works" className="h-[100vh]" />
+        <HowItWorks />
+        <div className="h-[60vh]" />
       </main>
     </>
   );
