@@ -171,25 +171,35 @@ export function Advance() {
     if (id === attempt.current) await check(r, id);
   }
 
-  /** "Checking your proof": quote it, then run `request_advance` as a simulation, before any offer. */
+  /**
+   * "Checking your proof": quote it and run `request_advance` as a simulation, side by side, before any
+   * offer (review M10). The two do not depend on each other. When both fail, the quote's reason is the
+   * one shown, as when they ran in turn: a figure too small to quote is said as such.
+   */
   async function check(r: AdvanceRequest, id = attempt.current) {
     setFlow({ at: "checking", req: r });
     try {
-      const advance = await queryClient.fetchQuery({
-        queryKey: quoteKey(me, r.revenueUsd),
-        queryFn: () => quote(me, r.revenueUsd),
-        staleTime: Infinity,
-      });
+      const [quoted, checked] = await Promise.allSettled([
+        queryClient.fetchQuery({
+          queryKey: quoteKey(me, r.revenueUsd),
+          queryFn: () => quote(me, r.revenueUsd),
+          staleTime: Infinity,
+        }),
+        checkAdvance(me, r),
+      ]);
+      if (quoted.status === "rejected") throw quoted.reason;
+      if (checked.status === "rejected") throw checked.reason;
+      const advance = quoted.value;
       // At the limit, ask whether the limit cut it now, so 2b opens with the right sentence.
       const lower = centBelow(r.revenueUsd);
+      // prefetchQuery never throws: if this fails, 2b just claims neither sentence.
       if (advance === ADVANCE_CAP && lower !== null) {
-        void queryClient.prefetchQuery({
+        await queryClient.prefetchQuery({
           queryKey: quoteKey(me, lower),
           queryFn: () => quote(me, lower),
           staleTime: Infinity,
         });
       }
-      await checkAdvance(me, r);
       if (id === attempt.current) setFlow({ at: "offer", req: r });
     } catch (e) {
       if (id === attempt.current) setFlow({ at: "failed", failure: proveFailure(e, r.revenueUsd), req: r, during: "prove" });

@@ -40,7 +40,8 @@ test("prove, see the offer with its derivation, accept, and receive the USDC", a
   // Hold the check on Stellar long enough to see it.
   await page.route("https://rpc.e2e.invalid/**", async (route) => {
     const body = route.request().postDataJSON() as { method: string };
-    if (body.method === "simulateTransaction" && !chain.advance?.sent) await new Promise((r) => setTimeout(r, 400));
+    // The quote and the check now run side by side, so hold each long enough to see the screen.
+    if (body.method === "simulateTransaction" && !chain.advance?.sent) await new Promise((r) => setTimeout(r, 1000));
     await route.fallback();
   });
 

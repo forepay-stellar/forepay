@@ -21,9 +21,12 @@ export type UsdcStatus =
   /** The trustline exists. The advance can reach this wallet. */
   | "ready";
 
+let rpcServer: rpc.Server | null = null;
+
+/** One client for this module, built on first use (review M10). */
 function server() {
   if (!RPC_URL) throw new Error("NEXT_PUBLIC_STELLAR_RPC_URL is not set");
-  return new rpc.Server(RPC_URL);
+  return (rpcServer ??= new rpc.Server(RPC_URL));
 }
 
 function usdcAsset() {

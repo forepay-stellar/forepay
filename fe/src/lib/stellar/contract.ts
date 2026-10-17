@@ -77,9 +77,12 @@ export type OnChainAdvance = {
   openedAt: bigint;
 };
 
+let rpcServer: rpc.Server | null = null;
+
+/** One client for this module, built on first use, not once per call (review M10). */
 function server() {
   if (!RPC_URL) throw new MissingConfigError("NEXT_PUBLIC_STELLAR_RPC_URL");
-  return new rpc.Server(RPC_URL);
+  return (rpcServer ??= new rpc.Server(RPC_URL));
 }
 
 function contract() {
