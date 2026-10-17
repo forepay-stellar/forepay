@@ -70,3 +70,29 @@ body {
 .hero-word-in {
   animation: hero-word-in 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* Your data: two rows of faint words running in opposite directions, about 40 s a loop. */
+@keyframes marquee-x {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.marquee-left,
+.marquee-right {
+  display: inline-flex;
+  animation: marquee-x 40s linear infinite;
+  animation-play-state: paused;
+}
+.marquee-right {
+  animation-direction: reverse;
+}
+.marquee-left[data-running],
+.marquee-right[data-running] {
+  animation-play-state: running;
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-left,
+  .marquee-right {
+    animation: none;
+  }
+}
