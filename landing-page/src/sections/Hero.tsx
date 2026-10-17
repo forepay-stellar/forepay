@@ -6,43 +6,55 @@ import { HeroScene } from "./HeroScene";
 import { HeroWordsDrift } from "./HeroWordsDrift";
 
 // Landing / Desktop → Hero (1440 × 860) and Landing / Mobile → Hero (option C).
-// Desktop measures are the design's pixels, scaled down with the viewport below 1440
-// (min(Nvw, Npx)) so the words and the scene keep their composition at 1024.
+// Desktop measures are the design's pixels times --u (see below), so the composition holds from
+// 1024 wide up, and on short screens too.
+// The design's 20 × 34 px, 17 px buttons, in design pixels.
+const HERO_BUTTON = "px-[calc(var(--u)*34)] py-[calc(var(--u)*20)] text-[length:max(14px,calc(var(--u)*17))]";
+
 export function Hero() {
   const h = landing.hero;
   const giant = "font-semibold leading-[0.9] tracking-[-0.047em] text-fg";
 
   return (
     <section aria-labelledby="hero-title" className="relative mx-auto max-w-[1440px] overflow-hidden">
-      {/* Desktop */}
-      <div className="relative hidden h-[min(59.7vw,860px)] min-h-[700px] lg:block">
-        <h1 id="hero-title" className={`${giant} text-[min(12.5vw,180px)]`}>
-          <span data-hero-word="left" className="absolute top-[min(4.2vw,60px)] left-[min(5.6vw,80px)]">
+      {/* Desktop. --u is one design pixel: the design is 1440 × 860 under a 96 px nav, so the hero
+          scales with whichever is tighter, the width or the height left under the nav, and always
+          fits the first screen. Side gutters follow the width only, to line up with the nav. */}
+      <div
+        className="relative hidden h-[calc(var(--u)*860)] lg:block"
+        style={{ "--u": "max(0.68px, min(1px, calc(100vw / 1440), calc((100svh - 96px) / 860)))" } as React.CSSProperties}
+      >
+        <h1 id="hero-title" className={`${giant} text-[calc(var(--u)*180)]`}>
+          <span data-hero-word="left" className="absolute top-[calc(var(--u)*60)] left-[min(5.6vw,80px)]">
             <span className="hero-word-in inline-block">{h.wordLeft}</span>
           </span>{" "}
-          <span data-hero-word="right" className="absolute top-[min(32.6vw,470px)] right-[min(5.6vw,80px)]">
+          <span data-hero-word="right" className="absolute top-[calc(var(--u)*470)] right-[min(5.6vw,80px)]">
             <span className="hero-word-in inline-block [animation-delay:80ms]">{h.wordRight}</span>
           </span>
         </h1>
         <div
           data-hero-stage
-          className="absolute top-[min(4.2vw,60px)] left-1/2 aspect-[616/640] w-[min(42.8vw,616px)] -translate-x-1/2"
+          className="absolute top-[calc(var(--u)*60)] left-1/2 h-[calc(var(--u)*640)] w-[calc(var(--u)*616)] -translate-x-1/2"
         >
-          <Image src="/clay/hero-still.webp" alt="" fill priority sizes="(min-width: 1440px) 616px, 43vw" className="object-contain" />
+          <Image src="/clay/hero-still.webp" alt="" fill priority sizes="616px" className="object-contain" />
           <HeroScene media="(min-width: 1024px)" />
         </div>
-        <div className="absolute bottom-[min(6.1vw,88px)] left-[min(5.6vw,80px)] flex w-[min(30.5vw,440px)] flex-col gap-3.5">
-          <span className="text-[15px] font-medium text-brand-strong">{h.eyebrow}</span>
-          <p className="text-lg leading-normal text-fg-muted">{h.body}</p>
+        {/* The copy and buttons shrink with --u too, so on a short screen they never meet "Early";
+            floors keep the text readable. */}
+        <div className="absolute bottom-[calc(var(--u)*88)] left-[min(5.6vw,80px)] flex w-[min(30.5vw,440px)] flex-col gap-[calc(var(--u)*14)]">
+          <span className="text-[length:max(13px,calc(var(--u)*15))] font-medium text-brand-strong">{h.eyebrow}</span>
+          <p className="text-[length:max(15px,calc(var(--u)*18))] leading-normal text-fg-muted">{h.body}</p>
         </div>
-        <div className="absolute right-[min(5.6vw,80px)] bottom-[min(6.1vw,88px)] flex flex-col items-end gap-3.5">
-          <div className="flex gap-3">
-            <ButtonLink href={APP_URL}>{h.primary}</ButtonLink>
-            <ButtonLink href="#how-it-works" variant="outline" className="px-[30px]">
+        <div className="absolute right-[min(5.6vw,80px)] bottom-[calc(var(--u)*88)] flex flex-col items-end gap-[calc(var(--u)*14)]">
+          <div className="flex gap-[calc(var(--u)*12)]">
+            <ButtonLink href={APP_URL} className={HERO_BUTTON}>
+              {h.primary}
+            </ButtonLink>
+            <ButtonLink href="#how-it-works" variant="outline" className={`${HERO_BUTTON} px-[calc(var(--u)*30)]`}>
               {h.secondary}
             </ButtonLink>
           </div>
-          <span className="text-sm text-fg-subtle">{h.note}</span>
+          <span className="text-[length:max(12px,calc(var(--u)*14))] text-fg-subtle">{h.note}</span>
         </div>
       </div>
 
