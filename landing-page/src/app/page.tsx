@@ -1,4 +1,5 @@
 import { Nav } from "@/components/Nav";
+import { ClosingAndFooter } from "@/sections/ClosingAndFooter";
 import { FaqSection } from "@/sections/FaqSection";
 import { Hero } from "@/sections/Hero";
 import { HowItWorks } from "@/sections/HowItWorks";
@@ -15,8 +16,8 @@ export default function Home() {
         <YourData />
         <TheMath />
         <FaqSection />
-        <div className="h-[60vh]" />
       </main>
+      <ClosingAndFooter />
     </>
   );
 }
