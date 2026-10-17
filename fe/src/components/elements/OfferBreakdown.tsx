@@ -19,7 +19,7 @@ export function OfferBreakdown({
 }: {
   /** The proven figure, `$360.00`. */
   revenue: string;
-  /** `Jul to Sep 2026`. A phone drops the year. */
+  /** `Jul to Sep 2026`. A phone drops the year, unless the window crosses one. */
   windowShort: string;
   /** What `quote` returned, in stroops. */
   advance: bigint;
@@ -27,7 +27,8 @@ export function OfferBreakdown({
   note?: string;
   className?: string;
 }) {
-  const months = windowShort.replace(/ \d{4}$/, "");
+  // `Nov 2026 to Jan 2027` keeps its years: without them it would read as one year's months.
+  const months = /\d{4}.*\d{4}/.test(windowShort) ? windowShort : windowShort.replace(/ \d{4}$/, "");
   const rows = [
     {
       key: (
