@@ -48,6 +48,9 @@ test("prove, see the offer with its derivation, accept, and receive the USDC", a
   await expect(heading(page, "Get an advance")).toBeVisible();
   await expect(heading(page, "See how much you can get")).toBeVisible();
   await expect(heading(page, "See how much you can get")).not.toBeFocused();
+  // The window is the contract's to say, so 2a names no months before a proof exists. (The list is the
+  // desktop layout's; a phone does not show it.)
+  await expect(page.getByText("Revenue from the last three complete months")).toBeAttached();
   await page.getByRole("button", { name: "Prove my revenue" }).click();
 
   // The Reclaim session, then the check on Stellar

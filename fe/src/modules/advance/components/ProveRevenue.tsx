@@ -36,7 +36,9 @@ export function ProveRevenue({
           <div className="hidden gap-6 lg:flex">
             <List
               head="What we read"
-              items={["Revenue from July to September", "Your AdSense publisher ID"]}
+              // Not named months: the window comes from the contract's claim template and moves to the
+              // next period, and 2a shows before any proof says which (review S8).
+              items={["Revenue from the last three complete months", "Your AdSense publisher ID"]}
               icon={<Check className="size-4 text-success" aria-hidden />}
             />
             <List
