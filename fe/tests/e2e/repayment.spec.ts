@@ -291,3 +291,86 @@ test("History reads the same figures and fails the same way", async ({ page }) =
   await page.getByRole("button", { name: "Try again" }).click();
   await expect(page.getByRole("region", { name: "October 2026" }).getByRole("listitem")).toHaveCount(6);
 });
+
+test("a failed read while a repayment is out keeps it pending and the form held (B1)", async ({ page }) => {
+  const ledger = frameLedger();
+  const chain = await open(page, "/repayment", ledger, { contract: { holdLedger: true } });
+  await page.getByRole("button", { name: "50%" }).click();
+  await page.getByRole("button", { name: "Repay 30.00 USDC" }).click();
+  const transactions = page.getByRole("region", { name: "Transactions" });
+  await expect(transactions.getByText("Pending")).toBeVisible();
+
+  // The wallet window closes, the page refocuses, and the API fails that read.
+  ledger.down = true;
+  await page.evaluate(() => window.dispatchEvent(new Event("visibilitychange")));
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+
+  // Back to a good read: the repayment is still pending and the form still held.
+  ledger.down = false;
+  await page.getByRole("button", { name: "Try again" }).click();
+  await expect(transactions.getByText("Pending")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Waiting for Stellar" })).toBeDisabled();
+
+  chain.contract!.holdLedger = false;
+  await expect(card(page)).toContainText("60.00 of 90.00 USDC repaid");
+  await expect(transactions.getByText("Pending")).toHaveCount(0);
+  expect(chain.contract?.sent).toHaveLength(1);
+});
+
+test("a repayment the API has not indexed yet stays pending until it has (B2)", async ({ page }) => {
+  const ledger = frameLedger();
+  // The indexer behind #16 is a few seconds behind the ledger.
+  let index!: () => void;
+  const chain = await open(page, "/repayment", ledger, {
+    contract: {
+      onRepaid: (amount, hash) => {
+        index = () => recordRepayment(ledger, amount, hash);
+      },
+    },
+  });
+  await page.getByRole("button", { name: "50%" }).click();
+  await page.getByRole("button", { name: "Repay 30.00 USDC" }).click();
+  await expect(page.getByText("30.00 USDC repaid", { exact: true })).toBeVisible();
+
+  // Landed on the ledger, not yet in the API: the row stays pending, the form held, the card as it was.
+  const transactions = page.getByRole("region", { name: "Transactions" });
+  await expect(transactions.getByText("Pending")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Waiting for Stellar" })).toBeDisabled();
+  await expect(card(page)).toContainText("30.00 of 90.00 USDC repaid");
+
+  // The indexer catches up, and the screen reads it without being asked.
+  index();
+  await expect(card(page)).toContainText("60.00 of 90.00 USDC repaid");
+  await expect(transactions.getByText("Pending")).toHaveCount(0);
+  expect(chain.contract?.sent).toHaveLength(1);
+});
+
+test("a repayment not confirmed in two minutes stays held and watched, then lands (B3)", async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.clock.install();
+  const ledger = frameLedger();
+  const chain = await open(page, "/repayment", ledger, { contract: { holdLedger: true } });
+  await page.getByRole("button", { name: "50%" }).click();
+  await page.getByRole("button", { name: "Repay 30.00 USDC" }).click();
+  const transactions = page.getByRole("region", { name: "Transactions" });
+  await expect(transactions.getByText("Pending")).toBeVisible();
+
+  const tick = async (seconds: number) => {
+    for (let i = 0; i < seconds; i++) {
+      await page.clock.fastForward(1000);
+      await page.waitForTimeout(15);
+    }
+  };
+  await tick(125);
+  await expect(form(page).getByRole("alert")).toContainText("not confirmed yet");
+  // Not unlocked: nothing invites paying again while it may still land.
+  await expect(transactions.getByText("Pending")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Waiting for Stellar" })).toBeDisabled();
+
+  chain.contract!.holdLedger = false;
+  await tick(10);
+  await expect(card(page)).toContainText("60.00 of 90.00 USDC repaid");
+  await expect(transactions.getByText("Pending")).toHaveCount(0);
+  expect(chain.contract?.sent).toHaveLength(1);
+});

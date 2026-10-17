@@ -46,6 +46,8 @@ export type ContractStub = {
   send?: "ok" | "refused" | "failed";
   /** Holds the ledger's answer back until it resolves, so a spec can see the pending state. */
   hold?: Promise<void>;
+  /** While true, a sent call is not on the ledger yet (NOT_FOUND); set it false to let it land. */
+  holdLedger?: boolean;
   /** Called once a `repay` lands, with its amount in stroops and its hash. */
   onRepaid?: (amount: bigint, hash: string) => void;
   /** The method and arguments of every call that reached the ledger, for assertions. */
@@ -213,6 +215,15 @@ export async function mockRpc(page: Page, chain: Chain) {
   let other: { method: string; args: unknown[] } | null = null;
   let otherHash = "";
   let applied = false;
+  // Hashes the network has taken, so an unknown or refused one is NOT_FOUND, as on a real node.
+  const taken = new Set<string>();
+  const notFound = () => ({
+    status: "NOT_FOUND",
+    latestLedger: 101,
+    latestLedgerCloseTime: "0",
+    oldestLedger: 1,
+    oldestLedgerCloseTime: "0",
+  });
   // Friendbot funds the account, as the real one does.
   await page.route("https://friendbot.stellar.org/**", (route) => {
     chain.account = true;
@@ -322,6 +333,7 @@ export async function mockRpc(page: Page, chain: Chain) {
           if ((chain.contract.send ?? "ok") === "refused") {
             return reply({ status: "ERROR", hash: otherHash, latestLedger: 100, latestLedgerCloseTime: "0" });
           }
+          taken.add(otherHash);
           return reply({ status: "PENDING", hash: otherHash, latestLedger: 100, latestLedgerCloseTime: "0" });
         }
         if (chain.send === "refused") {
@@ -362,8 +374,11 @@ export async function mockRpc(page: Page, chain: Chain) {
           });
         }
         let failed = chain.send === "failed";
+        // A contract call the network never took (refused, or not sent yet) is not on any ledger.
+        if (other && chain.contract && !taken.has(body.params.hash as string)) return reply(notFound());
         if (other && chain.contract && body.params.hash === otherHash) {
           const contract = chain.contract;
+          if (contract.holdLedger) return reply(notFound());
           await contract.hold;
           failed = contract.send === "failed";
           if (!failed && !applied) {

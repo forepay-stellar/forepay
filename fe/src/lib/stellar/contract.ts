@@ -300,11 +300,23 @@ export function repay(
   nullifier: string,
   amount: bigint,
   signTransaction: (xdr: string) => Promise<string>,
+  onSent?: (hash: string) => void,
 ): Promise<{ hash: string; value: bigint }> {
   return write<bigint>(
     from,
     "repay",
     [new Address(from).toScVal(), bytes32(nullifier), nativeToScVal(amount, { type: "i128" })],
     signTransaction,
+    onSent,
   );
+}
+
+/** Wait again for a `repay` already sent (#21), by its hash. Resolves once the ledger confirms it. */
+export async function awaitRepay(hash: string): Promise<{ hash: string }> {
+  try {
+    await waitFor(server(), hash, WRITE_ATTEMPTS);
+    return { hash };
+  } catch (e) {
+    throw asTransactionFailed(e);
+  }
 }

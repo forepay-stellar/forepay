@@ -1,10 +1,9 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { TransactionBuilder } from "@stellar/stellar-sdk";
 import { ArrowUpRight, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LedgerNote } from "@/components/elements/LedgerNote";
 import { LedgerRow } from "@/components/elements/LedgerRow";
 import { CannotRead, LoadingLedger, NoAdvance, SkeletonCard } from "@/components/elements/LedgerStates";
@@ -21,8 +20,8 @@ import type { AdvanceSummary, LedgerTransaction } from "@/lib/api/types";
 import { isSignatureDeclined, type FailureCopy } from "@/lib/errors";
 import { formatUsdc } from "@/lib/format";
 import { latestRows, outstanding, percentRepaid, pickAdvance, type Row } from "@/lib/ledger";
-import { repay } from "@/lib/stellar/contract";
-import { NETWORK_PASSPHRASE, explorerAccountUrl, explorerContractUrl, explorerTxUrl } from "@/lib/stellar/network";
+import { TransactionFailedError, awaitRepay, repay } from "@/lib/stellar/contract";
+import { explorerAccountUrl, explorerContractUrl, explorerTxUrl } from "@/lib/stellar/network";
 import { useWallet } from "@/providers/WalletProvider";
 import { AdvanceDetails } from "./components/AdvanceDetails";
 import { ApproveRepayment } from "./components/ApproveRepayment";
@@ -30,6 +29,7 @@ import { BalanceCard } from "./components/BalanceCard";
 import { QuickActions } from "./components/QuickActions";
 import { RepayForm } from "./components/RepayForm";
 import { repayFailureCopy } from "./failures";
+import { clearInflight, markLanded, setInflight, useInflight, type Inflight } from "./inflight";
 import { WalletSignError } from "@/lib/stellar/wallet-error";
 import { amountInputString, checkAmount, chipAmount, sanitizeAmountInput, type Chip } from "./model";
 
@@ -67,9 +67,74 @@ function Header() {
   );
 }
 
+/** How often the API is read again while a confirmed repayment is not in it yet. */
+const CATCH_UP_MS = 2_000;
+/** How long to rest before asking Stellar again about a repayment it has not confirmed. */
+const REWATCH_MS = 5_000;
+
+/** "Not confirmed yet" or no answer at all: the repayment may still land, so it is watched on. */
+const stillOpen = (e: unknown) => e instanceof TransactionFailedError && (e.unconfirmed || e.noAnswer);
+
 function RepaymentScreen({ address }: { address: string }) {
   const advances = useAdvances(address);
   const transactions = useTransactions(address);
+  const queryClient = useQueryClient();
+  const { walletName } = useWallet();
+  const inflight = useInflight(address);
+  // How a repayment watched here ended, when that was a failure, for the form to say.
+  const [watchFailure, setWatchFailure] = useState<FailureCopy | null>(null);
+
+  // Watch the repayment in flight until Stellar confirms it, from whichever visit to this page is open:
+  // the one that sent it, or a later one after leaving, a reload, or a failed read in between.
+  const watching = inflight && !inflight.landed ? inflight : null;
+  useEffect(() => {
+    if (!watching) return;
+    let alive = true;
+    void (async () => {
+      while (alive) {
+        try {
+          await awaitRepay(watching.hash);
+          if (alive && markLanded(watching.hash)) notify(`${formatUsdc(watching.amount)} repaid`);
+          return;
+        } catch (e) {
+          if (!alive) return;
+          if (stillOpen(e)) {
+            await new Promise((r) => setTimeout(r, REWATCH_MS));
+            continue;
+          }
+          clearInflight(watching.hash);
+          setWatchFailure(repayFailureCopy(e, true, walletName));
+          void queryClient.invalidateQueries({ queryKey: usdcBalanceKey(address) });
+          return;
+        }
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+    // The watch is per transaction: the hash and whether it landed are what it depends on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watching?.hash]);
+
+  // Confirmed on the ledger: read the API again until its indexer reports the transaction, then let go.
+  const landedHash = inflight?.landed ? inflight.hash : null;
+  const reported = !!landedHash && !!transactions.data?.some((t) => t.hash === landedHash);
+  useEffect(() => {
+    if (!landedHash) return;
+    if (reported) {
+      clearInflight(landedHash);
+      return;
+    }
+    const refresh = () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: repaymentKey(address) }),
+        queryClient.invalidateQueries({ queryKey: transactionsKey(address) }),
+        queryClient.invalidateQueries({ queryKey: usdcBalanceKey(address) }),
+      ]);
+    void refresh();
+    const timer = setInterval(() => void refresh(), CATCH_UP_MS);
+    return () => clearInterval(timer);
+  }, [landedHash, reported, address, queryClient]);
 
   let body: React.ReactNode;
   if (advances.isError || transactions.isError) {
@@ -97,7 +162,15 @@ function RepaymentScreen({ address }: { address: string }) {
   } else {
     const picked = pickAdvance(advances.data);
     body = picked ? (
-      <Ledger address={address} advance={picked.advance} number={picked.number} transactions={transactions.data} />
+      <Ledger
+        address={address}
+        advance={picked.advance}
+        number={picked.number}
+        transactions={transactions.data}
+        inflight={inflight}
+        watchFailure={watchFailure}
+        onFailureSeen={() => setWatchFailure(null)}
+      />
     ) : (
       <div className="flex w-full justify-center pt-4">
         <NoAdvance />
@@ -115,30 +188,28 @@ function RepaymentScreen({ address }: { address: string }) {
 }
 
 /**
- * Where a repayment is: Stellar checks it (`preparing`), the wallet window is open (`signing`), it was
- * sent and Stellar has not answered yet (`pending`). Only one runs at a time.
+ * Where a repayment started here is: Stellar checks it (`preparing`), the wallet window is open
+ * (`signing`), it was sent and Stellar has not answered yet (`pending`). Only one runs at a time, and
+ * one already in flight (`Inflight`) holds the form too.
  */
 type Phase = "idle" | "preparing" | "signing" | "pending";
-
-/** The hash a signed transaction will have on the ledger, for the pending row's receipt. */
-function hashOf(signedXdr: string): string {
-  try {
-    return TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE).hash().toString("hex");
-  } catch {
-    return "";
-  }
-}
 
 function Ledger({
   address,
   advance,
   number,
   transactions,
+  inflight,
+  watchFailure,
+  onFailureSeen,
 }: {
   address: string;
   advance: AdvanceSummary;
   number: number;
   transactions: LedgerTransaction[];
+  inflight: Inflight | null;
+  watchFailure: FailureCopy | null;
+  onFailureSeen: () => void;
 }) {
   const { walletName, signTransaction } = useWallet();
   const queryClient = useQueryClient();
@@ -149,8 +220,8 @@ function Ledger({
   const [phase, setPhase] = useState<Phase>("idle");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [signing, setSigning] = useState(0n);
-  const [pending, setPending] = useState<{ hash: string; amount: bigint } | null>(null);
-  const [failure, setFailure] = useState<FailureCopy | null>(null);
+  const [ownFailure, setFailure] = useState<FailureCopy | null>(null);
+  const failure = ownFailure ?? watchFailure;
   // "Cancel" closes the dialog, but the wallet window is not ours to close. The repayment is still
   // followed: if the creator approves it after all, it shows as pending and lands like any other.
   const cancelled = useRef(false);
@@ -159,7 +230,8 @@ function Ledger({
   const left = outstanding(advance);
   const walletUsdc = balance.isSuccess ? balance.data : undefined;
   const check = checkAmount(input, left, walletUsdc);
-  const locked = phase !== "idle";
+  // A repayment in flight holds the form until the API shows it, whoever sent it.
+  const locked = phase !== "idle" || inflight !== null;
   const busyLabel =
     phase === "preparing"
       ? "Checking with Stellar"
@@ -167,7 +239,7 @@ function Ledger({
         ? dialogOpen
           ? null
           : "Waiting for your wallet"
-        : phase === "pending"
+        : phase === "pending" || inflight
           ? "Waiting for Stellar"
           : null;
 
@@ -175,6 +247,7 @@ function Ledger({
     setInput(amountInputString(value));
     setChip(picked);
     setFailure(null);
+    onFailureSeen();
   }
 
   function focusAmount() {
@@ -186,13 +259,20 @@ function Ledger({
   async function submit(amount: bigint) {
     if (locked) return;
     let signed = false;
+    let sentHash: string | null = null;
     cancelled.current = false;
     setFailure(null);
+    onFailureSeen();
     setSigning(amount);
     // Stellar checks the repayment first. The dialog opens only once the wallet window does.
     setPhase("preparing");
+    // Kept outside this screen from just before it is sent: a failed read or leaving must not lose it.
+    const remember = (hash: string) => {
+      sentHash = hash;
+      setInflight({ address, nullifier: advance.nullifier, hash, amount, landed: false });
+    };
     try {
-      await repay(address, advance.nullifier, amount, async (xdr) => {
+      const { hash } = await repay(address, advance.nullifier, amount, async (xdr) => {
         setPhase("signing");
         if (!cancelled.current) setDialogOpen(true);
         try {
@@ -203,33 +283,35 @@ function Ledger({
             throw new WalletSignError(e);
           }
           signed = true;
-          setPending({ hash: hashOf(out), amount });
           setPhase("pending");
           return out;
         } finally {
           setDialogOpen(false);
         }
-      });
-      notify(`${formatUsdc(amount)} repaid`);
+      }, remember);
+      if (markLanded(hash)) notify(`${formatUsdc(amount)} repaid`);
       setInput("");
       setChip(null);
     } catch (e) {
+      // Not confirmed yet, or no answer: it may still land, so it stays in flight and watched (B3).
+      // Anything else ended it: forget it.
+      if (sentHash && !stillOpen(e)) clearInflight(sentHash);
       // Turning it down after pressing Cancel is no news to the creator who cancelled.
       if (!(cancelled.current && !signed && isSignatureDeclined(e))) setFailure(repayFailureCopy(e, signed, walletName));
     } finally {
-      // The ledger has the answer now. Read it again rather than adjusting the figures by hand.
+      // Read the ledger again rather than adjusting the figures by hand. The pending row stays until the
+      // API reports the transaction (RepaymentScreen).
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: repaymentKey(address) }),
         queryClient.invalidateQueries({ queryKey: transactionsKey(address) }),
         queryClient.invalidateQueries({ queryKey: usdcBalanceKey(address) }),
       ]);
-      setPending(null);
       setPhase("idle");
     }
   }
 
   const rows: Row[] = latestRows(transactions, advance.nullifier);
-  if (pending) rows.push({ kind: "pending", key: "pending", hash: pending.hash, amount: pending.amount });
+  if (inflight) rows.push({ kind: "pending", key: "pending", hash: inflight.hash, amount: inflight.amount });
   const shown = rows.slice(-4);
 
   return (
@@ -284,6 +366,7 @@ function Ledger({
             setInput(value);
             setChip(null);
             setFailure(null);
+            onFailureSeen();
           }}
           inputRef={inputRef}
           chip={chip}
