@@ -72,7 +72,9 @@ export function acceptFailure(e: unknown, signed: boolean): AdvanceFailure {
  */
 export function proofStillGood(failure: AdvanceFailure): boolean {
   if (!("kind" in failure)) return failure.code === 41;
-  return ["refused", "charged", "unreachable", "simulationFailed", "walletLocked", "walletWrongNetwork", "walletNoAnswer"].includes(
+  // Not "charged": a transaction that failed on the ledger was usually refused there by the contract
+  // (the proof expired or was used between the check and the ledger), so the offer may be gone.
+  return ["refused", "unreachable", "simulationFailed", "walletLocked", "walletWrongNetwork", "walletNoAnswer"].includes(
     failure.kind,
   );
 }

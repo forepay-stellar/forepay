@@ -320,8 +320,9 @@ test("a transaction that fails on the ledger does not claim nothing was charged"
   await page.getByRole("button", { name: "Accept 90.00 USDC" }).click();
   await expect(heading(page, "The transaction did not go through")).toBeVisible();
   await expect(page.getByText("Stellar kept the tiny network fee, but no USDC moved. Try again in a moment.")).toBeVisible();
+  // A ledger failure is usually the contract refusing there, so Back does not trust the old offer.
   await page.getByRole("button", { name: "Back" }).click();
-  await expect(page.getByRole("button", { name: "Accept 90.00 USDC" })).toBeVisible();
+  await expect(heading(page, "See how much you can get")).toBeVisible();
 });
 
 test("a slow confirmation says so after 30 seconds, and times out after two minutes", async ({ page }) => {
