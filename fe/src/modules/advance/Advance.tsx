@@ -3,6 +3,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { ADVANCE_CAP } from "@/components/elements/OfferBreakdown";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { notify } from "@/components/ui/Toaster";
 import { isSignatureDeclined } from "@/lib/errors";
@@ -28,6 +29,7 @@ import { ProveRevenue } from "./components/ProveRevenue";
 import { ReviewOffer } from "./components/ReviewOffer";
 import { SignAdvance } from "./components/SignAdvance";
 import { maxFee } from "./fee";
+import { centBelow } from "./cap";
 import { clearPending, loadPending, savePending, type PendingAdvance } from "./pending";
 import { WalletSignError, acceptFailure, proofStillGood, proveFailure, type AdvanceFailure } from "./failures";
 
@@ -50,6 +52,7 @@ type Flow =
 class AbandonedError extends Error {}
 
 const quoteKey = (address: string, revenueUsd: string) => ["quote", address, revenueUsd] as const;
+
 
 /**
  * 02 Prove and accept (#20): 2a Prove revenue, 2b Review offer, 2c Sign, 2d Receive, and every state on
@@ -101,6 +104,21 @@ export function Advance() {
     // `quote` is a pure function of the revenue figure on chain: the same input always sizes the same.
     staleTime: Infinity,
   });
+
+  // At the limit, whether the limit cut it: the same quote one cent lower (`centBelow`).
+  const below = req ? centBelow(req.revenueUsd) : null;
+  const capProbe = useQuery({
+    queryKey: quoteKey(address ?? "", below ?? ""),
+    queryFn: () => quote(address as string, below as string),
+    enabled: !!address && below !== null && offer.data === ADVANCE_CAP,
+    staleTime: Infinity,
+  });
+  const capped =
+    offer.data !== ADVANCE_CAP || below === null
+      ? false
+      : capProbe.isSuccess
+        ? capProbe.data === ADVANCE_CAP
+        : null;
 
   // The advance as the contract stored it, for 2d. Keyed by its nullifier (ARCHITECTURE.md §4).
   const received = flow.at === "received" ? flow : undefined;
@@ -157,11 +175,20 @@ export function Advance() {
   async function check(r: AdvanceRequest, id = attempt.current) {
     setFlow({ at: "checking", req: r });
     try {
-      await queryClient.fetchQuery({
+      const advance = await queryClient.fetchQuery({
         queryKey: quoteKey(me, r.revenueUsd),
         queryFn: () => quote(me, r.revenueUsd),
         staleTime: Infinity,
       });
+      // At the limit, ask whether the limit cut it now, so 2b opens with the right sentence.
+      const lower = centBelow(r.revenueUsd);
+      if (advance === ADVANCE_CAP && lower !== null) {
+        void queryClient.prefetchQuery({
+          queryKey: quoteKey(me, lower),
+          queryFn: () => quote(me, lower),
+          staleTime: Infinity,
+        });
+      }
       await checkAdvance(me, r);
       if (id === attempt.current) setFlow({ at: "offer", req: r });
     } catch (e) {
@@ -345,6 +372,7 @@ export function Advance() {
             windowShort={period.short}
             windowLong={period.long}
             advance={offer.data}
+            capped={capped}
             onAccept={() => accept(flow.req)}
             onNotNow={toStart}
           />

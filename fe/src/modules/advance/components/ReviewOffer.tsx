@@ -1,7 +1,7 @@
 import { ArrowUpFromLine, Check, Receipt, Timer, Wallet } from "lucide-react";
 import { Amount } from "@/components/elements/Amount";
 import { IconTile } from "@/components/elements/IconTile";
-import { ADVANCE_CAP, OfferBreakdown } from "@/components/elements/OfferBreakdown";
+import { OfferBreakdown } from "@/components/elements/OfferBreakdown";
 import { Button } from "@/components/ui/Button";
 import { formatUsdc } from "@/lib/format";
 
@@ -15,6 +15,7 @@ export function ReviewOffer({
   windowShort,
   windowLong,
   advance,
+  capped,
   onAccept,
   onNotNow,
 }: {
@@ -26,11 +27,14 @@ export function ReviewOffer({
   windowLong: string;
   /** Stroops, from `quote`. */
   advance: bigint;
+  /**
+   * Whether the 100 USDC limit cut the advance, as the contract answered it (`capProbe` in Advance),
+   * `null` while that is not known: then neither sentence is claimed.
+   */
+  capped: boolean | null;
   onAccept: () => void;
   onNotNow: () => void;
 }) {
-  // Reading the cap off the quote is a comparison, not arithmetic: the contract already applied it.
-  const capped = advance === ADVANCE_CAP;
   const amount = formatUsdc(advance);
 
   return (
@@ -63,7 +67,9 @@ export function ReviewOffer({
           <p className="relative text-[15px] leading-[22px] text-fg-on-brand lg:max-w-[480px]">
             {capped
               ? `The most one advance can be. You earned ${revenue} on AdSense from ${windowLong}.`
-              : `A quarter of the ${revenue} you earned on AdSense from ${windowLong}.`}
+              : capped === null
+                ? `You earned ${revenue} on AdSense from ${windowLong}.`
+                : `A quarter of the ${revenue} you earned on AdSense from ${windowLong}.`}
           </p>
         </section>
         <OfferBreakdown
@@ -73,7 +79,9 @@ export function ReviewOffer({
           note={
             capped
               ? `A quarter of ${revenue} is more than 100 USDC. Each advance is limited to 100 USDC.`
-              : `25% of ${revenue} is ${amount}.`
+              : capped === null
+                ? undefined
+                : `25% of ${revenue} is ${amount}.`
           }
         />
       </div>

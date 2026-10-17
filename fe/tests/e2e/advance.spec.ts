@@ -137,6 +137,15 @@ test("a high revenue is capped at 100 USDC and says so", async ({ page }) => {
   await expect(page.getByText("A quarter of $1,240.00 is more than 100 USDC. Each advance is limited to 100 USDC.")).toBeVisible();
 });
 
+test("exactly $400.00 reaches 100 USDC without the limit doing anything, and says so", async ({ page }) => {
+  await connect(page, { account: true, trustline: true }, { "forepay.mock.revenue": "400.00" });
+  await proveToOffer(page);
+  await expect(page.getByRole("button", { name: "Accept 100.00 USDC" })).toBeVisible();
+  await expect(page.getByText("A quarter of the $400.00 you earned on AdSense from July to September.")).toBeVisible();
+  await expect(page.getByText("25% of $400.00 is 100.00 USDC.")).toBeVisible();
+  await expect(page.getByText(/is more than 100 USDC/)).toHaveCount(0);
+});
+
 test("an advance under 1 USDC is refused before anything is sent, and the proof is not used", async ({ page }) => {
   const chain: Chain = { account: true, trustline: true };
   await connect(page, chain, { "forepay.mock.revenue": "3.20" });
