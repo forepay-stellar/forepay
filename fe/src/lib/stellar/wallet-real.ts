@@ -1,0 +1,465 @@
+import {
+  Networks,
+  StellarWalletsKit,
+  addressUpdatedEvent,
+  closeEvent,
+  moduleSelectedEvent,
+  type ModuleInterface,
+} from "@creit.tech/stellar-wallets-kit";
+import { FREIGHTER_ID, FreighterModule } from "@creit.tech/stellar-wallets-kit/modules/freighter";
+import { RABET_ID, RabetModule } from "@creit.tech/stellar-wallets-kit/modules/rabet";
+import {
+  WALLET_CONNECT_ID,
+  WalletConnectModule,
+  WalletConnectTargetChain,
+} from "@creit.tech/stellar-wallets-kit/modules/wallet-connect";
+import { xBullModule } from "@creit.tech/stellar-wallets-kit/modules/xbull";
+import { createAppKit, type AppKit } from "@reown/appkit/core";
+import { mainnet } from "@reown/appkit/networks";
+import { FeeBumpTransaction, TransactionBuilder } from "@stellar/stellar-sdk";
+import { UniversalProvider } from "@walletconnect/universal-provider";
+import { anyBrowserWallet } from "./wallet-detect";
+import { USER_CLOSED_MODAL, isUnsupportedCall, toWalletError } from "./wallet-error";
+import type { ConnectHooks } from "./wallet-picker";
+
+// Ported from Sorosense `frontend/lib/wallet-real.ts`.
+//
+// @creit.tech/stellar-wallets-kit 2.x ships `StellarWalletsKit` as a *static* class: `init()`,
+// `authModal()`, `getAddress()`, `signTransaction()` and `disconnect()` are static methods. `authModal()`
+// opens the library's wallet picker, sets the chosen wallet as active and resolves with its address.
+// We only theme it (brief §6, 1b).
+//
+// On Freighter's mobile app the page runs inside Freighter's own browser, which the kit's Freighter
+// module refuses (it expects WalletConnect there), so that one case goes through WalletConnect with
+// Reown AppKit as the bottom sheet.
+
+let initialized = false;
+
+const WALLET_ID_KEY = "forepay.wallet.id";
+const FREIGHTER_WC_ID = "997a355c8f682468706a76cff1b004a7115f505fb962dac54b6e9b442dd1c380";
+const WC_TESTNET = "stellar:testnet";
+
+type StellarWindow = Window &
+  typeof globalThis & { stellar?: { provider?: string; platform?: string }; xBullSDK?: unknown };
+type WcProvider = Awaited<ReturnType<typeof UniversalProvider.init>>;
+
+/** Rejects the `connect()` in progress as closed, set while one is. */
+let cancelPending: (() => void) | null = null;
+
+/**
+ * Which press in the picker the kit's last answer belongs to. The kit's answer event carries only an
+ * address or an error, not the wallet or the request it came from, and a wallet popup left open from a
+ * cancelled attempt can still answer later. Every module's `getAddress` is wrapped (`tagAnswers`) to
+ * note, just before the kit announces the answer, which wallet and which press asked.
+ */
+let pressCount = 0;
+let lastAnswer: { productId: string; press: number } | null = null;
+
+function tagAnswers<M extends { productId: string; getAddress: ModuleInterface["getAddress"] }>(module: M): M {
+  const getAddress = module.getAddress.bind(module);
+  module.getAddress = async (params) => {
+    const press = pressCount;
+    try {
+      return await getAddress(params);
+    } finally {
+      lastAnswer = { productId: module.productId, press };
+    }
+  };
+  return module;
+}
+
+let mobileWc: { provider: WcProvider; modal: AppKit; address?: string } | null = null;
+
+const METADATA = {
+  name: "Forepay",
+  description: "A USDC advance on the AdSense revenue you already earn",
+};
+
+class ForepayWalletConnectModule extends WalletConnectModule {
+  async isPlatformWrapper(): Promise<boolean> {
+    return false;
+  }
+}
+
+function walletConnectProjectId() {
+  return process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID ?? "";
+}
+
+function walletModules() {
+  // The three browser wallets the 1b screen names.
+  const extensions = [new FreighterModule(), new xBullModule(), new RabetModule()].map(tagAnswers);
+  const projectId = walletConnectProjectId();
+  if (!projectId) return extensions;
+  return [
+    ...extensions,
+    tagAnswers(new ForepayWalletConnectModule({
+      projectId,
+      allowedChains: [WalletConnectTargetChain.TESTNET],
+      metadata: {
+        ...METADATA,
+        url: window.location.origin,
+        icons: [`${window.location.origin}/icon.svg`],
+      },
+    })),
+  ];
+}
+
+function isFreighterMobile() {
+  const stellar = (window as StellarWindow).stellar;
+  return stellar?.provider === "freighter" && stellar?.platform === "mobile";
+}
+
+function viaMobileWalletConnect() {
+  return isFreighterMobile() && walletConnectProjectId() !== "";
+}
+
+async function getMobileWalletConnect() {
+  if (mobileWc) return mobileWc;
+  const projectId = walletConnectProjectId();
+  const provider = await UniversalProvider.init({
+    projectId,
+    metadata: { ...METADATA, url: window.location.origin, icons: [`${window.location.origin}/icon.svg`] },
+  });
+  const modal = createAppKit({
+    projectId,
+    // AppKit needs an EVM network to boot; the session itself is negotiated on `stellar:testnet` below.
+    networks: [mainnet],
+    universalProvider: provider as unknown as Parameters<typeof createAppKit>[0]["universalProvider"],
+    manualWCControl: true,
+    enableReconnect: true,
+    featuredWalletIds: [FREIGHTER_WC_ID],
+  });
+  provider.on("display_uri", (uri: string) => {
+    void modal.open({ uri });
+  });
+  provider.on("session_delete", () => {
+    mobileWc = null;
+  });
+  mobileWc = { provider, modal };
+  return mobileWc;
+}
+
+async function connectMobileWalletConnect(): Promise<{ address: string; name: string; id: string }> {
+  const wc = await getMobileWalletConnect();
+  try {
+    const session = await wc.provider.connect({
+      namespaces: {
+        stellar: {
+          methods: ["stellar_signXDR", "stellar_signAndSubmitXDR", "stellar_signMessage", "stellar_signAuthEntry"],
+          chains: [WC_TESTNET],
+          events: ["accountsChanged"],
+        },
+      },
+    });
+    void wc.modal.close();
+    if (!session) throw new Error("Connection cancelled.");
+    const address = session.namespaces.stellar?.accounts[0]?.split(":")[2];
+    if (!address) throw new Error("Freighter did not return an account.");
+    wc.address = address;
+    return { address, name: "Freighter", id: WALLET_CONNECT_ID };
+  } catch (e) {
+    void wc.modal.close();
+    throw e;
+  }
+}
+
+async function mobileWalletConnectAddress() {
+  const wc = await getMobileWalletConnect();
+  if (wc.address) return wc.address;
+  const account = wc.provider.session?.namespaces.stellar?.accounts[0]?.split(":")[2];
+  if (!account) throw new Error("No WalletConnect session found.");
+  wc.address = account;
+  return account;
+}
+
+/**
+ * The picker's colours. The kit writes each value into a `--swk-*` CSS variable, so these point at the
+ * `--fp-*` primitives in `tokens.css` (the semantic `--color-*` names live in `@theme inline` and are
+ * not on `:root`). Stone canvas rows on a white sheet, near black text, no shadow.
+ */
+const PICKER_THEME = {
+  background: "var(--fp-white)",
+  "background-secondary": "var(--fp-stone-canvas)",
+  "foreground-strong": "var(--fp-stone-950)",
+  foreground: "var(--fp-stone-950)",
+  "foreground-secondary": "var(--fp-stone-600)",
+  primary: "var(--fp-stone-950)",
+  "primary-foreground": "var(--fp-white)",
+  transparent: "rgba(0, 0, 0, 0)",
+  lighter: "var(--fp-white)",
+  light: "var(--fp-stone-100)",
+  "light-gray": "var(--fp-stone-200)",
+  gray: "var(--fp-stone-400)",
+  danger: "var(--fp-rose-600)",
+  border: "var(--fp-stone-150)",
+  shadow: "none",
+  "border-radius": "22px",
+  "font-family": "var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif",
+};
+
+export function getKit(): typeof StellarWalletsKit {
+  if (typeof window === "undefined") throw new Error("wallet is client-only");
+  if (!initialized) {
+    const modules = walletModules();
+    StellarWalletsKit.init({
+      network: Networks.TESTNET,
+      selectedWalletId: initialWalletId(modules.map((m) => m.productId)),
+      modules,
+      theme: PICKER_THEME,
+      authModal: { showInstallLabel: true },
+    });
+    initialized = true;
+  }
+  return StellarWalletsKit;
+}
+
+/**
+ * The wallet picked last time, if this build still has it. `init` calls `setWallet`, which throws for
+ * an id that is not a registered module (`wallet_connect` after its project id was removed, say), and
+ * a throw there would leave the kit uninitialised and every later call failing until site data is
+ * cleared. An unknown id is forgotten and Freighter, always registered, is selected instead.
+ */
+function initialWalletId(known: string[]) {
+  try {
+    const saved = window.localStorage.getItem(WALLET_ID_KEY);
+    if (saved && known.includes(saved)) return saved;
+    if (saved) window.localStorage.removeItem(WALLET_ID_KEY);
+  } catch {
+    // Storage unavailable: nothing was saved.
+  }
+  return FREIGHTER_ID;
+}
+
+export function getWalletName(): string {
+  if (viaMobileWalletConnect()) return "Freighter";
+  return getKit().selectedModule.productName;
+}
+
+export function getWalletId(): string {
+  if (viaMobileWalletConnect()) return WALLET_CONNECT_ID;
+  return getKit().selectedModule.productId;
+}
+
+/** `false` when the check takes longer than a second or fails, the same cut-off the kit's picker uses. */
+export function withinASecond(check: Promise<boolean>): Promise<boolean> {
+  const timer = new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 1000));
+  return Promise.race([check, timer]).catch(() => false);
+}
+
+/**
+ * Whether the creator has any way to connect: an installed browser extension, or WalletConnect.
+ * False is the "Install a Stellar wallet" state.
+ */
+export async function hasWallet(): Promise<boolean> {
+  if (viaMobileWalletConnect() || walletConnectProjectId()) return true;
+  // Ask only the two extensions that can answer, in parallel, rather than refreshSupportedWallets(),
+  // which checks every module and which the picker then runs again by itself. Each answer is capped
+  // at a second, as the kit does: without Freighter installed, its isConnected() only gives up after
+  // its own two seconds.
+  const [freighter, rabet] = await Promise.all([
+    withinASecond(new FreighterModule().isAvailable()),
+    withinASecond(new RabetModule().isAvailable()),
+  ]);
+  return anyBrowserWallet(
+    [
+      { id: FREIGHTER_ID, isAvailable: freighter },
+      { id: RABET_ID, isAvailable: rabet },
+    ],
+    !!(window as StellarWindow).xBullSDK,
+  );
+}
+
+/**
+ * Open the picker and connect. The kit renders its wallet list into the element `mountPicker` gives,
+ * inside the page's own dialog, so that dialog can turn into "Waiting for Freighter" once a wallet is
+ * pressed: the kit's own modal shows nothing while a wallet asks. `onWalletSelected` fires on each
+ * press, before that wallet asks for permission.
+ */
+export async function connect({
+  mountPicker,
+  onWalletSelected,
+}: ConnectHooks = {}): Promise<{ address: string; name: string; id: string }> {
+  try {
+    if (viaMobileWalletConnect()) {
+      onWalletSelected?.({ name: "Freighter" });
+      return await connectMobileWalletConnect();
+    }
+    const kit = getKit();
+    const container = mountPicker ? await mountPicker() : undefined;
+    // The kit has a gap: it shows its wallet list at once, but only listens for its close event and for
+    // the wallet's answer once it has checked every wallet, up to a second later. A cancel or an approval
+    // in that gap would go unheard and leave the page waiting. So this call listens itself, from before
+    // the list appears, and takes the kit's own promise only for its close button.
+    //
+    // The answer event is shared by every picker ever opened, so an answer counts only if it answers
+    // the latest press in this picker, from the wallet pressed (`tagAnswers`): a popup left open from a
+    // cancelled attempt must not connect, least of all under the name of the wallet just chosen.
+    let pickedId: string | null = null;
+    let myPress = -1;
+    let accepted = false;
+    // moduleSelectedEvent fires each time the picker's row is pressed, the wallet already selected
+    // included, and never on subscribe. kit.on(WALLET_SELECTED) is no good here: it is a signals effect
+    // that runs once on subscribe with last time's wallet, and not at all when the same wallet is
+    // picked again, which is the usual case (Freighter is selected by default).
+    const unsubscribePick = moduleSelectedEvent.subscribe((picked) => {
+      if (!("name" in picked)) return;
+      pickedId = picked.id;
+      // Runs before the kit asks the wallet, so the request is tagged with this press.
+      myPress = ++pressCount;
+      onWalletSelected?.({ name: picked.name, icon: picked.icon });
+    });
+    let unsubscribeAnswer = () => {};
+    const answered = new Promise<string>((resolve, reject) => {
+      unsubscribeAnswer = addressUpdatedEvent.subscribe((answer) => {
+        if (lastAnswer?.press !== myPress || lastAnswer.productId !== pickedId) return;
+        accepted = true;
+        if (typeof answer === "string") resolve(answer);
+        else reject(answer);
+      });
+    });
+    const cancelled = new Promise<never>((_, reject) => {
+      cancelPending = () => reject({ code: USER_CLOSED_MODAL, message: "The user closed the modal." });
+    });
+    // Answers are read above. From the kit's own promise only two things count: its close button, and
+    // the kit finishing on an answer that was not ours (a stale popup) before anything was pressed here.
+    // Then it has already removed its list, and waiting on would leave an empty dialog, so this ends as
+    // closed and the page goes back. Once a wallet was pressed here, the dialog shows "Waiting for …"
+    // with Cancel instead of the list, so a stale answer is ignored and the wallet asked is still heard.
+    const closed = () => Promise.reject({ code: USER_CLOSED_MODAL, message: "The user closed the modal." });
+    const never = () => new Promise<never>(() => {});
+    const strayFinish = () => (accepted || myPress !== -1 ? never() : closed());
+    const closedByKit = kit.authModal(container ? { container } : undefined).then(strayFinish, (e: unknown) =>
+      toWalletError(e).code === USER_CLOSED_MODAL ? closed() : strayFinish(),
+    );
+    try {
+      const address = await Promise.race([answered, cancelled, closedByKit]);
+      const id = getWalletId();
+      try {
+        window.localStorage.setItem(WALLET_ID_KEY, id);
+      } catch {
+        // Storage unavailable: the session still works, it just will not survive a reload.
+      }
+      return { address, name: getWalletName(), id };
+    } finally {
+      cancelPending = null;
+      unsubscribePick();
+      unsubscribeAnswer();
+      // Have the kit take down its list if it never heard the answer itself. Harmless if it did.
+      closeEvent.next();
+    }
+  } catch (e) {
+    throw toWalletError(e);
+  }
+}
+
+/**
+ * Stop a pending `connect()`: it rejects with code -1 ("The user closed the modal"), as the kit's own
+ * close button does, so the page treats it as a choice. The kit hears its close event too and removes
+ * its list.
+ */
+export function cancelConnect(): void {
+  closeEvent.next();
+  cancelPending?.();
+}
+
+/**
+ * The address the wallet reports now, for the reload check, without opening any wallet window.
+ *
+ * The kit's own `getAddress()` only returns the address it remembered in localStorage, so a locked
+ * wallet, revoked access or a switched account would pass. Freighter can be asked silently
+ * (`skipRequestAccess`), and answers no address when it is locked or access was revoked. xBull and
+ * Rabet cannot: asking them opens their connect window, which a page load must not do. For those the
+ * remembered address stands until the wallet is asked to sign, where a locked one is named
+ * (`classifySignError`) and a switched account is asked for the remembered address (`signTransaction`).
+ */
+export async function getAddress(): Promise<string> {
+  if (viaMobileWalletConnect()) return mobileWalletConnectAddress();
+  const kit = getKit();
+  if (kit.selectedModule.productId === FREIGHTER_ID) {
+    try {
+      const { address } = await kit.selectedModule.getAddress({ skipRequestAccess: true });
+      return address;
+    } catch (e) {
+      throw toWalletError(e);
+    }
+  }
+  const { address } = await kit.getAddress();
+  return address;
+}
+
+/**
+ * The network passphrase the wallet is on right now, compared with testnet after connecting and on
+ * reload. `null` when the wallet cannot say: xBull, Rabet and WalletConnect reject the kit's
+ * `getNetwork` with code -3 ("does not support"), and that is not a failure. Nothing is lost by not
+ * asking: every signing request names the testnet passphrase, so what such a wallet signs is valid on
+ * testnet only, whatever network it shows. One that refuses to sign for testnet is named then.
+ */
+export async function getNetworkPassphrase(): Promise<string | null> {
+  if (viaMobileWalletConnect()) return Networks.TESTNET; // the session was negotiated on stellar:testnet
+  try {
+    const { networkPassphrase } = await getKit().getNetwork();
+    return networkPassphrase;
+  } catch (e) {
+    const err = toWalletError(e);
+    if (isUnsupportedCall(err)) return null;
+    throw err;
+  }
+}
+
+export async function signTransaction(xdr: string): Promise<string> {
+  try {
+    if (viaMobileWalletConnect()) {
+      const wc = await getMobileWalletConnect();
+      if (!wc.provider.session) throw new Error("No WalletConnect session found.");
+      const { signedXDR } = await wc.provider.request<{ signedXDR: string }>(
+        { method: "stellar_signXDR", params: { xdr } },
+        WC_TESTNET,
+      );
+      return signedXDR;
+    }
+    const kit = getKit();
+    // The account the transaction is for, so a wallet switched to another account since connecting
+    // signs for this one or refuses, rather than signing for whichever account is open. Rabet cannot
+    // be told an account (the kit only warns), so it is not.
+    const tx = TransactionBuilder.fromXDR(xdr, Networks.TESTNET);
+    const address = tx instanceof FeeBumpTransaction ? tx.feeSource : tx.source;
+    const { signedTxXdr } = await kit.signTransaction(xdr, {
+      networkPassphrase: Networks.TESTNET,
+      ...(kit.selectedModule.productId === RABET_ID ? {} : { address }),
+    });
+    return signedTxXdr;
+  } catch (e) {
+    throw toWalletError(e);
+  }
+}
+
+export async function disconnect(): Promise<void> {
+  try {
+    window.localStorage.removeItem(WALLET_ID_KEY);
+  } catch {
+    // nothing to clear
+  }
+  if (viaMobileWalletConnect()) {
+    if (mobileWc?.provider.session) await mobileWc.provider.disconnect();
+    mobileWc = null;
+    return;
+  }
+  const kit = getKit();
+  // The kit calls the wallet's own disconnect() without awaiting it, so a WalletConnect relay that
+  // fails would reject with nobody listening. Call it here, awaited, so its failure reaches the caller,
+  // and let the kit's call do nothing while it resets its own state.
+  const wallet = kit.selectedModule;
+  const own = Object.prototype.hasOwnProperty.call(wallet, "disconnect");
+  const walletDisconnect = wallet.disconnect;
+  try {
+    await walletDisconnect?.call(wallet);
+  } finally {
+    wallet.disconnect = async () => {};
+    try {
+      await kit.disconnect();
+    } finally {
+      if (own) wallet.disconnect = walletDisconnect;
+      else delete wallet.disconnect;
+    }
+  }
+}
