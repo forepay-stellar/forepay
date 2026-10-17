@@ -53,7 +53,6 @@ class AbandonedError extends Error {}
 
 const quoteKey = (address: string, revenueUsd: string) => ["quote", address, revenueUsd] as const;
 
-
 /**
  * 02 Prove and accept (#20): 2a Prove revenue, 2b Review offer, 2c Sign, 2d Receive, and every state on
  * the "Prove and accept / States and interactions" board.
@@ -333,6 +332,20 @@ export function Advance() {
 
   // ---- 2a Prove revenue, and the Reclaim session ----
   if (flow.at === "start") {
+    // A transaction left waiting from an earlier visit is picked up by the effect above, after this
+    // first render. Show it as sending from the start, so 2a and its "Prove my revenue" never flash.
+    if (loadPending(me)) {
+      return (
+        <AdvanceScreen title="Approve the advance" step={2} focusKey="resuming">
+          <Centered>
+            <ProgressPanel
+              title="Sending your USDC"
+              body="Stellar is confirming the transaction. This takes a few seconds. Keep this page open."
+            />
+          </Centered>
+        </AdvanceScreen>
+      );
+    }
     return (
       <AdvanceScreen title="Get an advance" step={0} focusKey={focusKey}>
         <ProveRevenue

@@ -122,8 +122,15 @@ test("a reload while the USDC is sent goes on waiting for it", async ({ page }) 
   await proveToOffer(page);
   await page.getByRole("button", { name: "Accept 90.00 USDC" }).click();
   await expect(heading(page, "Sending your USDC")).toBeVisible();
+  // Record whether 2a ever paints after the reload, even for a frame.
+  await page.addInitScript(() => {
+    new MutationObserver(() => {
+      if (document.body?.innerText.includes("See how much you can get")) window.localStorage.setItem("saw2a", "1");
+    }).observe(document, { subtree: true, childList: true, characterData: true });
+  });
   await page.reload();
   await expect(heading(page, "Sending your USDC")).toBeVisible();
+  expect(await page.evaluate(() => window.localStorage.getItem("saw2a"))).toBeNull();
   chain.advance!.holdLedger = false;
   await expect(heading(page, "Advance received")).toBeVisible();
   // Landed and shown: a later visit starts over at 2a.
