@@ -15,6 +15,7 @@ const kit = vi.hoisted(() => ({
 }));
 const picks = vi.hoisted(() => ({ listeners: [] as ((p: object) => void)[] }));
 const closes = vi.hoisted(() => ({ count: 0 }));
+const answers = vi.hoisted(() => ({ listeners: [] as ((a: unknown) => void)[] }));
 const available = vi.hoisted(() => ({
   freighter: (): Promise<boolean> => Promise.resolve(false),
   rabet: (): Promise<boolean> => Promise.resolve(false),
@@ -24,6 +25,14 @@ vi.mock("@creit.tech/stellar-wallets-kit", () => ({
   Networks: { TESTNET: "Test SDF Network ; September 2015" },
   StellarWalletsKit: kit,
   closeEvent: { next: () => closes.count++ },
+  addressUpdatedEvent: {
+    subscribe: (fn: (a: unknown) => void) => {
+      answers.listeners.push(fn);
+      return () => {
+        answers.listeners = answers.listeners.filter((l) => l !== fn);
+      };
+    },
+  },
   moduleSelectedEvent: {
     subscribe: (fn: (p: object) => void) => {
       picks.listeners.push(fn);
@@ -71,6 +80,7 @@ beforeEach(() => {
   kit.selectedModule = { productId: "freighter", productName: "Freighter" };
   picks.listeners = [];
   closes.count = 0;
+  answers.listeners = [];
   available.freighter = () => Promise.resolve(false);
   available.rabet = () => Promise.resolve(false);
   window.localStorage.clear();
@@ -110,47 +120,105 @@ describe("hasWallet", () => {
 });
 
 describe("connect", () => {
+  /** A press on a picker row, as the kit makes it: it selects the wallet, then tells its listeners. */
+  function press(id: string, name: string, icon?: string) {
+    kit.selectedModule = { productId: id, productName: name };
+    for (const l of picks.listeners) l({ id, name, icon });
+  }
+  /** The wallet's answer on the kit's shared answer event. */
+  function answer(a: unknown) {
+    for (const l of answers.listeners) l(a);
+  }
+  const tick = () => new Promise((r) => setTimeout(r, 0));
+
   it("names each wallet the creator picks, and nothing on opening the picker", async () => {
     const named: unknown[] = [];
-    let resolveModal: (v: { address: string }) => void = () => {};
-    kit.authModal.mockImplementation(() => new Promise((resolve) => (resolveModal = resolve)));
+    kit.authModal.mockImplementation(() => new Promise(() => {}));
     const { connect } = await load();
     const session = connect({ onWalletSelected: (w) => named.push(w) });
-    await Promise.resolve();
+    await tick();
     expect(named).toEqual([]);
     // The selected wallet picked again still counts as a pick.
-    for (const l of picks.listeners) l({ name: "Freighter", icon: "data:freighter" });
-    for (const l of picks.listeners) l({ name: "xBull", icon: "data:xbull" });
-    kit.selectedModule = { productId: "xbull", productName: "xBull" };
-    resolveModal({ address: "GABC" });
+    press("freighter", "Freighter", "data:freighter");
+    press("xbull", "xBull", "data:xbull");
+    answer("GABC");
     expect(await session).toEqual({ address: "GABC", name: "xBull", id: "xbull" });
     expect(named).toEqual([
       { name: "Freighter", icon: "data:freighter" },
       { name: "xBull", icon: "data:xbull" },
     ]);
     expect(picks.listeners).toHaveLength(0);
+    expect(answers.listeners).toHaveLength(0);
     expect(window.localStorage.getItem("forepay.wallet.id")).toBe("xbull");
   });
 
-  it("stops listening when the picker is closed", async () => {
+  it("hears an approval the kit itself would miss, while it is still checking wallets", async () => {
+    // The kit's promise never settles: it subscribed too late to hear the answer.
+    kit.authModal.mockImplementation(() => new Promise(() => {}));
+    const { connect } = await load();
+    const session = connect({ mountPicker: async () => document.createElement("div") });
+    await tick();
+    press("rabet", "Rabet");
+    answer("GRABET");
+    expect(await session).toMatchObject({ address: "GRABET", name: "Rabet" });
+    // The kit is told to take down its list.
+    expect(closes.count).toBe(1);
+  });
+
+  it("ignores a late answer from a wallet other than the one picked", async () => {
+    kit.authModal.mockImplementation(() => new Promise(() => {}));
+    const { connect } = await load();
+    const session = connect();
+    await tick();
+    // A popup from a cancelled attempt approves before anything is picked here: not ours.
+    answer("GSTALE");
+    press("xbull", "xBull");
+    // ...or after xBull was picked, while Freighter is still the module that answered: not ours either.
+    kit.selectedModule = { productId: "freighter", productName: "Freighter" };
+    answer("GFREIGHTER");
+    kit.selectedModule = { productId: "xbull", productName: "xBull" };
+    answer("GXBULL");
+    expect(await session).toMatchObject({ address: "GXBULL", name: "xBull", id: "xbull" });
+  });
+
+  it("passes on a wallet's refusal after a pick", async () => {
+    kit.authModal.mockImplementation(() => new Promise(() => {}));
+    const { connect } = await load();
+    const session = connect();
+    await tick();
+    press("freighter", "Freighter");
+    answer({ code: -4, message: "The user rejected this request." });
+    await expect(session).rejects.toMatchObject({ name: "WalletError", code: -4 });
+  });
+
+  it("stops listening when the kit's close button closes the picker", async () => {
     kit.authModal.mockRejectedValue({ code: -1, message: "The user closed the modal." });
     const { connect } = await load();
     await expect(connect({ onWalletSelected: () => {} })).rejects.toMatchObject({ name: "WalletError", code: -1 });
     expect(picks.listeners).toHaveLength(0);
+    expect(answers.listeners).toHaveLength(0);
   });
 
   it("renders the picker into the page's own element when the page gives one", async () => {
-    kit.authModal.mockResolvedValue({ address: "GABC" });
+    kit.authModal.mockImplementation(() => new Promise(() => {}));
     const container = document.createElement("div");
     const { connect } = await load();
-    await connect({ mountPicker: async () => container });
+    const session = connect({ mountPicker: async () => container });
+    await tick();
     expect(kit.authModal).toHaveBeenCalledWith({ container });
+    press("freighter", "Freighter");
+    answer("GABC");
+    await session;
   });
 
   it("opens the kit's own modal when the page gives no element", async () => {
-    kit.authModal.mockResolvedValue({ address: "GABC" });
-    await (await load()).connect();
+    kit.authModal.mockImplementation(() => new Promise(() => {}));
+    const session = (await load()).connect();
+    await tick();
     expect(kit.authModal).toHaveBeenCalledWith(undefined);
+    press("freighter", "Freighter");
+    answer("GABC");
+    await session;
   });
 
   it("cancels through the kit's close event, the same path as its close button", async () => {
@@ -163,7 +231,7 @@ describe("connect", () => {
     kit.authModal.mockImplementation(() => new Promise(() => {}));
     const { connect, cancelConnect } = await load();
     const session = connect({ mountPicker: async () => document.createElement("div") });
-    await new Promise((r) => setTimeout(r, 0));
+    await tick();
     cancelConnect();
     await expect(session).rejects.toMatchObject({ name: "WalletError", code: -1 });
     expect(picks.listeners).toHaveLength(0);
