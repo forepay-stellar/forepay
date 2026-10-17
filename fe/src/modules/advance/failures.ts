@@ -26,8 +26,22 @@ function sorted(e: unknown): AdvanceFailure {
   if (e instanceof ContractError) return { code: e.code };
   if (e instanceof SimulationError) return { kind: "simulationFailed" };
   if (e instanceof MissingConfigError) return { kind: "notConfigured" };
-  // What is left is a request that never got an answer: the network or the RPC node.
-  return { kind: "unreachable" };
+  // "We could not reach Stellar" only when the request truly got no answer; anything else is named as
+  // unexpected rather than offered a Try again that cannot work (review S3).
+  return isTransportError(e) ? { kind: "unreachable" } : { kind: "unexpected" };
+}
+
+/**
+ * A request that got no usable answer from the network or the RPC node: the browser's fetch failing,
+ * or the SDK's HTTP client with no response, a timeout, or a busy or broken server (429, 5xx).
+ */
+export function isTransportError(e: unknown): boolean {
+  if (e instanceof TypeError && /fetch|network|load failed/i.test(e.message)) return true;
+  if (e && typeof e === "object" && "isAxiosError" in e && (e as { isAxiosError: unknown }).isAxiosError) {
+    const status = (e as { response?: { status?: number } }).response?.status;
+    return status === undefined || status === 429 || status >= 500;
+  }
+  return false;
 }
 
 /** Proving, or checking the proof before the offer. A quote under 1 USDC is "too small", not an error. */

@@ -14,6 +14,17 @@ describe("proveFailure", () => {
     expect(proveFailure(new TypeError("Failed to fetch"))).toEqual({ kind: "unreachable" });
   });
 
+  it("says Stellar was unreachable only when the request got no answer", () => {
+    const http = (status?: number) => Object.assign(new Error("Request failed"), { isAxiosError: true, response: status ? { status } : undefined });
+    expect(proveFailure(http())).toEqual({ kind: "unreachable" });
+    expect(proveFailure(http(503))).toEqual({ kind: "unreachable" });
+    expect(proveFailure(http(429))).toEqual({ kind: "unreachable" });
+    // An answer, just not one we recognise: not the network, and Try again would meet it again.
+    expect(proveFailure(http(404))).toEqual({ kind: "unexpected" });
+    expect(proveFailure(new Error("Account not found: GA6H…"))).toEqual({ kind: "unexpected" });
+    expect(proveFailure(new TypeError("Cannot read properties of undefined"))).toEqual({ kind: "unexpected" });
+  });
+
   it("reads a quote under 1 USDC as too small, with the proven figure", () => {
     expect(proveFailure(new ContractError(31, "x"), "3.2")).toEqual({ kind: "tooSmall", revenue: "$3.20" });
   });

@@ -225,6 +225,7 @@ export type ProveFailure =
   | "charged"
   | "unconfirmed"
   | "unreachable"
+  | "unexpected"
   | "simulationFailed"
   | "notConfigured"
   | "walletLocked"
@@ -263,6 +264,13 @@ export function proveFailureCopy(kind: ProveFailure, walletName = "Freighter"): 
       return {
         title: "We could not reach Stellar",
         body: "Nothing was charged. Check your connection, then try again.",
+      };
+    case "unexpected":
+      // Not the network: an answer nothing here recognises (an account that is not there, a reply in
+      // a shape we did not expect). Trying again would meet it again, so this does not offer that.
+      return {
+        title: "We got an answer we did not expect",
+        body: "Nothing was charged. Go back and start again. If it keeps happening, reconnect your wallet.",
       };
     case "simulationFailed":
       return {

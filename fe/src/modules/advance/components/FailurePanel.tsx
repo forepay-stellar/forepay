@@ -164,6 +164,10 @@ export function FailurePanel({
         illustration = <IlloAdvancesPaused data-illo="advances-paused" />;
         actions = back;
         break;
+      case "unexpected":
+        illustration = <IlloNothingCharged data-illo="nothing-charged" />;
+        actions = back;
+        break;
     }
   }
 
