@@ -1,6 +1,8 @@
 import {
+  Account,
   Address,
   BASE_FEE,
+  Keypair,
   Contract,
   TransactionBuilder,
   nativeToScVal,
@@ -91,8 +93,23 @@ export function contractCode(message: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
+/**
+ * The source account, read with `getLedgerEntries` rather than the SDK's `getAccount`. That helper
+ * catches every failure, a timeout or a 503 included, and rethrows it as "Account not found", so a node
+ * that did not answer would read as an account that does not exist. Here a transport failure throws as
+ * itself, and only an empty answer means the account is not there.
+ */
+async function sourceAccount(source: string): Promise<Account> {
+  const accountId = Keypair.fromPublicKey(source).xdrPublicKey();
+  const key = xdr.LedgerKey.account(new xdr.LedgerKeyAccount({ accountId }));
+  const { entries } = await server().getLedgerEntries(key);
+  const entry = entries[0];
+  if (!entry) throw new Error(`Account not found: ${source}`);
+  return new Account(source, entry.val.account().seqNum().toString());
+}
+
 async function build(source: string, method: string, args: xdr.ScVal[]) {
-  const account = await server().getAccount(source);
+  const account = await sourceAccount(source);
   return new TransactionBuilder(account, { fee: BASE_FEE, networkPassphrase: NETWORK_PASSPHRASE })
     .addOperation(contract().call(method, ...args))
     .setTimeout(180)

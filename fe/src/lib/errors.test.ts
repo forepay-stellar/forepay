@@ -115,6 +115,7 @@ describe("proveFailureCopy", () => {
     "charged",
     "unconfirmed",
     "unreachable",
+    "unexpected",
     "simulationFailed",
     "notConfigured",
     "walletLocked",
