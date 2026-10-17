@@ -4,12 +4,13 @@ import { describe, expect, it, vi } from "vitest";
 import { SubmitError, submitSigned, waitFor } from "./submit";
 
 const ADDRESS = "GA6HCMBLTZS5VYYBCATRBRZ3BZJMAFUDKYYF6AH6MVCMGWMRDNSWJPIH";
-const HASH = "a".repeat(64);
-const signed = new TransactionBuilder(new Account(ADDRESS, "1"), { fee: BASE_FEE, networkPassphrase: Networks.TESTNET })
+const tx = new TransactionBuilder(new Account(ADDRESS, "1"), { fee: BASE_FEE, networkPassphrase: Networks.TESTNET })
   .addOperation(Operation.changeTrust({ asset: new Asset("USDC", ADDRESS) }))
   .setTimeout(30)
-  .build()
-  .toXDR();
+  .build();
+const signed = tx.toXDR();
+/** The signed transaction's own hash, which the network answers with too. */
+const HASH = tx.hash().toString("hex");
 
 function server(send: string | Error, final?: rpc.Api.GetTransactionStatus) {
   return {
@@ -22,7 +23,7 @@ function server(send: string | Error, final?: rpc.Api.GetTransactionStatus) {
 }
 
 describe("submitSigned", () => {
-  it("names the hash once the network has it, then waits for the ledger", async () => {
+  it("names the hash before sending, then waits for the ledger", async () => {
     const onSent = vi.fn();
     const s = server("PENDING", rpc.Api.GetTransactionStatus.SUCCESS);
     await expect(submitSigned(s, signed, { attempts: 5, onSent })).resolves.toMatchObject({ hash: HASH });
@@ -30,11 +31,27 @@ describe("submitSigned", () => {
     expect(s.pollTransaction).toHaveBeenCalledWith(HASH, { attempts: 5 });
   });
 
-  it("never names a hash for a transaction the network refused", async () => {
+  it("names the hash even for a send that gets no answer, since it may be out", async () => {
+    const onSent = vi.fn();
+    await expect(
+      submitSigned(server(new TypeError("fetch failed")), signed, { attempts: 5, onSent }),
+    ).rejects.toMatchObject({ outcome: "unconfirmed", noAnswer: true });
+    expect(onSent).toHaveBeenCalledWith(HASH);
+  });
+
+  it("reports a send the network refused as refused, so the caller forgets the hash it was given", async () => {
     const onSent = vi.fn();
     const err = await submitSigned(server("ERROR"), signed, { attempts: 5, onSent }).catch((e) => e);
     expect(err).toBeInstanceOf(SubmitError);
     expect(err.outcome).toBe("refused");
+    expect(err.noAnswer).toBe(false);
+  });
+
+  it("names nothing for a wallet answer that is not a transaction", async () => {
+    const onSent = vi.fn();
+    await expect(submitSigned(server("PENDING"), "not a transaction", { attempts: 5, onSent })).rejects.toMatchObject({
+      outcome: "refused",
+    });
     expect(onSent).not.toHaveBeenCalled();
   });
 
