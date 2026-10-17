@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { CountUp } from "@/components/CountUp";
+import { ScrollLift } from "@/components/ScrollLift";
 import { landing } from "@/content/landing";
 
 // Landing / Desktop → The math: one big warm card with the clay quarter coin, and two white
@@ -54,9 +55,11 @@ export function TheMath() {
           </div>
           {/* The export is 800 × 370 with room for the shadow below the 300 px stage */}
           <div className="relative h-[250px] lg:h-[300px]">
-            <div className="absolute -top-3.5 left-1/2 h-[288px] w-[624px] -translate-x-1/2 lg:top-0 lg:h-[370px] lg:w-[800px]">
-              <Image src="/clay/quarter-coin.webp" alt="" fill sizes="(min-width: 1024px) 800px, 624px" />
-            </div>
+            <ScrollLift from={20} to={-20} className="absolute inset-0">
+              <div className="absolute -top-3.5 left-1/2 h-[288px] w-[624px] -translate-x-1/2 lg:top-0 lg:h-[370px] lg:w-[800px]">
+                <Image src="/clay/quarter-coin.webp" alt="" fill sizes="(min-width: 1024px) 800px, 624px" />
+              </div>
+            </ScrollLift>
           </div>
           <div className="relative flex flex-col gap-2">
             <h3 className="text-[26px] leading-[1.15] font-medium tracking-[-0.8px] lg:text-4xl lg:tracking-[-1.2px]">{s.big.title}</h3>

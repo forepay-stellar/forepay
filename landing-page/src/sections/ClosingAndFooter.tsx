@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { ButtonLink } from "@/components/Button";
+import { ScrollLift } from "@/components/ScrollLift";
 import { landing } from "@/content/landing";
 import { APP_URL, CONTRACT_URL } from "@/lib/env";
 
@@ -30,16 +31,19 @@ export function ClosingAndFooter() {
       <section className="relative mx-auto max-w-[1440px]">
         {/* Desktop */}
         <div className="relative hidden lg:block" style={{ height: v(860) }}>
-          <div
-            aria-hidden
-            className="absolute rounded-full bg-glow"
-            style={{ left: v(-420), top: v(500), width: v(2280), height: v(1000), filter: "blur(90px)" }}
-          />
-          <div
-            aria-hidden
-            className="absolute rounded-full"
-            style={{ left: v(-300), top: v(575), width: v(2040), height: v(960), background: SUNRISE, filter: "blur(40px)" }}
-          />
+          {/* The sunrise rises as the section scrolls in */}
+          <ScrollLift from={120} to={-40} className="absolute inset-0">
+            <div
+              aria-hidden
+              className="absolute rounded-full bg-glow"
+              style={{ left: v(-420), top: v(500), width: v(2280), height: v(1000), filter: "blur(90px)" }}
+            />
+            <div
+              aria-hidden
+              className="absolute rounded-full"
+              style={{ left: v(-300), top: v(575), width: v(2040), height: v(960), background: SUNRISE, filter: "blur(40px)" }}
+            />
+          </ScrollLift>
           <h2
             className="absolute inset-x-0 text-center leading-[0.9] font-semibold tracking-[-0.048em] text-brand"
             style={{ top: v(40), fontSize: v(230) }}
@@ -59,15 +63,17 @@ export function ClosingAndFooter() {
 
         {/* Phone */}
         <div className="relative h-[680px] lg:hidden">
-          <div
-            aria-hidden
-            className="absolute top-[410px] left-1/2 h-[520px] w-[910px] -translate-x-1/2 rounded-full bg-glow blur-[50px]"
-          />
-          <div
-            aria-hidden
-            className="absolute top-[470px] left-1/2 h-[500px] w-[810px] -translate-x-1/2 rounded-full blur-[24px]"
-            style={{ background: SUNRISE }}
-          />
+          <ScrollLift from={80} to={-30} className="absolute inset-0">
+            <div
+              aria-hidden
+              className="absolute top-[410px] left-1/2 h-[520px] w-[910px] -translate-x-1/2 rounded-full bg-glow blur-[50px]"
+            />
+            <div
+              aria-hidden
+              className="absolute top-[470px] left-1/2 h-[500px] w-[810px] -translate-x-1/2 rounded-full blur-[24px]"
+              style={{ background: SUNRISE }}
+            />
+          </ScrollLift>
           {/* "Paid early." on two lines, as drawn for phones */}
           <h2 className="absolute inset-x-0 top-[30px] text-center text-[112px] leading-[0.88] font-semibold tracking-[-5.5px] text-brand">
             {c.headline.split(" ").map((word) => (

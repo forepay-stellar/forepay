@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Reveal } from "@/components/Reveal";
+import { ScrollLift } from "@/components/ScrollLift";
 import { landing } from "@/content/landing";
 import { cn } from "@/lib/cn";
 
@@ -10,16 +11,21 @@ const CARDS = [
     fill: "bg-[radial-gradient(140%_140%_at_85%_15%,#F8A97AB3,#F8A97A00_50%),linear-gradient(#FFF3EA,#FFF3EA)]",
     glassLeft: "left-[200px]",
     height: "lg:h-[640px]",
+    lift: [0, 0],
   },
   {
     fill: "bg-[radial-gradient(140%_140%_at_20%_10%,#F7B48AB3,#F7B48A00_50%),linear-gradient(#FFE9D8,#FFE9D8)]",
     glassLeft: "-left-[120px]",
     height: "lg:h-[560px]",
+    // The coin lifted off the stack rises a little further as the card passes.
+    lift: [16, -16],
   },
   {
     fill: "bg-[radial-gradient(140%_140%_at_85%_20%,#F59A66B3,#F59A6600_50%),linear-gradient(#F6EFE9,#F6EFE9)]",
     glassLeft: "left-[200px]",
     height: "lg:h-[640px]",
+    // The wallet with the coin dropping in settles as the card passes.
+    lift: [-24, 8],
   },
 ];
 
@@ -53,9 +59,9 @@ export function HowItWorks() {
                 )}
               />
               <span className="relative font-mono text-[15px] text-fg-muted">{step.number}</span>
-              <div className="relative h-[300px]">
+              <ScrollLift from={CARDS[i].lift[0]} to={CARDS[i].lift[1]} className="relative h-[300px]">
                 <Image src={step.image} alt="" fill sizes="(min-width: 1024px) 330px, 90vw" className="object-contain" />
-              </div>
+              </ScrollLift>
               <div className="relative flex flex-col gap-2.5">
                 <h3 className="text-[32px] leading-[1.02] font-medium tracking-[-1px] lg:text-[40px] lg:tracking-[-1.3px]">
                   {step.title}
