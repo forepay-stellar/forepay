@@ -13,7 +13,6 @@ export const landing = {
     // The desktop bar is shorter than the mobile menu: The math is reached by scrolling.
     desktopHrefs: ["#how-it-works", "#your-data", "#faq"],
     cta: "Open the app",
-    testnet: "Testnet",
     menu: "Open menu",
     close: "Close menu",
   },
