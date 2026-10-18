@@ -19,8 +19,11 @@ export function ProveRevenue({
   onProve,
 }: {
   walletName: string;
-  /** The contract's rate and cap, from `sizing()`. Until read, the line names no figure. */
-  terms?: Sizing;
+  /**
+   * The contract's rate and cap, from `sizing()`: `"loading"` while it is read (a placeholder line),
+   * `undefined` when it could not be (the line names no figure).
+   */
+  terms?: Sizing | "loading";
   /** Read from the ledger. `undefined` while loading, `"error"` when the read failed. */
   usdc: UsdcStatus | "error" | undefined;
   onProve: () => void;
@@ -69,12 +72,16 @@ export function ProveRevenue({
         </section>
         <section className="flex flex-col gap-1.5 rounded-tile bg-brand-subtle p-[18px] lg:gap-2.5 lg:rounded-card lg:p-6">
           <h2 className="text-[15px] font-semibold text-brand-strong lg:text-[16px]">How your advance is set</h2>
-          <p className="text-[14px] leading-[20px] text-brand-strong lg:leading-[21px]">
-            {terms
-              ? `${shareWords(terms)} of your proven revenue, up to ${usdcWords(terms.capStroops)}.`
-              : "A share of your proven revenue, up to a limit per advance."}
-            <span className="hidden lg:inline"> The same proof always gives the same number.</span>
-          </p>
+          {terms === "loading" ? (
+            <SkeletonBlock className="h-5 w-56 rounded-[6px] bg-brand-strong/15" />
+          ) : (
+            <p className="text-[14px] leading-[20px] text-brand-strong lg:leading-[21px]">
+              {terms
+                ? `${shareWords(terms)} of your proven revenue, up to ${usdcWords(terms.capStroops)}.`
+                : "A share of your proven revenue, up to a limit per advance."}
+              <span className="hidden lg:inline"> The same proof always gives the same number.</span>
+            </p>
+          )}
         </section>
       </div>
     </div>

@@ -356,7 +356,7 @@ export function Advance() {
       <AdvanceScreen title="Get an advance" step={0} focusKey={focusKey}>
         <ProveRevenue
           walletName={wallet}
-          terms={terms.data}
+          terms={terms.isPending ? "loading" : terms.data}
           usdc={usdc.isError ? "error" : usdc.data}
           onProve={prove}
         />

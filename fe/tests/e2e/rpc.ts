@@ -49,6 +49,8 @@ export type AdvanceChain = {
   acceptDelayMs?: number;
   /** Answer `sizing()` with a server error, as a node that does not answer that read. */
   sizingDown?: boolean;
+  /** Answer `sizing()` this late, to see what shows while it loads. */
+  sizingDelayMs?: number;
   /** While true, a sent `request_advance` is not on the ledger yet; set it false to let it land. */
   holdLedger?: boolean;
   /** Answer this many polls for the sent `request_advance` with a server error, as a node that is down. */
@@ -236,6 +238,7 @@ export async function mockRpc(page: Page, chain: Chain) {
           case "sizing": {
             // What the production contract answers (#63): a struct, its fields sorted.
             if (adv.sizingDown) return route.fulfill({ status: 503, body: "unavailable" });
+            if (adv.sizingDelayMs) await new Promise((r) => setTimeout(r, adv.sizingDelayMs));
             const field = (k: string, v: bigint) => new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol(k), val: i128(v) });
             return reply(
               simulated(

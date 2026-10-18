@@ -194,6 +194,20 @@ test("exactly $400.00 reaches 100 USDC without the limit doing anything, and say
   await expect(page.getByText(/is more than 100 USDC/)).toHaveCount(0);
 });
 
+test("while the contract's sizing loads, 2a shows a placeholder, never the words for an unknown rate", async ({
+  page,
+}) => {
+  // Record whether the neutral line ever paints.
+  await page.addInitScript(() => {
+    new MutationObserver(() => {
+      if (document.body?.innerText.includes("A share of your proven revenue")) window.localStorage.setItem("sawNeutral", "1");
+    }).observe(document, { subtree: true, childList: true, characterData: true });
+  });
+  await connect(page, { account: true, trustline: true, advance: { sizingDelayMs: 1500 } });
+  await expect(page.getByText("A quarter of your proven revenue, up to 100 USDC.")).toBeVisible();
+  expect(await page.evaluate(() => window.localStorage.getItem("sawNeutral"))).toBeNull();
+});
+
 test("without the contract's sizing, the offer leaves out the rate and limit and claims nothing on the cap", async ({
   page,
 }) => {
