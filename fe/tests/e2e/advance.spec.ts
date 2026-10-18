@@ -204,7 +204,11 @@ test("while the contract's sizing loads, 2a shows a placeholder, never the words
     }).observe(document, { subtree: true, childList: true, characterData: true });
   });
   await connect(page, { account: true, trustline: true, advance: { sizingDelayMs: 1500 } });
+  // The box keeps its height from placeholder to line, phone and desktop alike.
+  const box = page.getByRole("heading", { name: "How your advance is set" }).locator("..");
+  const loading = await box.boundingBox();
   await expect(page.getByText("A quarter of your proven revenue, up to 100 USDC.")).toBeVisible();
+  expect((await box.boundingBox())?.height).toBeCloseTo(loading?.height ?? 0, 0);
   expect(await page.evaluate(() => window.localStorage.getItem("sawNeutral"))).toBeNull();
 });
 

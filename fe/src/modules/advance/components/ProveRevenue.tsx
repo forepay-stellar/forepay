@@ -73,7 +73,12 @@ export function ProveRevenue({
         <section className="flex flex-col gap-1.5 rounded-tile bg-brand-subtle p-[18px] lg:gap-2.5 lg:rounded-card lg:p-6">
           <h2 className="text-[15px] font-semibold text-brand-strong lg:text-[16px]">How your advance is set</h2>
           {terms === "loading" ? (
-            <SkeletonBlock className="h-5 w-56 rounded-[6px] bg-brand-strong/15" />
+            // As tall as the line it stands for: one 20px line on a phone, two 21px lines on desktop,
+            // where "The same proof always gives the same number." wraps under it.
+            <div aria-hidden className="flex h-5 flex-col justify-between lg:h-[42px]">
+              <SkeletonBlock className="h-4 w-56 rounded-[6px] bg-brand-strong/15" />
+              <SkeletonBlock className="hidden h-4 w-72 rounded-[6px] bg-brand-strong/15 lg:block" />
+            </div>
           ) : (
             <p className="text-[14px] leading-[20px] text-brand-strong lg:leading-[21px]">
               {terms
