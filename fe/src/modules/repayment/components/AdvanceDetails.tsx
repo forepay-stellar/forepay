@@ -1,4 +1,6 @@
 import { Check } from "lucide-react";
+import type { ReactNode } from "react";
+import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
 import type { AdvanceSummary } from "@/lib/api/types";
 import { formatLedgerTime, formatUsdCents, formatUsdc, formatWindow } from "@/lib/format";
@@ -14,12 +16,17 @@ export function AdvanceDetails({
   className,
 }: {
   advance: AdvanceSummary;
-  /** The contract's rate and cap (`sizing()`), for "How it was sized". The row waits for it. */
-  terms: Sizing | undefined;
+  /**
+   * The contract's rate and cap (`sizing()`), for "How it was sized": `"loading"` while it is read (the
+   * row holds a placeholder, so the card does not grow later), `undefined` when it could not be read
+   * (the row is left out).
+   */
+  terms: Sizing | "loading" | undefined;
   className?: string;
 }) {
-  const sized = sizingLabel(advance, terms);
-  const rows: { label: string; value: string }[] = [
+  const sized: ReactNode =
+    terms === "loading" ? <SkeletonBlock className="h-4 w-28 rounded-[6px]" /> : sizingLabel(advance, terms);
+  const rows: { label: string; value: ReactNode }[] = [
     { label: "Advanced", value: formatUsdc(advance.principal) },
     {
       label: `AdSense revenue, ${formatWindow(advance.windowStart, advance.windowEnd).short}`,

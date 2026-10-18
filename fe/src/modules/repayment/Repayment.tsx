@@ -465,7 +465,7 @@ function Ledger({
           failure={failure}
           note={note}
         />
-        <AdvanceDetails advance={advance} terms={terms.data} className="order-4 hidden lg:flex" />
+        <AdvanceDetails advance={advance} terms={terms.isPending ? "loading" : terms.data} className="order-4 hidden lg:flex" />
         <LedgerNote className="order-5" />
       </div>
 

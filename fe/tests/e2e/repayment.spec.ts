@@ -503,3 +503,13 @@ test("advance details say how it was sized, from the contract's own rate", async
   const details = page.getByRole("heading", { name: "Advance details" }).locator("..");
   await expect(details.getByText("How it was sized").locator("..")).toContainText("25% of $360.00");
 });
+
+test("the sizing row holds its place while the contract's sizing loads", async ({ page, isMobile }) => {
+  test.skip(isMobile, "advance details are the desktop layout's");
+  await open(page, "/repayment", frameLedger(), { advance: { sizingDelayMs: 1500 } });
+  const details = page.getByRole("heading", { name: "Advance details" }).locator("..");
+  // The row is there from the start, so the card does not grow when the figure comes.
+  await expect(details.getByText("How it was sized")).toBeVisible();
+  await expect(details.getByText("How it was sized").locator("..")).not.toContainText("of $360.00");
+  await expect(details.getByText("How it was sized").locator("..")).toContainText("25% of $360.00");
+});
