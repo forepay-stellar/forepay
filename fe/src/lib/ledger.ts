@@ -1,5 +1,6 @@
 import type { AdvanceSummary, LedgerTransaction } from "@/lib/api/types";
 import { MONTH_NAMES, formatDate, formatUsdCents, usdcParts } from "@/lib/format";
+import type { Sizing } from "@/lib/stellar/contract";
 
 /**
  * What 3a Repayment and 3b All transactions read off an advance and its transactions (#21), kept out of
@@ -37,17 +38,19 @@ export function percentRepaid(advance: AdvanceSummary): number {
 }
 
 /**
- * "How it was sized" in Advance details. The rule is the contract's (`docs/interface.md` §5, 25% of the
- * proven revenue, capped). The screen only says which side of the cap this advance landed on, by
- * comparing the principal the contract paid with a quarter of the revenue it was sized from.
+ * "How it was sized" in Advance details, from the contract's own rule (`sizing()`, #63): the share of
+ * the proven revenue it advances, up to its cap. The screen only says which side of the cap this
+ * advance landed on, by comparing the principal the contract paid with that share. No rate is written
+ * here; without the contract's, the row says nothing (null).
  */
-export function sizingLabel(advance: AdvanceSummary): string {
-  const quarterOfRevenue = (advance.revenueCents * CENT) / 4n;
-  if (advance.principal < quarterOfRevenue) {
+export function sizingLabel(advance: AdvanceSummary, terms: Sizing | undefined): string | null {
+  if (!terms) return null;
+  const share = (advance.revenueCents * terms.stroopsPerCent * terms.rateNum) / terms.rateDen;
+  if (advance.principal < share) {
     const { whole, decimals } = usdcParts(advance.principal);
     return `Capped at ${whole}${decimals} USDC`;
   }
-  return `25% of ${formatUsdCents(advance.revenueCents)}`;
+  return `${(terms.rateNum * 100n) / terms.rateDen}% of ${formatUsdCents(advance.revenueCents)}`;
 }
 
 // ---- Transactions ----

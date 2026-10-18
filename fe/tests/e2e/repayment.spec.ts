@@ -496,3 +496,10 @@ test("a repayment the network took is never called uncharged while Stellar does 
   await expect(form(page).getByRole("alert")).toHaveCount(0);
   expect(chain.contract?.sent).toHaveLength(1);
 });
+
+test("advance details say how it was sized, from the contract's own rate", async ({ page, isMobile }) => {
+  test.skip(isMobile, "advance details are the desktop layout's");
+  await open(page, "/repayment", frameLedger());
+  const details = page.getByRole("heading", { name: "Advance details" }).locator("..");
+  await expect(details.getByText("How it was sized").locator("..")).toContainText("25% of $360.00");
+});

@@ -59,8 +59,15 @@ describe("the advance on screen", () => {
 
   // The window itself is formatWindow's (lib/format.ts), shared with 2b.
   it("names how the advance was sized", () => {
-    expect(sizingLabel(advance())).toBe("25% of $360.00");
-    expect(sizingLabel(advance({ revenueCents: 124_000n, principal: 100n * USDC }))).toBe("Capped at 100.00 USDC");
+    const terms = { rateNum: 25n, rateDen: 100n, capStroops: 100n * USDC, minStroops: USDC, stroopsPerCent: 100_000n };
+    expect(sizingLabel(advance(), terms)).toBe("25% of $360.00");
+    expect(sizingLabel(advance({ revenueCents: 124_000n, principal: 100n * USDC }), terms)).toBe("Capped at 100.00 USDC");
+    // The rate is the contract's: another rate reads as itself.
+    expect(sizingLabel(advance({ principal: 144n * USDC }), { ...terms, rateNum: 40n, capStroops: 200n * USDC })).toBe(
+      "40% of $360.00",
+    );
+    // Without the contract's terms, nothing is said.
+    expect(sizingLabel(advance(), undefined)).toBeNull();
   });
 });
 

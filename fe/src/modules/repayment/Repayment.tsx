@@ -1,6 +1,6 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowUpRight, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -20,7 +20,7 @@ import type { AdvanceSummary, LedgerTransaction } from "@/lib/api/types";
 import { isSignatureDeclined, type FailureCopy } from "@/lib/errors";
 import { formatUsdc } from "@/lib/format";
 import { latestRows, outstanding, percentRepaid, pickAdvance, type Row } from "@/lib/ledger";
-import { TransactionFailedError, awaitRepay, repay } from "@/lib/stellar/contract";
+import { TransactionFailedError, awaitRepay, repay, sizing } from "@/lib/stellar/contract";
 import { explorerAccountUrl, explorerContractUrl, explorerTxUrl } from "@/lib/stellar/network";
 import { useWallet } from "@/providers/WalletProvider";
 import { AdvanceDetails } from "./components/AdvanceDetails";
@@ -280,6 +280,8 @@ function Ledger({
   const { walletName, signTransaction } = useWallet();
   const queryClient = useQueryClient();
   const balance = useUsdcBalance(address);
+  // The contract's rate and cap, for "How it was sized" (shared with 02 Prove and accept's cache).
+  const terms = useQuery({ queryKey: ["sizing", address], queryFn: () => sizing(address), staleTime: Infinity });
 
   const [input, setInput] = useState("");
   const [chip, setChip] = useState<Chip | null>(null);
@@ -463,7 +465,7 @@ function Ledger({
           failure={failure}
           note={note}
         />
-        <AdvanceDetails advance={advance} className="order-4 hidden lg:flex" />
+        <AdvanceDetails advance={advance} terms={terms.data} className="order-4 hidden lg:flex" />
         <LedgerNote className="order-5" />
       </div>
 

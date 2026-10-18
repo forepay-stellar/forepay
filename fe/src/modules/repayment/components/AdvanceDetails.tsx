@@ -3,18 +3,29 @@ import { cn } from "@/lib/cn";
 import type { AdvanceSummary } from "@/lib/api/types";
 import { formatLedgerTime, formatUsdCents, formatUsdc, formatWindow } from "@/lib/format";
 import { sizingLabel } from "@/lib/ledger";
+import type { Sizing } from "@/lib/stellar/contract";
 import { explorerTxUrl } from "@/lib/stellar/network";
 
 // Advance details from "05 Product components": what was advanced, the proven revenue it was sized
 // from, how, when, and the proof, "Verified" with its receipt (brief §3, term table).
-export function AdvanceDetails({ advance, className }: { advance: AdvanceSummary; className?: string }) {
+export function AdvanceDetails({
+  advance,
+  terms,
+  className,
+}: {
+  advance: AdvanceSummary;
+  /** The contract's rate and cap (`sizing()`), for "How it was sized". The row waits for it. */
+  terms: Sizing | undefined;
+  className?: string;
+}) {
+  const sized = sizingLabel(advance, terms);
   const rows: { label: string; value: string }[] = [
     { label: "Advanced", value: formatUsdc(advance.principal) },
     {
       label: `AdSense revenue, ${formatWindow(advance.windowStart, advance.windowEnd).short}`,
       value: formatUsdCents(advance.revenueCents),
     },
-    { label: "How it was sized", value: sizingLabel(advance) },
+    ...(sized ? [{ label: "How it was sized", value: sized }] : []),
     { label: "Received on", value: formatLedgerTime(advance.openedAt) },
   ];
   return (
