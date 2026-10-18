@@ -102,13 +102,16 @@ test("leaving while the USDC is sent still shows its receipt on coming back", as
   await page.getByRole("button", { name: "Accept 90.00 USDC" }).click();
   await expect(heading(page, "Sending your USDC")).toBeVisible();
 
-  // The tab bar is right there: the creator leaves, and the transaction lands meanwhile.
+  // The tab bar is right there: the creator leaves, and the transaction lands meanwhile. A cold dev
+  // server compiles each page on its first visit, which can outlast the default wait under a full
+  // parallel run, so each move waits longer than the rest of the suite needs.
   await page.getByRole("link", { name: "Repayment" }).click();
-  await expect(page).toHaveURL(/\/repayment$/);
+  await expect(page).toHaveURL(/\/repayment$/, { timeout: 20_000 });
   chain.advance!.holdLedger = false;
   await page.getByRole("link", { name: "Advance" }).click();
+  await expect(page).toHaveURL(/\/advance$/, { timeout: 20_000 });
 
-  await expect(heading(page, "Advance received")).toBeVisible();
+  await expect(heading(page, "Advance received")).toBeVisible({ timeout: 20_000 });
   await expect(page.getByRole("link", { name: "View receipt" })).toHaveAttribute(
     "href",
     `https://stellar.expert/explorer/testnet/tx/${chain.advance?.hash}`,
