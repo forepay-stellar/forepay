@@ -194,6 +194,19 @@ test("exactly $400.00 reaches 100 USDC without the limit doing anything, and say
   await expect(page.getByText(/is more than 100 USDC/)).toHaveCount(0);
 });
 
+test("without the contract's sizing, the offer leaves out the rate and limit and claims nothing on the cap", async ({
+  page,
+}) => {
+  await connect(page, { account: true, trustline: true, advance: { sizingDown: true } }, { "forepay.mock.revenue": "1240.00" });
+  await proveToOffer(page);
+  await expect(page.getByRole("button", { name: "Accept 100.00 USDC" })).toBeVisible();
+  await expect(page.getByText("You earned $1,240.00 on AdSense from July to September.")).toBeVisible();
+  const breakdown = page.getByRole("region", { name: "How we got this number" });
+  await expect(breakdown.getByText("Advance rate")).toHaveCount(0);
+  await expect(breakdown.getByText("Limit per advance")).toHaveCount(0);
+  await expect(page.getByText(/is more than 100 USDC/)).toHaveCount(0);
+});
+
 test("an advance under 1 USDC is refused before anything is sent, and the proof is not used", async ({ page }) => {
   const chain: Chain = { account: true, trustline: true };
   await connect(page, chain, { "forepay.mock.revenue": "3.20" });

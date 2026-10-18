@@ -2,18 +2,18 @@ import { Amount } from "@/components/elements/Amount";
 import { cn } from "@/lib/cn";
 import { formatUsdc } from "@/lib/format";
 
-/** 100 USDC in stroops. The contract's `ADVANCE_CAP_STROOPS` (docs/interface.md §5), shown as the limit row. */
-export const ADVANCE_CAP = 1_000_000_000n;
 
 /**
  * Offer breakdown from "05 Product components": how the offer was reached, so it can be checked. Proven
- * revenue, × 25%, the 100 USDC limit, and the result. The result is the contract's own `quote`, passed
- * in, never worked out here (#20, ARCHITECTURE.md §1).
+ * revenue, the rate and the limit (both read from the contract's `sizing()`), and the result. The result
+ * is the contract's own `quote`, passed in, never worked out here (#20, ARCHITECTURE.md §1).
  */
 export function OfferBreakdown({
   revenue,
   windowShort,
   advance,
+  rate,
+  cap,
   note,
   className,
 }: {
@@ -23,6 +23,10 @@ export function OfferBreakdown({
   windowShort: string;
   /** What `quote` returned, in stroops. */
   advance: bigint;
+  /** The contract's rate, `× 25%`, from its `sizing()`. The row is left out while it is not known. */
+  rate?: string;
+  /** The contract's cap per advance, in stroops, from its `sizing()`. Left out while not known. */
+  cap?: bigint;
   /** A line under the result, for the capped case. */
   note?: string;
   className?: string;
@@ -39,8 +43,8 @@ export function OfferBreakdown({
       ),
       value: revenue,
     },
-    { key: "Advance rate", value: "× 25%" },
-    { key: "Limit per advance", value: formatUsdc(ADVANCE_CAP) },
+    ...(rate ? [{ key: "Advance rate", value: rate }] : []),
+    ...(cap !== undefined ? [{ key: "Limit per advance", value: formatUsdc(cap) }] : []),
   ];
   return (
     <section className={cn("flex w-full flex-col gap-5 rounded-card bg-surface p-6", className)} aria-label="How we got this number">

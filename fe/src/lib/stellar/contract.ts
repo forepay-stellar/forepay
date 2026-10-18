@@ -163,6 +163,31 @@ export function quote(source: string, revenueUsd: string): Promise<bigint> {
   return read<bigint>(source, "quote", [str(revenueUsd)]);
 }
 
+/** The constants `quote` sizes an advance from (`docs/interface.md` §5, #63), all integers. */
+export type Sizing = {
+  /** The share of proven revenue advanced: `rateNum / rateDen`, 25 / 100 today. */
+  rateNum: bigint;
+  rateDen: bigint;
+  /** The most one advance can be, in stroops. */
+  capStroops: bigint;
+  /** The least the contract will send, in stroops. */
+  minStroops: bigint;
+  /** Stroops per US cent of proven revenue. */
+  stroopsPerCent: bigint;
+};
+
+/** How the contract sizes an advance: read from it, so no rate or cap is written into the app. */
+export async function sizing(source: string): Promise<Sizing> {
+  const raw = await read<Record<string, bigint>>(source, "sizing");
+  return {
+    rateNum: BigInt(raw.rate_num),
+    rateDen: BigInt(raw.rate_den),
+    capStroops: BigInt(raw.cap_stroops),
+    minStroops: BigInt(raw.min_stroops),
+    stroopsPerCent: BigInt(raw.stroops_per_cent),
+  };
+}
+
 /** How much USDC the contract can still lend, in stroops. Below a quote, advances are paused. */
 export function liquidity(source: string): Promise<bigint> {
   return read<bigint>(source, "liquidity");

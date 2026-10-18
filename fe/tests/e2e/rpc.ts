@@ -47,6 +47,8 @@ export type AdvanceChain = {
   simulationFails?: boolean;
   /** Hold every `request_advance` simulation after the first this long, so 2c can be seen. */
   acceptDelayMs?: number;
+  /** Answer `sizing()` with a server error, as a node that does not answer that read. */
+  sizingDown?: boolean;
   /** While true, a sent `request_advance` is not on the ledger yet; set it false to let it land. */
   holdLedger?: boolean;
   /** Answer this many polls for the sent `request_advance` with a server error, as a node that is down. */
@@ -230,6 +232,22 @@ export async function mockRpc(page: Page, chain: Chain) {
             if (adv.refuse && checks >= adv.refuse.from) return reply(contractError(adv.refuse.code));
             if (!chain.trustline) return reply(contractError(41));
             return reply(simulated(i128(stroops)));
+          }
+          case "sizing": {
+            // What the production contract answers (#63): a struct, its fields sorted.
+            if (adv.sizingDown) return route.fulfill({ status: 503, body: "unavailable" });
+            const field = (k: string, v: bigint) => new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol(k), val: i128(v) });
+            return reply(
+              simulated(
+                xdr.ScVal.scvMap([
+                  field("cap_stroops", CAP_STROOPS),
+                  field("min_stroops", MIN_STROOPS),
+                  field("rate_den", 100n),
+                  field("rate_num", 25n),
+                  field("stroops_per_cent", 100_000n),
+                ]),
+              ),
+            );
           }
           case "nullifier_for":
             return reply(simulated(xdr.ScVal.scvBytes(NULLIFIER)));

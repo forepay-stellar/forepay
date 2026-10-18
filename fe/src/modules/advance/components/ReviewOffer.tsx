@@ -2,6 +2,8 @@ import { ArrowUpFromLine, Check, Receipt, Timer, Wallet } from "lucide-react";
 import { Amount } from "@/components/elements/Amount";
 import { IconTile } from "@/components/elements/IconTile";
 import { OfferBreakdown } from "@/components/elements/OfferBreakdown";
+import type { Sizing } from "@/lib/stellar/contract";
+import { rateLabel } from "../cap";
 import { Button } from "@/components/ui/Button";
 import { formatUsdc } from "@/lib/format";
 
@@ -16,6 +18,7 @@ export function ReviewOffer({
   windowLong,
   advance,
   capped,
+  terms,
   onAccept,
   onNotNow,
 }: {
@@ -28,10 +31,12 @@ export function ReviewOffer({
   /** Stroops, from `quote`. */
   advance: bigint;
   /**
-   * Whether the 100 USDC limit cut the advance, as the contract answered it (`capProbe` in Advance),
-   * `null` while that is not known: then neither sentence is claimed.
+   * Whether the contract's cap cut the advance (`isCapped`, from its `sizing()`), `null` while that is
+   * not known: then neither sentence is claimed.
    */
   capped: boolean | null;
+  /** The contract's rate and cap, for the breakdown's rows. Left out while they are not known. */
+  terms: Sizing | undefined;
   onAccept: () => void;
   onNotNow: () => void;
 }) {
@@ -73,6 +78,8 @@ export function ReviewOffer({
           </p>
         </section>
         <OfferBreakdown
+          rate={terms && rateLabel(terms)}
+          cap={terms?.capStroops}
           revenue={revenue}
           windowShort={windowShort}
           advance={advance}

@@ -3,7 +3,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { ADVANCE_CAP } from "@/components/elements/OfferBreakdown";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { notify } from "@/components/ui/Toaster";
 import { isSignatureDeclined } from "@/lib/errors";
@@ -14,6 +13,7 @@ import {
   awaitAdvance,
   checkAdvance,
   getAdvance,
+  sizing,
   nullifierFor,
   quote,
   requestAdvance,
@@ -30,7 +30,7 @@ import { ProveRevenue } from "./components/ProveRevenue";
 import { ReviewOffer } from "./components/ReviewOffer";
 import { SignAdvance } from "./components/SignAdvance";
 import { maxFee } from "./fee";
-import { centBelow } from "./cap";
+import { isCapped } from "./cap";
 import { clearPending, loadPending, savePending, type PendingAdvance } from "./pending";
 import { WalletSignError, acceptFailure, proofStillGood, proveFailure, type AdvanceFailure } from "./failures";
 
@@ -53,6 +53,7 @@ type Flow =
 class AbandonedError extends Error {}
 
 const quoteKey = (address: string, revenueUsd: string) => ["quote", address, revenueUsd] as const;
+const sizingKey = (address: string) => ["sizing", address] as const;
 
 /**
  * 02 Prove and accept (#20): 2a Prove revenue, 2b Review offer, 2c Sign, 2d Receive, and every state on
@@ -105,20 +106,15 @@ export function Advance() {
     staleTime: Infinity,
   });
 
-  // At the limit, whether the limit cut it: the same quote one cent lower (`centBelow`).
-  const below = req ? centBelow(req.revenueUsd) : null;
-  const capProbe = useQuery({
-    queryKey: quoteKey(address ?? "", below ?? ""),
-    queryFn: () => quote(address as string, below as string),
-    enabled: !!address && below !== null && offer.data === ADVANCE_CAP,
+  // The contract's rate and cap (#63), for the breakdown and for whether the cap cut this advance.
+  // Read while the proof is checked; if it cannot be read, 2b claims neither sentence about the cap.
+  const terms = useQuery({
+    queryKey: sizingKey(address ?? ""),
+    queryFn: () => sizing(address as string),
+    enabled: !!address && !!req && (flow.at === "offer" || flow.at === "signing"),
     staleTime: Infinity,
   });
-  const capped =
-    offer.data !== ADVANCE_CAP || below === null
-      ? false
-      : capProbe.isSuccess
-        ? capProbe.data === ADVANCE_CAP
-        : null;
+  const capped = terms.data && req ? isCapped(terms.data, req.revenueUsd) : null;
 
   // The advance as the contract stored it, for 2d. Keyed by its nullifier (ARCHITECTURE.md §4).
   const received = flow.at === "received" ? flow : undefined;
@@ -192,17 +188,9 @@ export function Advance() {
       ]);
       if (quoted.status === "rejected") throw quoted.reason;
       if (checked.status === "rejected") throw checked.reason;
-      const advance = quoted.value;
-      // At the limit, ask whether the limit cut it now, so 2b opens with the right sentence.
-      const lower = centBelow(r.revenueUsd);
-      // prefetchQuery never throws: if this fails, 2b just claims neither sentence.
-      if (advance === ADVANCE_CAP && lower !== null) {
-        await queryClient.prefetchQuery({
-          queryKey: quoteKey(me, lower),
-          queryFn: () => quote(me, lower),
-          staleTime: Infinity,
-        });
-      }
+      // The rate and cap, so 2b opens with them. prefetchQuery never throws: if this fails, 2b leaves
+      // the two rows out and claims neither sentence about the cap.
+      await queryClient.prefetchQuery({ queryKey: sizingKey(me), queryFn: () => sizing(me), staleTime: Infinity });
       if (id === attempt.current) setFlow({ at: "offer", req: r });
     } catch (e) {
       if (id === attempt.current) setFlow({ at: "failed", failure: proveFailure(e, r.revenueUsd), req: r, during: "prove" });
@@ -415,6 +403,7 @@ export function Advance() {
             windowLong={period.long}
             advance={offer.data}
             capped={capped}
+            terms={terms.data}
             onAccept={() => accept(flow.req)}
             onNotNow={toStart}
           />
