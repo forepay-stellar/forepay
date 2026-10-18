@@ -1,3 +1,4 @@
+import { formatUsdc } from "@/lib/format";
 import type { Sizing } from "@/lib/stellar/contract";
 
 /** `"360.00"` → 36000n: the attested revenue figure in US cents. */
@@ -16,7 +17,24 @@ export function isCapped(s: Sizing, revenueUsd: string): boolean {
   return uncapped > s.capStroops;
 }
 
-/** `× 25%` for the breakdown, from the contract's rate. Whole percents, as the rate is today. */
+/** `25%`: the contract's rate. Whole percents, as the rate is today. */
+export function ratePercent(s: Sizing): string {
+  return `${(s.rateNum * 100n) / s.rateDen}%`;
+}
+
+/** `× 25%` for the breakdown, from the contract's rate. */
 export function rateLabel(s: Sizing): string {
-  return `× ${(s.rateNum * 100n) / s.rateDen}%`;
+  return `× ${ratePercent(s)}`;
+}
+
+/** The rate as a sentence opens with it: `A quarter` for 25%, as the board words it, `Half`, or `40%`. */
+export function shareWords(s: Sizing): string {
+  const pct = (s.rateNum * 100n) / s.rateDen;
+  if (pct * s.rateDen !== s.rateNum * 100n) return ratePercent(s);
+  return pct === 25n ? "A quarter" : pct === 50n ? "Half" : `${pct}%`;
+}
+
+/** `100 USDC`, `1 USDC`: a whole amount in a sentence, as the board writes the cap and the minimum. */
+export function usdcWords(stroops: bigint): string {
+  return stroops % 10_000_000n === 0n ? `${stroops / 10_000_000n} USDC` : formatUsdc(stroops);
 }

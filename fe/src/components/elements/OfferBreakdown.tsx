@@ -2,7 +2,6 @@ import { Amount } from "@/components/elements/Amount";
 import { cn } from "@/lib/cn";
 import { formatUsdc } from "@/lib/format";
 
-
 /**
  * Offer breakdown from "05 Product components": how the offer was reached, so it can be checked. Proven
  * revenue, the rate and the limit (both read from the contract's `sizing()`), and the result. The result

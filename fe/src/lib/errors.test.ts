@@ -150,8 +150,14 @@ describe("proveFailureCopy", () => {
 
 describe("tooSmallCopy", () => {
   it("shows the creator's own figure, as the board does", () => {
-    expect(tooSmallCopy("$3.20").body).toBe(
+    expect(tooSmallCopy("$3.20", { share: "25%", minimum: "1 USDC" }).body).toBe(
       "25% of $3.20 is under 1 USDC, the smallest advance we can send. Your proof was not used.",
+    );
+  });
+
+  it("names no rate or minimum it does not have from the contract", () => {
+    expect(tooSmallCopy("$3.20").body).toBe(
+      "$3.20 is too little for the smallest advance we can send. Your proof was not used.",
     );
   });
 });

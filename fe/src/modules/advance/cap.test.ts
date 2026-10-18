@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Sizing } from "@/lib/stellar/contract";
-import { isCapped, rateLabel, revenueCents } from "./cap";
+import { isCapped, rateLabel, revenueCents, shareWords, usdcWords } from "./cap";
 
 // What the production contract's sizing() answers (#63).
 const TERMS: Sizing = {
@@ -32,5 +32,16 @@ describe("isCapped", () => {
 describe("rateLabel", () => {
   it("names the contract's rate", () => {
     expect(rateLabel(TERMS)).toBe("× 25%");
+  });
+});
+
+describe("shareWords and usdcWords", () => {
+  it("word the contract's figures as the board does", () => {
+    expect(shareWords(TERMS)).toBe("A quarter");
+    expect(shareWords({ ...TERMS, rateNum: 50n })).toBe("Half");
+    expect(shareWords({ ...TERMS, rateNum: 40n })).toBe("40%");
+    expect(usdcWords(TERMS.capStroops)).toBe("100 USDC");
+    expect(usdcWords(TERMS.minStroops)).toBe("1 USDC");
+    expect(usdcWords(12_300_000n)).toBe("1.23 USDC");
   });
 });

@@ -111,7 +111,8 @@ export function Advance() {
   const terms = useQuery({
     queryKey: sizingKey(address ?? ""),
     queryFn: () => sizing(address as string),
-    enabled: !!address && !!req && (flow.at === "offer" || flow.at === "signing"),
+    // From 2a on: its line on how an advance is set names the contract's rate and cap too.
+    enabled: !!address,
     staleTime: Infinity,
   });
   const capped = terms.data && req ? isCapped(terms.data, req.revenueUsd) : null;
@@ -355,6 +356,7 @@ export function Advance() {
       <AdvanceScreen title="Get an advance" step={0} focusKey={focusKey}>
         <ProveRevenue
           walletName={wallet}
+          terms={terms.data}
           usdc={usdc.isError ? "error" : usdc.data}
           onProve={prove}
         />
@@ -414,6 +416,7 @@ export function Advance() {
               walletName={wallet}
               beforeOffer
               allowing={allowing}
+              terms={terms.data}
               onAction={(action) => onFailureAction(action, offerFailure, flow.req, "prove")}
             />
           </Centered>
@@ -484,6 +487,7 @@ export function Advance() {
           walletName={wallet}
           beforeOffer={flow.during === "prove"}
           allowing={allowing}
+          terms={terms.data}
           onAction={(action) => onFailureAction(action, flow.failure, flow.req, flow.during)}
         />
       </Centered>

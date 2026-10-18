@@ -181,7 +181,7 @@ export function contractFailureCopy(code: number): FailureCopy {
     case 31:
       return {
         title: "Not enough revenue yet",
-        body: "A quarter of your revenue is under 1 USDC, the smallest advance we can send. Your proof was not used.",
+        body: "Your revenue gives less than the smallest advance we can send. Your proof was not used.",
       };
     case 40:
       return {
@@ -324,10 +324,15 @@ export function noTrustlineBeforeOfferCopy(): FailureCopy {
   };
 }
 
-/** "Not enough revenue yet", with the creator's own figure (`$3.20`), as the board shows it. */
-export function tooSmallCopy(revenue: string): FailureCopy {
+/**
+ * "Not enough revenue yet", with the creator's own figure (`$3.20`), as the board shows it. The rate
+ * and the minimum are the contract's (`share`, `minimum`: `25%`, `1 USDC`), and left out when unknown.
+ */
+export function tooSmallCopy(revenue: string, terms?: { share: string; minimum: string }): FailureCopy {
   return {
     title: contractFailureCopy(31).title,
-    body: `25% of ${revenue} is under 1 USDC, the smallest advance we can send. Your proof was not used.`,
+    body: terms
+      ? `${terms.share} of ${revenue} is under ${terms.minimum}, the smallest advance we can send. Your proof was not used.`
+      : `${revenue} is too little for the smallest advance we can send. Your proof was not used.`,
   };
 }

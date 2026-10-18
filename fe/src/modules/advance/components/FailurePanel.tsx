@@ -12,6 +12,8 @@ import { IlloProofNotConfirmed } from "@/components/illustrations/ProofNotConfir
 import { IlloSessionCancelled } from "@/components/illustrations/SessionCancelled";
 import { Button, button } from "@/components/ui/Button";
 import { contractFailureCopy, noTrustlineBeforeOfferCopy, proveFailureCopy, tooSmallCopy } from "@/lib/errors";
+import type { Sizing } from "@/lib/stellar/contract";
+import { ratePercent, usdcWords } from "../cap";
 import type { AdvanceFailure } from "../failures";
 
 /**
@@ -30,9 +32,12 @@ export function FailurePanel({
   walletName,
   beforeOffer,
   allowing,
+  terms,
   onAction,
 }: {
   failure: AdvanceFailure;
+  /** The contract's rate and minimum, from `sizing()`, for "not enough revenue". */
+  terms?: Sizing;
   walletName: string;
   /** Found while checking the proof, before any offer was shown. */
   beforeOffer: boolean;
@@ -101,7 +106,10 @@ export function FailurePanel({
         actions = <>{<Button onClick={a.onRetry}>Try again</Button>}{back}</>;
     }
   } else if (failure.kind === "tooSmall") {
-    copy = tooSmallCopy(failure.revenue);
+    copy = tooSmallCopy(
+      failure.revenue,
+      terms && { share: ratePercent(terms), minimum: usdcWords(terms.minStroops) },
+    );
     illustration = <IlloNoAdvanceYet data-illo="no-advance-yet" />;
     actions = back;
   } else {

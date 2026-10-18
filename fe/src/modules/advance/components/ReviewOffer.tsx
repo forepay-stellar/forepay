@@ -3,7 +3,7 @@ import { Amount } from "@/components/elements/Amount";
 import { IconTile } from "@/components/elements/IconTile";
 import { OfferBreakdown } from "@/components/elements/OfferBreakdown";
 import type { Sizing } from "@/lib/stellar/contract";
-import { rateLabel } from "../cap";
+import { rateLabel, ratePercent, shareWords, usdcWords } from "../cap";
 import { Button } from "@/components/ui/Button";
 import { formatUsdc } from "@/lib/format";
 
@@ -72,9 +72,9 @@ export function ReviewOffer({
           <p className="relative text-[15px] leading-[22px] text-fg-on-brand lg:max-w-[480px]">
             {capped
               ? `The most one advance can be. You earned ${revenue} on AdSense from ${windowLong}.`
-              : capped === null
+              : capped === null || !terms
                 ? `You earned ${revenue} on AdSense from ${windowLong}.`
-                : `A quarter of the ${revenue} you earned on AdSense from ${windowLong}.`}
+                : `${shareWords(terms)} of the ${revenue} you earned on AdSense from ${windowLong}.`}
           </p>
         </section>
         <OfferBreakdown
@@ -84,11 +84,12 @@ export function ReviewOffer({
           windowShort={windowShort}
           advance={advance}
           note={
-            capped
-              ? `A quarter of ${revenue} is more than 100 USDC. Each advance is limited to 100 USDC.`
-              : capped === null
-                ? undefined
-                : `25% of ${revenue} is ${amount}.`
+            // Every figure here is the contract's (`sizing()`); without it, no note.
+            !terms || capped === null
+              ? undefined
+              : capped
+                ? `${shareWords(terms)} of ${revenue} is more than ${usdcWords(terms.capStroops)}. Each advance is limited to ${usdcWords(terms.capStroops)}.`
+                : `${ratePercent(terms)} of ${revenue} is ${amount}.`
           }
         />
       </div>
