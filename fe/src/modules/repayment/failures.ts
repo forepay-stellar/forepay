@@ -68,7 +68,8 @@ function refusalCopy(code: number): FailureCopy {
   switch (code) {
     case 6:
       return {
-        title: "Your wallet is not on Stellar testnet",
+        // Axel's wording on #58: the account entry is missing (unfunded, or never created).
+        title: "This Stellar account does not exist yet",
         body: "Nothing was charged. Fund the wallet with test XLM, then try again.",
       };
     case 10:

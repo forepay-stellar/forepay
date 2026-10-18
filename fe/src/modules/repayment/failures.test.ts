@@ -17,7 +17,7 @@ describe("repayFailureCopy", () => {
     expect(repayFailureCopy(new ContractError(13, "Error(Contract, #13)"), false).title).toBe("Your wallet needs to accept USDC first");
     expect(repayFailureCopy(new ContractError(11, "Error(Contract, #11)"), false).title).toBe("Your USDC is on hold");
     expect(repayFailureCopy(new ContractError(6, "Error(Contract, #6)"), false)).toEqual({
-      title: "Your wallet is not on Stellar testnet",
+      title: "This Stellar account does not exist yet",
       body: "Nothing was charged. Fund the wallet with test XLM, then try again.",
     });
     // 1 is the SAC's InternalError as much as the advance contract's NotInitialized: neither is said.
