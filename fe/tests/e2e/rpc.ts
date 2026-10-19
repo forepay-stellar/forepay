@@ -87,6 +87,8 @@ export type AdvanceChain = {
   sizingDelayMs?: number;
   /** While true, a sent `request_advance` is not on the ledger yet; set it false to let it land. */
   holdLedger?: boolean;
+  /** While true, the send of a `request_advance` gets no answer yet; set it false to answer it. */
+  holdSend?: boolean;
   /** Answer this many polls for the sent `request_advance` with a server error, as a node that is down. */
   dropPolls?: number;
   /** Take the `request_advance` but lose the answer to the send itself, as a connection that drops. */
@@ -323,6 +325,7 @@ export async function mockRpc(page: Page, chain: Chain) {
           adv.sent = (adv.sent ?? 0) + 1;
           // The network answers with the transaction's own hash, which the app also knows before sending.
           adv.hash = TransactionBuilder.fromXDR(envelope, Networks.TESTNET).hash().toString("hex");
+          while (adv.holdSend) await new Promise((resolve) => setTimeout(resolve, 50));
           if (adv.send === "refused") {
             return reply({ status: "ERROR", hash: adv.hash, latestLedger: 100, latestLedgerCloseTime: "0" });
           }
@@ -359,7 +362,8 @@ export async function mockRpc(page: Page, chain: Chain) {
             adv.dropPolls -= 1;
             return route.fulfill({ status: 503, body: "unavailable" });
           }
-          if (adv.send === "pending" || adv.holdLedger) {
+          // Not on any ledger: still waiting to be sent, refused before one, or not confirmed yet.
+          if (adv.send === "pending" || adv.send === "refused" || adv.holdSend || adv.holdLedger) {
             return reply({
               status: "NOT_FOUND",
               latestLedger: 101,

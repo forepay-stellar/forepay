@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { clearPending, loadPending, savePending } from "./pending";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { clearPending, loadPending, markRefused, onRefused, savePending } from "./pending";
 
 const REQ = {
   revenueUsd: "360.00",
@@ -32,5 +32,32 @@ describe("the advance left waiting", () => {
     expect(loadPending(ME)).toBeNull();
     window.sessionStorage.setItem("forepay.advance.pending", "{not json");
     expect(loadPending(ME)).toBeNull();
+  });
+});
+
+describe("a send turned down after the creator left", () => {
+  const HASH = "h".repeat(64);
+
+  it("is remembered as refused, and a screen waiting on it is told", () => {
+    savePending({ address: ME, hash: HASH, req: REQ });
+    const told = vi.fn();
+    const stop = onRefused(HASH, told);
+    markRefused(ME, HASH);
+    expect(loadPending(ME)).toEqual({ address: ME, hash: HASH, req: REQ, refused: true });
+    expect(told).toHaveBeenCalledTimes(1);
+    stop();
+    markRefused(ME, HASH);
+    expect(told).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves another transaction, or another wallet's, as it was", () => {
+    savePending({ address: ME, hash: HASH, req: REQ });
+    const told = vi.fn();
+    const stop = onRefused(HASH, told);
+    markRefused(ME, "o".repeat(64));
+    markRefused("GBOTHER", HASH);
+    expect(loadPending(ME)?.refused).toBeUndefined();
+    expect(told).not.toHaveBeenCalled();
+    stop();
   });
 });
