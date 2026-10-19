@@ -17,7 +17,7 @@ import { cn } from "@/lib/cn";
 export type RowIcon = "advance" | "repayment" | "failed" | "pending" | "proof" | "trustline";
 export type RowTone = "success" | "danger" | "pending" | "fg" | "subtle" | "muted";
 
-/** A label that a phone says shorter ("Failed, not charged" → "Not charged"). */
+/** A label that a phone says shorter ("Failed, no USDC moved" → "Failed"). */
 export type Label = { text: string; short?: string };
 
 const tile: Record<RowIcon, { className: string; icon: ReactNode }> = {
@@ -60,7 +60,6 @@ export function TransactionRow({
   amount,
   amountTone,
   receiptHref,
-  noReceipt,
 }: {
   icon: RowIcon;
   title: Label;
@@ -71,8 +70,6 @@ export function TransactionRow({
   amountTone: RowTone;
   /** The transaction on stellar.expert. Without it the row is not a link. */
   receiptHref?: string;
-  /** What stands where the receipt would be, for a repayment that never reached Stellar. */
-  noReceipt?: Label;
 }) {
   const body = (
     <>
@@ -95,17 +92,11 @@ export function TransactionRow({
         <span className={cn("text-[15px] font-semibold", tone[amountTone])}>
           <Text label={amount} />
         </span>
-        {receiptHref ? (
+        {receiptHref && (
           <span className="flex items-center gap-1 text-[13px] text-fg-muted group-hover:text-brand-strong">
             Receipt
             <ArrowUpRight className="size-3.5" aria-hidden />
           </span>
-        ) : (
-          noReceipt && (
-            <span className="text-[13px] text-fg-muted">
-              <Text label={noReceipt} />
-            </span>
-          )
         )}
       </span>
     </>

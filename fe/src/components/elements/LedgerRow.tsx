@@ -8,10 +8,11 @@ import { explorerTxUrl } from "@/lib/stellar/network";
 const MINUS = "−";
 
 const completed = { status: { text: "Completed" }, statusTone: "success" as const };
+// A failed row reached the ledger and failed there (#16): the network fee was spent and no USDC moved.
+// It is on chain, so it has a receipt. A transaction that never reached a ledger is not listed.
 const failed = {
-  status: { text: "Failed, not charged", short: "Not charged" },
+  status: { text: "Failed, no USDC moved", short: "Failed" },
   statusTone: "danger" as const,
-  noReceipt: { text: "No transaction", short: "Not sent" },
 };
 
 export function LedgerRow({ row }: { row: Row }) {
@@ -35,7 +36,7 @@ export function LedgerRow({ row }: { row: Row }) {
       const amount = { text: `${advance ? "+" : MINUS}${formatUsdc(row.amount)}` };
       const title = { text: advance ? "Advance received" : "Repayment" };
       if (row.failed) {
-        return <TransactionRow icon="failed" title={title} date={rowDate(row.at)} amount={amount} amountTone="subtle" {...failed} />;
+        return <TransactionRow icon="failed" title={title} date={rowDate(row.at)} amount={amount} amountTone="subtle" receiptHref={explorerTxUrl(row.hash)} {...failed} />;
       }
       return (
         <TransactionRow
@@ -65,7 +66,7 @@ export function LedgerRow({ row }: { row: Row }) {
       const title = { text: "USDC allowed in wallet", short: "USDC allowed" };
       const amount = { text: "Network fee only", short: "Fee only" };
       if (row.failed) {
-        return <TransactionRow icon="failed" title={title} date={rowDate(row.at)} amount={amount} amountTone="subtle" {...failed} />;
+        return <TransactionRow icon="failed" title={title} date={rowDate(row.at)} amount={amount} amountTone="subtle" receiptHref={explorerTxUrl(row.hash)} {...failed} />;
       }
       return (
         <TransactionRow

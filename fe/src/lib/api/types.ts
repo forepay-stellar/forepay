@@ -38,7 +38,10 @@ export type LedgerTransaction = {
   amount: bigint;
   /** Ledger timestamp in seconds. */
   at: bigint;
-  /** A failed repayment is shown, struck through, with "not charged" (3a states). */
+  /**
+   * `failed`: it reached the ledger and failed there, so the network fee was spent and no USDC moved
+   * (#16). A transaction that never reached a ledger is not listed.
+   */
   status: "completed" | "failed";
   nullifier: string;
 };
