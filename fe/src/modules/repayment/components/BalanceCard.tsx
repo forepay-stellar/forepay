@@ -25,21 +25,21 @@ export function BalanceCard({
     <section
       aria-label="What is left to repay"
       className={cn(
-        "relative flex w-full flex-col gap-5 overflow-hidden rounded-hero p-[22px] lg:p-7",
+        "relative flex w-full flex-col gap-5 overflow-hidden rounded-hero p-[22px] md:p-7",
         done ? "bg-success-subtle text-success-strong" : "bg-brand text-fg-on-brand",
       )}
     >
       <span
         aria-hidden
         className={cn(
-          "absolute -right-9 top-[60px] hidden size-[300px] rounded-full lg:block",
+          "absolute -right-9 top-[60px] hidden size-[300px] rounded-full md:block",
           done ? "bg-surface/40" : "bg-surface/12",
         )}
       />
       <span
         aria-hidden
         className={cn(
-          "absolute right-3.5 top-[110px] hidden size-[200px] rounded-full lg:block",
+          "absolute right-3.5 top-[110px] hidden size-[200px] rounded-full md:block",
           done ? "bg-surface/27" : "bg-surface/8",
         )}
       />
@@ -57,7 +57,7 @@ export function BalanceCard({
           </span>
         </div>
         {!done && (
-          <span className="hidden rounded-pill bg-surface/18 px-3.5 py-[9px] text-[12px] font-medium lg:inline">
+          <span className="hidden rounded-pill bg-surface/18 px-3.5 py-[9px] text-[12px] font-medium md:inline">
             USDC on Stellar testnet
           </span>
         )}
@@ -65,9 +65,10 @@ export function BalanceCard({
 
       <div className="relative flex flex-col gap-1.5">
         <p className={cn("text-[15px]", !done && "text-fg-on-brand/80")}>{done ? "Nothing left to repay" : "Left to repay"}</p>
-        <p className="flex items-end font-semibold tracking-[-2.2px]">
-          <span className="text-[56px] leading-[56px] lg:text-[72px] lg:leading-[72px]">{whole}</span>
-          <span className={cn("text-[56px] leading-[56px] lg:text-[72px] lg:leading-[72px]", done ? "text-success" : "text-fg-on-brand/55")}>
+        {/* The hero amount role: 56, 72, 88 (section 08). */}
+        <p className="flex items-end text-hero">
+          <span>{whole}</span>
+          <span className={cn(done ? "text-success" : "text-fg-on-brand/55")}>
             {decimals}
           </span>
           <span

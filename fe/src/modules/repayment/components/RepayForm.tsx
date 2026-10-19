@@ -80,7 +80,7 @@ export function RepayForm({
   return (
     <form
       aria-label="Make a repayment"
-      className={cn("flex w-full flex-col gap-5 rounded-card bg-surface p-5 lg:p-6", className)}
+      className={cn("flex w-full flex-col gap-5 rounded-card bg-surface p-5 md:p-6", className)}
       onSubmit={(e) => {
         e.preventDefault();
         if (check.kind === "ok" && !locked) onSubmit(check.amount);
@@ -148,7 +148,8 @@ export function RepayForm({
         </div>
       </div>
 
-      <div className="flex w-full gap-2">
+      {/* Each chip keeps its label whole; one with no room moves to a second row (section 08). */}
+      <div className="flex w-full flex-wrap gap-2">
         {CHIPS.map(({ chip: c, label }) => {
           const on = chip === c;
           return (
@@ -159,7 +160,7 @@ export function RepayForm({
               disabled={settled || busy}
               onClick={() => onChip(c)}
               className={cn(
-                "flex min-w-0 flex-1 justify-center whitespace-nowrap rounded-pill px-4 py-2.5 text-[14px] font-medium outline outline-1 -outline-offset-[0.5px] transition-colors focus-visible:ring-2 focus-visible:ring-brand disabled:text-fg-subtle",
+                "flex flex-auto justify-center whitespace-nowrap rounded-pill px-4 py-2.5 text-[14px] font-medium outline outline-1 -outline-offset-[0.5px] transition-colors focus-visible:ring-2 focus-visible:ring-brand disabled:text-fg-subtle",
                 on ? "bg-brand-subtle text-brand-strong outline-brand" : "bg-surface text-fg outline-line-strong hover:bg-subtle",
               )}
             >
@@ -193,7 +194,7 @@ export function RepayForm({
         <Button
           type="button"
           size="lg"
-          className="w-full lg:px-6"
+          className="w-full md:px-6"
           onClick={(e) => {
             // The fill turns this into the submit button before the click finishes; without this the
             // same click would then send the repayment the creator only asked to see.
@@ -209,7 +210,7 @@ export function RepayForm({
         <Button
           type="submit"
           size="lg"
-          className="w-full lg:px-6"
+          className="w-full md:px-6"
           disabled={check.kind !== "ok" || settled}
           loading={busy}
           loadingLabel={busyLabel ?? undefined}

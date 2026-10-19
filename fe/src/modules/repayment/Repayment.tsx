@@ -51,14 +51,14 @@ function Header() {
   return (
     <header className="flex w-full items-end justify-between">
       <div className="flex flex-col gap-1.5">
-        <p className="hidden text-[15px] text-brand lg:block">Welcome back</p>
-        <h1 className="text-[30px] font-semibold tracking-[-0.9px] text-fg lg:text-[40px] lg:tracking-[-1.2px]">Repayment</h1>
+        <p className="hidden text-[15px] text-brand md:block">Welcome back</p>
+        <h1 className="text-page-title text-fg">Repayment</h1>
       </div>
       <a
         href={explorerContractUrl()}
         target="_blank"
         rel="noreferrer"
-        className="hidden items-center gap-2 rounded-pill bg-surface px-5 py-3 text-[14px] font-medium text-fg outline outline-1 -outline-offset-[0.5px] outline-line-strong hover:bg-subtle focus-visible:ring-2 focus-visible:ring-brand lg:flex"
+        className="hidden items-center gap-2 rounded-pill bg-surface px-5 py-3 text-[14px] font-medium text-fg outline outline-1 -outline-offset-[0.5px] outline-line-strong hover:bg-subtle focus-visible:ring-2 focus-visible:ring-brand md:flex"
       >
         <ArrowUpRight className="size-4" aria-hidden />
         View contract
@@ -214,7 +214,7 @@ function RepaymentScreen({ address }: { address: string }) {
       <LoadingLedger>
         <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-start">
           <SkeletonCard className="lg:flex-1" />
-          <SkeletonCard rows={2} className="hidden lg:flex lg:w-[440px]" />
+          <SkeletonCard rows={2} className="hidden md:flex lg:w-[320px] min-[1200px]:w-[360px]" />
         </div>
       </LoadingLedger>
     );
@@ -241,7 +241,7 @@ function RepaymentScreen({ address }: { address: string }) {
 
   return (
     // 28 under the top nav on desktop (SjFTD, Z7FXmJ); the shell leaves that gap to each page.
-    <div className="flex w-full flex-col gap-4 lg:gap-7 lg:pt-7">
+    <div className="flex w-full flex-col gap-4 md:gap-7 md:pt-7">
       <Header />
       {body}
     </div>
@@ -414,7 +414,7 @@ function Ledger({
         </div>
         <section
           aria-labelledby="transactions-title"
-          className="order-4 flex w-full flex-col gap-1 rounded-card bg-surface px-5 pb-2 pt-5 lg:px-6 lg:pb-3 lg:pt-6"
+          className="order-4 flex w-full flex-col gap-1 rounded-card bg-surface px-5 pb-2 pt-5 md:px-6 md:pb-3 md:pt-6"
         >
           <div className="flex w-full items-center justify-between pb-2">
             <h2 id="transactions-title" className="text-[18px] font-semibold text-fg">
@@ -436,7 +436,9 @@ function Ledger({
         </section>
       </div>
 
-      <div className="contents lg:flex lg:w-[440px] lg:shrink-0 lg:flex-col lg:gap-4">
+      {/* Section 08: under the main cards on a tablet, in their order; from 1024 a side column, 320 wide
+          and 360 from 1200. */}
+      <div className="contents lg:flex lg:w-[320px] lg:shrink-0 lg:flex-col lg:gap-4 min-[1200px]:w-[360px]">
         <RepayForm
           className="order-3"
           input={input}
@@ -465,7 +467,7 @@ function Ledger({
           failure={failure}
           note={note}
         />
-        <AdvanceDetails advance={advance} terms={terms.isPending ? "loading" : terms.data} className="order-4 hidden lg:flex" />
+        <AdvanceDetails advance={advance} terms={terms.isPending ? "loading" : terms.data} className="order-4 hidden md:flex" />
         <LedgerNote className="order-5" />
       </div>
 

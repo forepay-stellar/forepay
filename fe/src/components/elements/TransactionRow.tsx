@@ -45,8 +45,8 @@ function Text({ label }: { label: Label }) {
   if (!label.short) return <>{label.text}</>;
   return (
     <>
-      <span className="lg:hidden">{label.short}</span>
-      <span className="hidden lg:inline">{label.text}</span>
+      <span className="md:hidden">{label.short}</span>
+      <span className="hidden md:inline">{label.text}</span>
     </>
   );
 }
@@ -83,7 +83,8 @@ export function TransactionRow({
         <span className="truncate text-[15px] font-medium text-fg">
           <Text label={title} />
         </span>
-        <span className="flex gap-2.5 whitespace-nowrap text-[13px]">
+        {/* On a narrow phone the date moves under the status rather than past the row (section 08). */}
+        <span className="flex flex-wrap gap-x-2.5 gap-y-0.5 text-[13px]">
           <span className={tone[statusTone]}>
             <Text label={status} />
           </span>
