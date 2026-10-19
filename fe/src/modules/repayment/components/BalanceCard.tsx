@@ -32,14 +32,14 @@ export function BalanceCard({
       <span
         aria-hidden
         className={cn(
-          "absolute -right-9 top-[60px] hidden size-[300px] rounded-full md:block",
+          "absolute left-[560px] top-[60px] hidden size-[300px] rounded-full md:block",
           done ? "bg-surface/40" : "bg-surface/12",
         )}
       />
       <span
         aria-hidden
         className={cn(
-          "absolute right-3.5 top-[110px] hidden size-[200px] rounded-full md:block",
+          "absolute left-[610px] top-[110px] hidden size-[200px] rounded-full md:block",
           done ? "bg-surface/27" : "bg-surface/8",
         )}
       />

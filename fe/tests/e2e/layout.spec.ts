@@ -234,3 +234,29 @@ test("under 768 two buttons stack, main first, unless the pair fits at 320", asy
   expect(await stackedAt(page, "Try again", "Back", [320, 768, 1440])).toEqual({ 320: false, 768: false, 1440: false });
   await holdsAtEveryWidth(page, "refused panel");
 });
+
+test("the repay chips share their row equally, and the balance circles sit where drawn", async ({ page }) => {
+  await mockApi(page, frameLedger());
+  await mockRpc(page, { account: true, trustline: true, usdc: 8_200_000_000n, contract: {} });
+  await connected(page);
+  await page.goto("/repayment");
+  await expect(page.getByRole("region", { name: "What is left to repay" })).toContainText("60.00");
+  for (const [width, oneRow] of [[834, true], [1024, false], [1440, true], [320, false]] as const) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.waitForTimeout(150);
+    const [quarter, half, full] = await Promise.all(
+      ["25%", "50%", "Full amount"].map(async (name) => (await page.getByRole("button", { name }).boundingBox())!),
+    );
+    // One row of three equal chips, or Full amount alone under two equal ones.
+    expect(Math.round(quarter.width), `chips at ${width}`).toBe(Math.round(half.width));
+    expect(full.y > quarter.y, `Full amount on a second row at ${width}`).toBe(!oneRow);
+    if (oneRow) expect(Math.round(full.width), `chips at ${width}`).toBe(Math.round(half.width));
+    if (width === 320) continue; // no circles on a phone
+    // Every 3a frame: the circles at 560 and 610 from the card's left edge.
+    const lefts = await page.getByRole("region", { name: "What is left to repay" }).evaluate((card) => {
+      const at = card.getBoundingClientRect().left;
+      return [...card.querySelectorAll<HTMLElement>(":scope > span[aria-hidden]")].map((c) => Math.round(c.getBoundingClientRect().left - at));
+    });
+    expect(lefts, `circles at ${width}`).toEqual([560, 610]);
+  }
+});

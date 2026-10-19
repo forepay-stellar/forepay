@@ -148,26 +148,29 @@ export function RepayForm({
         </div>
       </div>
 
-      {/* Each chip keeps its label whole; one with no room moves to a second row (section 08). */}
-      <div className="flex w-full flex-wrap gap-2">
-        {CHIPS.map(({ chip: c, label }) => {
-          const on = chip === c;
-          return (
-            <button
-              key={c}
-              type="button"
-              aria-pressed={on}
-              disabled={settled || busy}
-              onClick={() => onChip(c)}
-              className={cn(
-                "flex flex-auto justify-center whitespace-nowrap rounded-pill px-4 py-2.5 text-[14px] font-medium outline outline-1 -outline-offset-[0.5px] transition-colors focus-visible:ring-2 focus-visible:ring-brand disabled:text-fg-subtle",
-                on ? "bg-brand-subtle text-brand-strong outline-brand" : "bg-surface text-fg outline-line-strong hover:bg-subtle",
-              )}
-            >
-              {label}
-            </button>
-          );
-        })}
+      {/* The three chips share one row equally, as drawn, where the widest label ("Full amount") fits
+          three times over; otherwise Full amount moves to a second row, at the same width (section 08). */}
+      <div className="@container w-full">
+        <div className="grid grid-cols-2 gap-2 @[19.5rem]:grid-cols-3">
+          {CHIPS.map(({ chip: c, label }) => {
+            const on = chip === c;
+            return (
+              <button
+                key={c}
+                type="button"
+                aria-pressed={on}
+                disabled={settled || busy}
+                onClick={() => onChip(c)}
+                className={cn(
+                  "flex justify-center whitespace-nowrap rounded-pill px-2.5 py-2.5 text-[14px] font-medium outline outline-1 -outline-offset-[0.5px] transition-colors focus-visible:ring-2 focus-visible:ring-brand disabled:text-fg-subtle",
+                  on ? "bg-brand-subtle text-brand-strong outline-brand" : "bg-surface text-fg outline-line-strong hover:bg-subtle",
+                )}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <dl className="flex w-full flex-col gap-3 text-[14px]">
