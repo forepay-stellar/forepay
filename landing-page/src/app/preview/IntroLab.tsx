@@ -20,7 +20,7 @@ const VARIANTS: Variant[] = [
   { id: "F3", name: "Dive", note: "Dive into a cream wave until the screen is cream, which is the page" },
   { id: "F4", name: "Message", note: "Paid early. appears on the orange, then the page opens" },
   { id: "F5", name: "Soft", note: "A feathered opening, the hero eases back as it appears" },
-  { id: "D1", name: "Ink", note: "The mark inks in from left to right, waves and all, then undraws" },
+  { id: "D1", name: "Ink", note: "The ring draws from left to right, the orange blooms inside, the waves cut through, then it all undraws" },
   { id: "D2", name: "Rise", note: "Orange rises inside the circle like water, the waves cut through, then it drains away" },
 ];
 
@@ -53,10 +53,9 @@ function WaveMark({ size }: { size: number }) {
 }
 
 // The mark built to be drawn in place: an outline ring and the orange fill, both with the two
-// waves cut out through a mask. At rest it is the mark exactly. D1 inks it from left to right:
-// both halves of the ring run from the left point to the right one while the fill, waves and
-// all, sweeps in behind them with a soft edge. D2 raises the orange from the bottom like water,
-// then cuts the waves.
+// waves cut out through a mask. At rest it is the mark exactly. D1 draws the ring from left to
+// right, both halves at once, blooms the fill inside it, then cuts the waves; D2 raises the
+// orange from the bottom like water, then cuts the waves.
 function DrawMark({ size, rise }: { size: number; rise: boolean }) {
   // The water: a block with one soft crest on top, tall enough to cover the circle when risen.
   const water = "M-4 -6 q9 -4 18 0 t18 0 t18 0 L40 36 L-4 36 Z";
@@ -71,7 +70,7 @@ function DrawMark({ size, rise }: { size: number; rise: boolean }) {
           {[18.5, 24.5].map((y) => (
             <path
               key={y}
-              {...(rise ? { "data-draw-cut": true } : {})}
+              data-draw-cut
               pathLength={1}
               strokeDasharray={1}
               d={WAVE_D(y)}
@@ -81,14 +80,6 @@ function DrawMark({ size, rise }: { size: number; rise: boolean }) {
               strokeLinecap="round"
             />
           ))}
-        </mask>
-        {/* The ink's edge: solid, then a soft 7 unit fade, past the circle's right side at rest */}
-        <linearGradient id="draw-ink">
-          <stop offset="0.85" stopColor="white" />
-          <stop offset="1" stopColor="white" stopOpacity="0" />
-        </linearGradient>
-        <mask id="draw-sweep" maskUnits="userSpaceOnUse" x="-8" y="-8" width="48" height="48">
-          <rect data-draw-sweep x="-8" y="-8" width="50" height="48" fill="url(#draw-ink)" />
         </mask>
       </defs>
       <g mask="url(#draw-cut)">
@@ -111,9 +102,14 @@ function DrawMark({ size, rise }: { size: number; rise: boolean }) {
                 strokeWidth="2"
               />
             ))}
-            <g mask="url(#draw-sweep)">
-              <rect width="32" height="32" rx="16" fill="#F2620F" />
-            </g>
+            <rect
+              data-draw-fill
+              width="32"
+              height="32"
+              rx="16"
+              fill="#F2620F"
+              style={{ transformBox: "fill-box", transformOrigin: "center" }}
+            />
           </>
         )}
       </g>
@@ -350,17 +346,16 @@ export function IntroLab() {
       const undrawn = [{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }];
       if (variant === "D1") {
         r.querySelectorAll("[data-draw-ring]").forEach((arc) =>
-          tracks.push({ el: arc, keyframes: undrawn, start: 80, duration: 760, easing: EASE_IN_OUT }),
+          tracks.push({ el: arc, keyframes: undrawn, start: 80, duration: 560, easing: EASE_IN_OUT }),
         );
-        const sweep = r.querySelector("[data-draw-sweep]");
-        // A beat behind the pen, so the ring leads and the ink follows.
-        if (sweep)
+        const fill = r.querySelector("[data-draw-fill]");
+        if (fill)
           tracks.push({
-            el: sweep,
-            keyframes: [{ transform: "translateX(-42px)" }, { transform: "none" }],
-            start: 110,
-            duration: 760,
-            easing: EASE_IN_OUT,
+            el: fill,
+            keyframes: [{ opacity: 0, transform: "scale(0.6)" }, { opacity: 1, transform: "none" }],
+            start: 480,
+            duration: 420,
+            easing: EASE_OUT,
           });
       } else {
         const water = r.querySelector("[data-draw-water]");
@@ -373,8 +368,7 @@ export function IntroLab() {
             easing: EASE_IN_OUT,
           });
       }
-      // Only Rise cuts its waves after the fill; Ink sweeps them in with it.
-      const wavesAt = 680;
+      const wavesAt = variant === "D1" ? 760 : 680;
       cuts.forEach((c, i) =>
         tracks.push({ el: c, keyframes: undrawn, start: wavesAt + i * 110, duration: 420, easing: EASE_OUT }),
       );
