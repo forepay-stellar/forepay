@@ -95,7 +95,7 @@ export function ReviewOffer({
       </div>
 
       {/* Section 08: under the offer on a tablet; from 1024 a side column, 320 wide and 360 from 1200. */}
-      <div className="flex flex-col gap-4 lg:w-[320px] lg:shrink-0 min-[1200px]:w-[360px]">
+      <div className="flex flex-col gap-4 lg:w-[320px] lg:shrink-0 wide:w-[360px]">
         <section className="hidden flex-col gap-3.5 rounded-card bg-surface p-6 md:flex" aria-label="If you accept">
           <h2 className="text-[18px] font-semibold text-fg">If you accept</h2>
           <ul className="flex flex-col gap-3.5">

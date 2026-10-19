@@ -63,7 +63,7 @@ export function ProveRevenue({
         </div>
       </section>
 
-      <div className="flex flex-col gap-4 md:flex-row md:[&>*]:flex-1 lg:w-[320px] lg:shrink-0 lg:flex-col lg:[&>*]:flex-none min-[1200px]:w-[360px]">
+      <div className="flex flex-col gap-4 md:flex-row md:[&>*]:flex-1 lg:w-[320px] lg:shrink-0 lg:flex-col lg:[&>*]:flex-none wide:w-[360px]">
         <section className="hidden flex-col gap-4 rounded-card bg-surface p-6 md:flex" aria-label="Your wallet">
           <h2 className="text-[18px] font-semibold text-fg">Your wallet</h2>
           <dl className="flex flex-col gap-4">
@@ -74,15 +74,16 @@ export function ProveRevenue({
         </section>
         <section className="flex flex-col gap-1.5 rounded-tile bg-brand-subtle p-[18px] md:gap-2.5 md:rounded-card md:p-6">
           <h2 className="text-[15px] font-semibold text-brand-strong md:text-[16px]">How your advance is set</h2>
-          {/* While the rate loads, bars in the shape of the sentence: invisible words of about the same
-              length, so the bars wrap, and the card keeps its height, as the sentence will at any width. */}
+          {/* While the rate loads, bars in the shape of the sentence: invisible words of the same length
+              and no figure (every figure is the contract's), so the bars wrap as the sentence will at any
+              width and the card keeps its height. */}
           <p
             aria-hidden={terms === "loading" || undefined}
             className="text-[14px] leading-[20px] text-brand-strong md:leading-[21px]"
           >
             {terms === "loading" ? (
               <span className="animate-pulse rounded-[6px] bg-brand-strong/15 text-transparent [box-decoration-break:clone] motion-reduce:animate-none">
-                Reading the rate of your advance, up to its limit.
+                A part of the revenue you have proven, up to a cap
                 <span className="hidden md:inline"> The same proof always gives the same number.</span>
               </span>
             ) : (

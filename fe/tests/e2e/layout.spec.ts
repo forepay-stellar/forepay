@@ -143,3 +143,40 @@ test("repayment and history before the first advance", async ({ page }) => {
   await expect(heading(page, "No advance yet")).toBeVisible();
   await holdsAtEveryWidth(page, "3b no advance");
 });
+
+/** Width of the box `locate` finds, at each window width. */
+async function widths(page: Page, locate: () => ReturnType<Page["locator"]>, at: number[]) {
+  const out: Record<number, number> = {};
+  for (const width of at) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.waitForTimeout(150);
+    out[width] = Math.round((await locate().boundingBox())?.width ?? 0);
+  }
+  return out;
+}
+
+test("columns follow section 08: 640 on a tablet, 1200 at most, a side column of 320 then 360", async ({ page }) => {
+  await mockApi(page, frameLedger());
+  await mockRpc(page, { account: true, trustline: true, usdc: 8_200_000_000n, contract: {} });
+  await connected(page);
+  await page.goto("/repayment");
+  await expect(page.getByRole("region", { name: "What is left to repay" })).toContainText("60.00");
+  // The content box: the window less its gutters (32, 40, 80), never past 640 on a tablet or 1200.
+  expect(await widths(page, () => page.locator("main"), [768, 834, 1024, 1199, 1280, 1440])).toEqual({
+    768: 640,
+    834: 640,
+    1024: 944,
+    1199: 1119,
+    1280: 1120,
+    1440: 1200,
+  });
+  // The side column: under the main cards on a tablet, then 320, and 360 from a 1200 window.
+  const form = () => page.getByRole("form", { name: "Make a repayment" });
+  expect(await widths(page, form, [834, 1024, 1199, 1200, 1440])).toEqual({ 834: 640, 1024: 320, 1199: 320, 1200: 360, 1440: 360 });
+
+  await page.addInitScript(() => localStorage.setItem("forepay.mock.revenue", "1240.00"));
+  await page.goto("/advance");
+  await expect(page.getByText("A quarter of your proven revenue, up to 100 USDC.")).toBeVisible();
+  const wallet = () => page.getByRole("region", { name: "Your wallet" });
+  expect(await widths(page, wallet, [1024, 1199, 1200, 1440])).toEqual({ 1024: 320, 1199: 320, 1200: 360, 1440: 360 });
+});

@@ -214,7 +214,7 @@ function RepaymentScreen({ address }: { address: string }) {
       <LoadingLedger>
         <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-start">
           <SkeletonCard className="lg:flex-1" />
-          <SkeletonCard rows={2} className="hidden md:flex lg:w-[320px] min-[1200px]:w-[360px]" />
+          <SkeletonCard rows={2} className="hidden md:flex lg:w-[320px] wide:w-[360px]" />
         </div>
       </LoadingLedger>
     );
@@ -439,7 +439,7 @@ function Ledger({
 
       {/* Section 08: under the main cards on a tablet, in their order; from 1024 a side column, 320 wide
           and 360 from 1200. */}
-      <div className="contents lg:flex lg:w-[320px] lg:shrink-0 lg:flex-col lg:gap-4 min-[1200px]:w-[360px]">
+      <div className="contents lg:flex lg:w-[320px] lg:shrink-0 lg:flex-col lg:gap-4 wide:w-[360px]">
         <RepayForm
           className="order-3"
           input={input}
