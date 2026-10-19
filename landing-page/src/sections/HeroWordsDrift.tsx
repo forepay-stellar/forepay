@@ -14,8 +14,11 @@ export function HeroWordsDrift() {
 
   useEffect(() => {
     if (reduced) return;
-    const left = document.querySelector<HTMLElement>('[data-hero-word="left"]');
-    const right = document.querySelector<HTMLElement>('[data-hero-word="right"]');
+    // The desktop and the tablet hero each have a pair; drift the pair on screen.
+    const onScreen = (side: string) =>
+      [...document.querySelectorAll<HTMLElement>(`[data-hero-word="${side}"]`)].find((el) => el.offsetParent);
+    const left = onScreen("left");
+    const right = onScreen("right");
     const section = left?.closest("section");
     if (!left || !right || !section) return;
     const scroll = {

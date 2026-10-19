@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
 import { MobileMenu } from "./MobileMenu";
@@ -31,6 +31,20 @@ describe("MobileMenu", () => {
     fireEvent.keyDown(document, { key: "Escape" });
     fireEvent.click(screen.getByRole("link", { name: /FAQ/ }));
     expect(onClose).toHaveBeenCalledTimes(3);
+  });
+
+  it("plays its closing motion before it leaves", () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("matchMedia", () => ({ matches: false }));
+    const { container, rerender } = render(<MobileMenu open onClose={() => {}} />);
+    rerender(<MobileMenu open={false} onClose={() => {}} />);
+    const dialog = container.querySelector<HTMLElement>('[role="dialog"]');
+    expect(dialog?.dataset.closing).toBe("true");
+    expect(dialog?.hasAttribute("inert")).toBe(true);
+    act(() => vi.advanceTimersByTime(400));
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
   });
 
   it("locks page scroll while open and restores it after", () => {

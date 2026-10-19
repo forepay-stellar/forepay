@@ -13,6 +13,9 @@ const S = (px: number) => `calc(var(--s) * ${px})`;
 const G = "min(5.6vw, 80px)";
 // A design x position measured from the 1440 frame's centre, kept centred at any width.
 const fromCentre = (x: number) => `calc(50% + var(--s) * ${x - 720})`;
+// Landing / Tablet → Your data (834 × 860): the same composition, one design pixel is --t.
+const T = (px: number) => `calc(var(--t) * ${px})`;
+const TG = "calc(100vw * 40 / 834)";
 
 export function YourData() {
   const s = landing.yourData;
@@ -69,8 +72,51 @@ export function YourData() {
         </div>
       </div>
 
+      {/* Tablet */}
+      <div className="relative hidden md:block lg:hidden" style={{ height: T(860) }}>
+        <div className="absolute inset-x-0" style={{ top: T(300), fontSize: T(120) }}>
+          <Marquee words={s.marquee} direction="left" className={texture} />
+        </div>
+        <div className="absolute inset-x-0" style={{ top: T(420), fontSize: T(120) }}>
+          <Marquee words={s.marquee} startAt={1} offset={7} direction="right" className={texture} />
+        </div>
+        <div
+          aria-hidden
+          className="absolute left-1/2 -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,#F3EEE8_35%,#F3EEE800)]"
+          style={{ top: T(230), width: T(480), height: T(380) }}
+        />
+        <div className="absolute" style={{ left: TG, top: T(80) }}>
+          <Reveal>
+            <p className="font-medium text-fg-muted" style={{ fontSize: `max(13px, ${T(15)})` }}>
+              {s.eyebrow}
+            </p>
+          </Reveal>
+        </div>
+        <h2 className="absolute" style={{ left: TG, top: T(108) }}>
+          <span className={`block ${title}`} style={{ fontSize: T(72) }}>
+            <RiseText text={s.titleTop} />
+          </span>
+          <span className="sr-only"> {s.titleBottom}</span>
+        </h2>
+        <div className="absolute left-1/2 -translate-x-1/2" style={{ top: T(250), width: T(448), height: T(448) }}>
+          <ClayIn className="absolute inset-0" delay={150}>
+            <Image src="/clay/lock.webp" alt="" fill sizes="448px" />
+          </ClayIn>
+        </div>
+        <p aria-hidden className={`absolute text-right ${title}`} style={{ right: TG, top: T(618), fontSize: T(72) }}>
+          <RiseText text={s.titleBottom} delay={200} />
+        </p>
+        <div className="absolute" style={{ left: TG, top: T(724), width: `max(360px, ${T(420)})` }}>
+          <Reveal delay={150}>
+            <p className="leading-normal text-fg-muted" style={{ fontSize: `max(15px, ${T(17)})` }}>
+              {s.body}
+            </p>
+          </Reveal>
+        </div>
+      </div>
+
       {/* Phone */}
-      <div className="relative h-[760px] lg:hidden">
+      <div className="relative h-[760px] md:hidden">
         <div className="absolute inset-x-0 top-[200px] flex flex-col gap-1">
           <Marquee words={s.marquee} direction="left" className={`text-[84px] ${texture}`} />
           <Marquee words={s.marquee} startAt={1} offset={7} direction="right" className={`text-[84px] ${texture}`} />

@@ -5,11 +5,17 @@ import { APP_URL } from "@/lib/env";
 import { HeroScene } from "./HeroScene";
 import { HeroWordsDrift } from "./HeroWordsDrift";
 
-// Landing / Desktop → Hero (1440 × 860) and Landing / Mobile → Hero (option C).
+// Landing / Desktop → Hero (1440 × 860), Landing / Tablet → Hero (834 × 980) and
+// Landing / Mobile → Hero (option C).
 // Desktop measures are the design's pixels times --u (see below), so the composition holds from
 // 1024 wide up, and on short screens too.
 // The design's 20 × 34 px, 17 px buttons, in design pixels.
 const HERO_BUTTON = "px-[calc(var(--u)*34)] py-[calc(var(--u)*20)] text-[length:max(14px,calc(var(--u)*17))]";
+const TABLET_BUTTON = "px-[calc(var(--th)*34)] py-[calc(var(--th)*20)] text-[length:max(14px,calc(var(--th)*17))]";
+// Tablet measures: --th is one design pixel of the 834 wide tablet hero, held to the height left
+// under the 80 px nav so a short screen still sees the whole hero; gutters follow the width.
+const th = (px: number) => `calc(var(--th) * ${px})`;
+const TABLET_GUTTER = "calc(100vw * 40 / 834)";
 
 // One span per letter, so the intro can raise them one by one from under their line. Screen
 // readers get the word whole.
@@ -79,12 +85,56 @@ export function Hero() {
         </div>
       </div>
 
+      {/* Tablet: "Paid" over the scene, "Early" under it on the right, copy left, buttons right */}
+      <div
+        className="relative hidden md:block lg:hidden"
+        style={{ height: th(980), "--th": "max(0.6px, min(calc(100vw / 834), calc((100svh - 80px) / 900)))" } as React.CSSProperties}
+      >
+        <h1 className={giant} style={{ fontSize: th(180) }}>
+          <span data-hero-word="left" className="absolute" style={{ top: th(56), left: TABLET_GUTTER }}>
+            <span className="hero-word-in inline-block">
+              <Letters text={h.wordLeft} />
+            </span>
+          </span>{" "}
+          <span data-hero-word="right" className="absolute" style={{ top: th(580), right: TABLET_GUTTER }}>
+            <span className="hero-word-in inline-block [animation-delay:80ms]">
+              <Letters text={h.wordRight} />
+            </span>
+          </span>
+        </h1>
+        <div data-hero-stage className="absolute left-1/2 -translate-x-1/2" style={{ top: th(140), width: th(493), height: th(512) }}>
+          <Image src="/clay/hero-still.webp" alt="" fill priority sizes="493px" className="object-contain" />
+          <HeroScene media="(min-width: 768px) and (max-width: 1023.98px)" />
+        </div>
+        <div className="absolute flex flex-col" style={{ left: TABLET_GUTTER, top: th(808), width: th(360), gap: th(14) }}>
+          <span data-hero-rise className="font-medium text-brand-strong" style={{ fontSize: `max(13px, ${th(15)})` }}>
+            {h.eyebrow}
+          </span>
+          <p data-hero-rise className="leading-normal text-fg-muted" style={{ fontSize: `max(15px, ${th(18)})` }}>
+            {h.body}
+          </p>
+        </div>
+        <div className="absolute flex flex-col items-end" style={{ right: TABLET_GUTTER, top: th(826), gap: th(14) }}>
+          <div data-hero-rise className="flex" style={{ gap: th(12) }}>
+            <ButtonLink href={APP_URL} className={TABLET_BUTTON}>
+              {h.primary}
+            </ButtonLink>
+            <ButtonLink href="#how-it-works" variant="outline" className={`${TABLET_BUTTON} px-[calc(var(--th)*30)]`}>
+              {h.secondary}
+            </ButtonLink>
+          </div>
+          <span data-hero-rise className="text-fg-subtle" style={{ fontSize: `max(12px, ${th(14)})` }}>
+            {h.note}
+          </span>
+        </div>
+      </div>
+
       {/* Phone: the scene, then "Paid Early" on one line, then copy and two full width buttons */}
-      <div className="lg:hidden">
+      <div className="md:hidden">
         <div className="relative h-[327px]">
           <div data-hero-stage className="absolute -top-[21px] left-1/2 h-[287px] w-[276px] -translate-x-1/2">
             <Image src="/clay/hero-still.webp" alt="" fill priority sizes="276px" className="object-contain" />
-            <HeroScene media="(max-width: 1023.98px)" />
+            <HeroScene media="(max-width: 767.98px)" />
           </div>
           <h1 className="hero-word-in absolute inset-x-0 top-[244px] text-center text-[76px] leading-[0.88] font-semibold tracking-[-3.6px] whitespace-nowrap text-fg">
             <Letters text={h.wordLeft} /> <Letters text={h.wordRight} />

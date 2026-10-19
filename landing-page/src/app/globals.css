@@ -6,9 +6,12 @@
    they scale with the width and with the height (a 150% scaled laptop is about 1280 × 670), but
    not below 0.75 on height alone, so text stays readable and a section may take a little more
    than one screen. The hero has its own --u, which leaves room for the nav.
-   No visible page scrollbar; the page still scrolls with the wheel, keys and touch. */
+   No visible page scrollbar; the page still scrolls with the wheel, keys and touch.
+   --t is one design pixel of Landing / Tablet, drawn 834 wide for screens from 768 to 1023: the
+   tablet layout follows the width, so it flows across that whole range. */
 html {
   scrollbar-width: none;
+  --t: calc(100vw / 834);
   --s: min(1px, calc(100vw / 1440), max(0.75px, calc(100svh / 900)));
   scroll-behavior: smooth;
   scroll-padding-top: 72px;
@@ -57,6 +60,29 @@ body {
 }
 .menu-bottom {
   animation: menu-fade 260ms ease-out 320ms both;
+}
+/* Closing: the opening backwards, under its own names so the browser starts them afresh. The
+   bottom goes first, then the links from the last one up (delays set inline), then the overlay.
+   MobileMenu unmounts after CLOSE_MS. */
+@keyframes menu-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes menu-sink {
+  to {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+[data-closing].menu-enter {
+  animation: menu-fade-out 180ms ease-in 160ms both;
+}
+[data-closing] .menu-link {
+  animation: menu-sink 200ms cubic-bezier(0.7, 0, 0.84, 0) both;
+}
+[data-closing] .menu-bottom {
+  animation: menu-fade-out 160ms ease-in both;
 }
 
 /* Hero: the still image hands over to the 3D scene once its first frames are drawn. */

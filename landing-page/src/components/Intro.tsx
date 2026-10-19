@@ -2,11 +2,13 @@
 
 import { useEffect, useRef } from "react";
 import { heroEntrance } from "@/lib/heroEntrance";
+import { lockScroll } from "@/lib/scroll";
 
 // Every load opens on the wave mark: orange rises inside the circle like
 // water, the two waves draw through it, it holds, then the same motion plays backwards (a third
-// faster) and the hero builds itself. A click, a key, the wheel or a touch skips it. With
-// reduced motion the mark just shows briefly and fades.
+// faster) and the hero builds itself. It plays through, the page held at the top meanwhile.
+// With reduced motion the mark just shows briefly and fades. Until the hero has finished
+// building, html carries data-settling, so heavy work waits (lib/intro.ts, whenIntroSettled).
 // Whether it plays is decided in <head>: see lib/intro.ts.
 
 const EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)";
@@ -53,7 +55,8 @@ function DrawnMark() {
   );
 }
 
-type Track = { el: Element; keyframes: Keyframe[]; start: number; duration: number; easing: string };
+// `back` is how fast the track plays when the mark undraws, as a share of its drawing time.
+type Track = { el: Element; keyframes: Keyframe[]; start: number; duration: number; easing: string; back: number };
 
 export function Intro() {
   const root = useRef<HTMLDivElement>(null);
@@ -64,19 +67,28 @@ export function Intro() {
     if (!r || !("intro" in html.dataset)) return;
     // The hero is where the intro hands over, whatever moved the page before hydration.
     window.scrollTo(0, 0);
-
-    const end = () => delete html.dataset.intro;
+    html.dataset.settling = "";
+    const unlock = lockScroll();
+    const timers: number[] = [];
+    const end = () => {
+      delete html.dataset.intro;
+      unlock();
+    };
+    const settled = () => delete html.dataset.settling;
     if (typeof r.animate !== "function") {
       end();
+      settled();
       return;
     }
 
     const anims: Animation[] = [];
     let finish = 0;
+    let quiet = 0;
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       anims.push(r.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, delay: 500, fill: "forwards" }));
       finish = 800;
+      quiet = 800;
     } else {
       // Each step is a track; the undraw plays every track backwards in reverse order, so the
       // last thing drawn is the first to go.
@@ -88,51 +100,55 @@ export function Intro() {
           el: water,
           keyframes: [{ transform: "translateY(44px)" }, { transform: "none" }],
           start: 80,
-          duration: 760,
+          duration: 1030,
           easing: EASE_IN_OUT,
+          // The water drains a little faster than it rose.
+          back: 0.78,
         });
-      // The waves start while the water is still coming up.
+      // The waves start while the water is still coming up, about two thirds of the way.
       r.querySelectorAll("[data-intro-cut]").forEach((cut, i) =>
-        tracks.push({ el: cut, keyframes: undrawn, start: 520 + i * 160, duration: 750, easing: EASE_OUT }),
+        tracks.push({ el: cut, keyframes: undrawn, start: 710 + i * 160, duration: 750, easing: EASE_OUT, back: 0.65 }),
       );
 
       const drawn = Math.max(...tracks.map((t) => t.start + t.duration));
       const undraw = drawn + 320;
-      // The same motion backwards, a third faster: leaving should take less time than arriving.
-      const BACK = 0.65;
+      // The same motion backwards, the last thing drawn the first to go, each a little faster
+      // (`back`): leaving should take less time than arriving.
+      let gone = 0;
       tracks.forEach((t) => {
         anims.push(t.el.animate(t.keyframes, { duration: t.duration, delay: t.start, easing: t.easing, fill: "both" }));
+        const delay = undraw + (drawn - t.start - t.duration) * 0.65;
+        gone = Math.max(gone, delay + t.duration * t.back);
         anims.push(
           t.el.animate(t.keyframes, {
-            duration: t.duration * BACK,
-            delay: undraw + (drawn - t.start - t.duration) * BACK,
+            duration: t.duration * t.back,
+            delay,
             easing: t.easing,
             direction: "reverse",
             fill: "forwards",
           }),
         );
       });
-      const gone = undraw + (drawn - 80) * BACK;
       // The page starts building just before the last stroke leaves; the cream cover drops then.
       const at = gone - 80;
       const cover = r.querySelector("[data-intro-cover]");
       if (cover) anims.push(cover.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 1, delay: at, fill: "forwards" }));
-      anims.push(...heroEntrance(at));
+      const entrance = heroEntrance(at);
+      anims.push(...entrance);
       finish = gone + 40;
+      // The hero has built itself once its last entrance animation is over.
+      quiet = Math.max(...entrance.map((a) => {
+        const t = a.effect?.getComputedTiming();
+        return Number(t?.endTime ?? 0);
+      }), finish);
     }
 
-    const timer = window.setTimeout(end, finish);
-    const skip = () => {
-      anims.forEach((a) => a.finish());
-      window.clearTimeout(timer);
-      end();
-    };
-    const events = ["pointerdown", "keydown", "wheel", "touchstart"] as const;
-    events.forEach((e) => window.addEventListener(e, skip, { passive: true }));
+    timers.push(window.setTimeout(end, finish), window.setTimeout(settled, quiet));
     return () => {
-      window.clearTimeout(timer);
-      events.forEach((e) => window.removeEventListener(e, skip));
+      timers.forEach((t) => window.clearTimeout(t));
       anims.forEach((a) => a.cancel());
+      unlock();
+      settled();
     };
   }, []);
 
