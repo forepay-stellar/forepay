@@ -52,7 +52,7 @@ export function TabBar() {
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-4 bottom-6 z-40 flex gap-1 rounded-pill bg-action p-1.5 lg:hidden"
+      className="fixed inset-x-4 bottom-6 z-40 flex gap-1 rounded-pill bg-action p-1.5 md:hidden"
     >
       {APP_TABS.map(({ href, label, icon: Icon }) => {
         const active = isActive(href);
