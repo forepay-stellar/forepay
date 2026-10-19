@@ -6,12 +6,12 @@ export function FaqSection() {
   return (
     <section
       id="faq"
-      className="mx-auto flex max-w-[1440px] flex-col items-center gap-8 px-5 pt-20 pb-10 lg:gap-14 lg:px-20 lg:py-[120px]"
+      className="mx-auto flex max-w-[1440px] flex-col items-center gap-8 px-5 pt-20 pb-10 lg:gap-[calc(var(--s)*56)] lg:px-20 lg:py-[calc(var(--s)*120)]"
     >
-      <h2 className="max-w-[350px] text-center text-[40px] leading-[1.05] font-medium tracking-[-1.6px] lg:max-w-none lg:text-[80px] lg:tracking-[-3px]">
+      <h2 className="max-w-[350px] text-center text-[40px] leading-[1.05] font-medium tracking-[-1.6px] lg:max-w-none lg:text-[length:calc(var(--s)*80)] lg:tracking-[-0.0375em]">
         {landing.faq.title}
       </h2>
-      <div className="w-full lg:max-w-[820px]">
+      <div className="w-full lg:max-w-[max(640px,calc(var(--s)*820))]">
         <Faq items={landing.faq.items} defaultOpen={1} />
       </div>
     </section>

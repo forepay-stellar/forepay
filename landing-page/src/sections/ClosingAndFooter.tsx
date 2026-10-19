@@ -6,8 +6,11 @@ import { APP_URL, CONTRACT_URL } from "@/lib/env";
 
 // Landing / Desktop → CTA and footer: "Paid early." in tangerine with the clay wallet over it,
 // an orange sunrise rising from below, and the footer continuing the sunrise's deep orange
-// down to the giant cream wordmark. Desktop measures scale with the viewport below 1440.
-const v = (px: number) => `min(${(px / 14.4).toFixed(3)}vw, ${px}px)`;
+// down to the giant cream wordmark. Desktop measures are the design's pixels times --s
+// (globals.css), so the section shrinks with the width and the height; everything is centred.
+const S = (px: number) => `calc(var(--s) * ${px})`;
+// A design x position measured from the 1440 frame's centre, kept centred at any width.
+const fromCentre = (x: number) => `calc(50% + var(--s) * ${x - 720})`;
 
 // The sunrise: a soft peach halo, then the orange disc fading to the footer's deep orange.
 const SUNRISE = "radial-gradient(55% 45% at 50% 5%, #F2620F, #C24A08 55%)";
@@ -30,34 +33,43 @@ export function ClosingAndFooter() {
     <div className="relative overflow-hidden">
       <section className="relative mx-auto max-w-[1440px]">
         {/* Desktop */}
-        <div className="relative hidden lg:block" style={{ height: v(860) }}>
+        <div className="relative hidden lg:block" style={{ height: S(860) }}>
           {/* The sunrise rises as the section scrolls in */}
           <ScrollLift from={120} to={-40} className="absolute inset-0">
             <div
               aria-hidden
               className="absolute rounded-full bg-glow"
-              style={{ left: v(-420), top: v(500), width: v(2280), height: v(1000), filter: "blur(90px)" }}
+              style={{ left: fromCentre(-420), top: S(500), width: S(2280), height: S(1000), filter: "blur(90px)" }}
             />
             <div
               aria-hidden
               className="absolute rounded-full"
-              style={{ left: v(-300), top: v(575), width: v(2040), height: v(960), background: SUNRISE, filter: "blur(40px)" }}
+              style={{ left: fromCentre(-300), top: S(575), width: S(2040), height: S(960), background: SUNRISE, filter: "blur(40px)" }}
             />
           </ScrollLift>
           <h2
             className="absolute inset-x-0 text-center leading-[0.9] font-semibold tracking-[-0.048em] text-brand"
-            style={{ top: v(40), fontSize: v(230) }}
+            style={{ top: S(40), fontSize: S(230) }}
           >
             {c.headline}
           </h2>
-          <div className="absolute" style={{ left: v(464), top: v(105), width: v(505), height: v(525) }}>
+          <div className="absolute" style={{ left: fromCentre(464), top: S(105), width: S(505), height: S(525) }}>
             <Image src="/clay/sunrise-wallet.webp" alt="" fill sizes="505px" />
           </div>
-          <div className="absolute inset-x-0 flex flex-col items-center gap-[18px]" style={{ top: v(640) }}>
-            <ButtonLink href={APP_URL} variant="light" className="px-10 py-[22px] text-lg">
+          <div className="absolute inset-x-0 flex flex-col items-center" style={{ top: S(640), gap: S(18) }}>
+            <ButtonLink
+              href={APP_URL}
+              variant="light"
+              className="px-[calc(var(--s)*40)] py-[calc(var(--s)*22)] text-[length:max(15px,calc(var(--s)*18))]"
+            >
               {c.cta}
             </ButtonLink>
-            <p className="w-[560px] text-center text-[17px] leading-normal text-white/85">{c.body}</p>
+            <p
+              className="text-center leading-normal text-white/85"
+              style={{ width: `max(440px, ${S(560)})`, fontSize: `max(15px, ${S(17)})` }}
+            >
+              {c.body}
+            </p>
           </div>
         </div>
 

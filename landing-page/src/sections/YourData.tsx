@@ -3,9 +3,13 @@ import { Marquee } from "@/components/Marquee";
 import { landing } from "@/content/landing";
 
 // Landing / Desktop → Your data (1440 × 900) and Landing / Mobile → Your data (390 × 760).
-// Desktop positions are the design's pixels, scaled with the viewport below 1440 so the
-// titles, the lock and the body keep their places at 1024.
-const v = (px: number) => `min(${(px / 14.4).toFixed(3)}vw, ${px}px)`;
+// Desktop measures are the design's pixels times --s (globals.css), so the section shrinks with
+// the width and the height. Text sits on the same side gutters as the nav and the hero; the lock
+// and its glow stay centred.
+const S = (px: number) => `calc(var(--s) * ${px})`;
+const G = "min(5.6vw, 80px)";
+// A design x position measured from the 1440 frame's centre, kept centred at any width.
+const fromCentre = (x: number) => `calc(50% + var(--s) * ${x - 720})`;
 
 export function YourData() {
   const s = landing.yourData;
@@ -15,39 +19,42 @@ export function YourData() {
   return (
     <section id="your-data" className="relative mx-auto max-w-[1440px] overflow-hidden">
       {/* Desktop */}
-      <div className="relative hidden lg:block" style={{ height: v(900) }}>
-        <div className="absolute inset-x-0" style={{ top: v(298), fontSize: v(150) }}>
+      <div className="relative hidden lg:block" style={{ height: S(900) }}>
+        <div className="absolute inset-x-0" style={{ top: S(298), fontSize: S(150) }}>
           <Marquee words={s.marquee} direction="left" className={texture} />
         </div>
-        <div className="absolute inset-x-0" style={{ top: v(449), fontSize: v(150) }}>
+        <div className="absolute inset-x-0" style={{ top: S(449), fontSize: S(150) }}>
           <Marquee words={s.marquee} startAt={1} offset={7} direction="right" className={texture} />
         </div>
         <div
           aria-hidden
           className="absolute rounded-full bg-[radial-gradient(closest-side,#F3EEE8_35%,#F3EEE800)]"
-          style={{ left: v(430), top: v(200), width: v(600), height: v(463) }}
+          style={{ left: fromCentre(430), top: S(200), width: S(600), height: S(463) }}
         />
-        <p className="absolute text-[15px] font-medium text-fg-muted" style={{ left: v(80), top: v(96) }}>
+        <p className="absolute font-medium text-fg-muted" style={{ left: G, top: S(96), fontSize: `max(13px, ${S(15)})` }}>
           {s.eyebrow}
         </p>
-        <h2 className="absolute" style={{ left: v(80), top: v(126) }}>
-          <span className={`block ${title}`} style={{ fontSize: v(96) }}>
+        <h2 className="absolute" style={{ left: G, top: S(126) }}>
+          <span className={`block ${title}`} style={{ fontSize: S(96) }}>
             {s.titleTop}
           </span>
           <span className="sr-only"> {s.titleBottom}</span>
         </h2>
         {/* The export carries room for the lock's shadow: 448 px square, top aligned and centred on the 260 × 343 frame */}
-        <div className="absolute" style={{ left: v(506), top: v(260), width: v(448), height: v(448) }}>
+        <div className="absolute" style={{ left: fromCentre(506), top: S(260), width: S(448), height: S(448) }}>
           <Image src="/clay/lock.webp" alt="" fill sizes="448px" />
         </div>
         <p
           aria-hidden
           className={`absolute text-right ${title}`}
-          style={{ right: v(80), top: v(680), fontSize: v(96) }}
+          style={{ right: G, top: S(680), fontSize: S(96) }}
         >
           {s.titleBottom}
         </p>
-        <p className="absolute text-lg leading-normal text-fg-muted" style={{ left: v(80), top: v(700), width: v(470) }}>
+        <p
+          className="absolute leading-normal text-fg-muted"
+          style={{ left: G, top: S(700), width: `max(360px, ${S(470)})`, fontSize: `max(15px, ${S(18)})` }}
+        >
           {s.body}
         </p>
       </div>

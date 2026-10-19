@@ -15,14 +15,14 @@ export function Faq({ items, defaultOpen = 1 }: { items: readonly { q: string; a
         const isOpen = open === i;
         const answerId = `${base}-answer-${i}`;
         return (
-          <div key={item.q} className="rounded-[20px] bg-surface p-[18px] lg:rounded-3xl lg:px-[26px] lg:py-[22px]">
+          <div key={item.q} className="rounded-[20px] bg-surface p-[18px] lg:rounded-3xl lg:px-[calc(var(--s)*26)] lg:py-[max(16px,calc(var(--s)*22))]">
             <h3>
               <button
                 type="button"
                 aria-expanded={isOpen}
                 aria-controls={isOpen ? answerId : undefined}
                 onClick={() => setOpen(isOpen ? null : i)}
-                className="flex w-full items-center justify-between gap-4 rounded-xl text-left text-base font-medium focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand lg:text-[19px]"
+                className="flex w-full items-center justify-between gap-4 rounded-xl text-left text-base font-medium focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand lg:text-[length:max(16px,calc(var(--s)*19))]"
               >
                 {item.q}
                 <span
