@@ -1,11 +1,15 @@
 import { useSyncExternalStore } from "react";
 
-/** The desktop layout's breakpoint, Tailwind's `lg` (1024px), where the design switches frames. */
-const DESKTOP = "(min-width: 1024px)";
+/**
+ * Where the phone frames end, Tailwind's `md` (768px): from there the tablet and desktop share the
+ * top nav and the centred dialogs (section 08 of the design).
+ */
+const DESKTOP = "(min-width: 768px)";
 
 /**
- * Whether the desktop frames apply, kept in step with the window. For a component whose desktop and
- * phone forms differ in structure, not only in classes. The server renders the desktop form.
+ * Whether the tablet and desktop frames apply, kept in step with the window. For a component whose
+ * desktop and phone forms differ in structure, not only in classes. The server renders the desktop
+ * form.
  */
 export function useDesktop(): boolean {
   return useSyncExternalStore(

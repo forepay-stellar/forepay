@@ -20,8 +20,8 @@ export const button = cva(
         danger: "outline-none bg-danger-subtle text-danger hover:bg-danger-muted disabled:text-fg-subtle",
       },
       size: {
-        /** The full-width call to action of an onboarding step (18/28 on desktop, 18/24 on a phone). */
-        lg: "px-6 py-[18px] text-[16px] lg:px-7 [&_svg]:size-[18px]",
+        /** The full-width call to action of an onboarding step (18/28 from a tablet, 18/24 on a phone). */
+        lg: "px-6 py-[18px] text-[16px] md:px-7 [&_svg]:size-[18px]",
         /** Buttons inside panels and dialogs. */
         md: "px-6 py-3.5 text-[15px] [&_svg]:size-[18px]",
       },

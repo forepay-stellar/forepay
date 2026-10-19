@@ -103,14 +103,14 @@ export function OnboardingShell({
   );
 }
 
-/** Title and body of a step, sized for a phone and for the 520px desktop column. */
+/** Title and body of a step, sized for a phone and for the 520px column from a tablet up. */
 export function StepText({ title, body, extra }: { title: string; body: string; extra?: string }) {
   return (
     <>
-      <h1 className="w-full text-center text-[28px] font-semibold leading-[30px] tracking-[-0.8px] text-fg lg:text-[44px] lg:leading-[46px] lg:tracking-[-1.3px]">
+      <h1 className="w-full text-center text-page-title text-fg">
         {title}
       </h1>
-      <p className="w-full text-center text-[15px] leading-[23px] text-fg-muted lg:text-[17px] lg:leading-[26px]">
+      <p className="w-full text-center text-[15px] leading-[23px] text-fg-muted md:text-[17px] md:leading-[26px]">
         {body}
       </p>
       {extra && <p className="w-full text-center text-[14px] leading-[21px] text-fg-muted">{extra}</p>}

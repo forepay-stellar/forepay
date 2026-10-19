@@ -23,8 +23,8 @@ export function CheckingWallet({ wallet }: { wallet: ReactNode }) {
     >
       <div role="status" aria-label="Checking your wallet" className="contents">
         <SkeletonBlock className={cn("h-[160px] w-[200px] rounded-tile", fade)} />
-        <SkeletonBlock className={cn("h-[60px] w-4/5 rounded-chip lg:h-[92px]", fade)} />
-        <SkeletonBlock className={cn("h-[69px] w-full rounded-chip lg:h-[52px]", fade)} />
+        <SkeletonBlock className={cn("h-[60px] w-4/5 rounded-chip md:h-[76px] lg:h-[92px]", fade)} />
+        <SkeletonBlock className={cn("h-[69px] w-full rounded-chip md:h-[52px]", fade)} />
         <SkeletonBlock className={cn("h-[94px] w-full rounded-tile", fade)} />
       </div>
     </OnboardingShell>

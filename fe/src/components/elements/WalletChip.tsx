@@ -43,7 +43,7 @@ export function WalletChip({
         {/* A phone drops the chevron to fit the header (1c Mobile). It points up while the menu is open.
             The chip itself stays white, as on the board: a tint would melt into the canvas. */}
         <ChevronDown
-          className="hidden size-4 text-fg-muted transition-transform duration-150 group-data-[popup-open]:rotate-180 motion-reduce:transition-none lg:block"
+          className="hidden size-4 text-fg-muted transition-transform duration-150 group-data-[popup-open]:rotate-180 motion-reduce:transition-none md:block"
           aria-hidden
         />
       </Menu.Trigger>

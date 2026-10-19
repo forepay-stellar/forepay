@@ -131,7 +131,8 @@
 }
 @utility text-page-title {
   font-size: 1.75rem;
-  line-height: 1.1;
+  /* 30 on 28 and 46 on 44, as the onboarding titles are drawn. */
+  line-height: 1.05;
   letter-spacing: -0.03em;
   font-weight: 600;
   @media (width >= 48rem) { font-size: 2.25rem; }
