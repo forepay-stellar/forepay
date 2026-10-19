@@ -75,11 +75,10 @@ function HistoryScreen({ address }: { address: string }) {
 function Figure({ label, stroops, tone }: { label: string; stroops: bigint; tone: string }) {
   const { whole, decimals } = usdcParts(stroops);
   return (
-    <div className="flex min-w-0 flex-1 flex-col gap-1.5 rounded-tile bg-surface p-3.5 md:p-6">
-      {/* On a narrow phone the label may take two lines and the unit moves under the figure, so the three
-          tiles keep one row (section 08). */}
-      <dt className="text-[12px] text-fg-muted md:text-[14px]">{label}</dt>
-      <dd className="flex flex-wrap items-end gap-x-1.5">
+    <div className="flex min-w-0 flex-col gap-1.5 rounded-tile bg-surface p-3.5 md:p-6">
+      <dt className="whitespace-nowrap text-[12px] text-fg-muted md:text-[14px]">{label}</dt>
+      {/* The unit under the figure on a phone, beside it from a tablet up, as the 3b frames draw. */}
+      <dd className="flex flex-col gap-0.5 md:flex-row md:items-end md:gap-1.5">
         <span className={cn("whitespace-nowrap text-[20px] font-semibold tracking-[-0.8px] md:text-[32px]", tone)}>
           {whole}
           {decimals}
@@ -94,7 +93,9 @@ function Ledger({ advance, transactions }: { advance: AdvanceSummary; transactio
   const months = groupByMonth(historyRows(transactions, advance));
   return (
     <div className="flex w-full flex-col gap-4 md:gap-7">
-      <dl className="flex w-full gap-2 md:gap-4">
+      {/* Section 08: the tiles share equal columns at least 98 wide (the widest label plus padding on a
+          phone); when three do not fit, as at 320, the third moves to a new row at the same width. */}
+      <dl className="grid w-full grid-cols-[repeat(auto-fit,minmax(6.125rem,1fr))] gap-2 md:gap-4">
         <Figure label="Advanced" stroops={advance.principal} tone="text-fg" />
         <Figure label="Repaid" stroops={advance.repaid} tone="text-success" />
         <Figure label="Left to repay" stroops={outstanding(advance)} tone="text-brand" />

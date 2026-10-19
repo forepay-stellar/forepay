@@ -247,10 +247,11 @@ test("the repay chips share their row equally, and the balance circles sit where
     const [quarter, half, full] = await Promise.all(
       ["25%", "50%", "Full amount"].map(async (name) => (await page.getByRole("button", { name }).boundingBox())!),
     );
-    // One row of three equal chips, or Full amount alone under two equal ones.
+    // One row of three equal chips, or Full amount on a second row under two.
     expect(Math.round(quarter.width), `chips at ${width}`).toBe(Math.round(half.width));
     expect(full.y > quarter.y, `Full amount on a second row at ${width}`).toBe(!oneRow);
-    if (oneRow) expect(Math.round(full.width), `chips at ${width}`).toBe(Math.round(half.width));
+    // A chip keeps its size on a second row too (section 08).
+    expect(Math.round(full.width), `chips at ${width}`).toBe(Math.round(half.width));
     if (width === 320) continue; // no circles on a phone
     // Every 3a frame: the circles at 560 and 610 from the card's left edge.
     const lefts = await page.getByRole("region", { name: "What is left to repay" }).evaluate((card) => {
@@ -273,5 +274,23 @@ test("a transaction's title is never cut short, even at 320", async ({ page }) =
   );
   expect(cut).toEqual([]);
   await expect(page.getByText("Advance received", { exact: true })).toBeVisible();
+});
+
+test("the History figure tiles keep their size and move to a new line at 320", async ({ page }) => {
+  await mockApi(page, frameLedger());
+  await mockRpc(page, { account: true, trustline: true, usdc: 8_200_000_000n, contract: {} });
+  await connected(page);
+  await page.goto("/history");
+  await expect(page.getByText("October 2026").first()).toBeVisible();
+  const tiles = page.getByRole("definition").locator("..");
+  for (const [width, rows] of [[320, 2], [375, 1], [390, 1], [834, 1]] as const) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.waitForTimeout(150);
+    const boxes = await tiles.evaluateAll((ts) => ts.map((t) => t.getBoundingClientRect()).map((r) => ({ y: Math.round(r.y), w: r.width })));
+    expect(new Set(boxes.map((b) => b.y)).size, `rows at ${width}`).toBe(rows);
+    expect(Math.min(...boxes.map((b) => b.w)), `tile width at ${width}`).toBeGreaterThanOrEqual(98);
+    // A tile keeps its size on a new row too.
+    expect(new Set(boxes.map((b) => Math.round(b.w))).size, `tile widths at ${width}`).toBe(1);
+  }
 });
 
