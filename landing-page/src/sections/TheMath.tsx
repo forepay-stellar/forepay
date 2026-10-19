@@ -43,27 +43,27 @@ export function TheMath() {
   return (
     <section
       id="the-math"
-      className="mx-auto flex max-w-[1440px] flex-col gap-4 px-5 pt-20 pb-10 lg:gap-[calc(var(--s)*48)] lg:px-20 lg:py-[calc(var(--s)*120)]"
+      className="mx-auto flex max-w-[1440px] flex-col gap-4 px-5 pt-20 pb-10 md:gap-[calc(var(--t)*40)] md:px-[calc(var(--t)*40)] md:py-[calc(var(--t)*96)] lg:gap-[calc(var(--s)*48)] lg:px-20 lg:py-[calc(var(--s)*120)]"
     >
       <div className="flex flex-col gap-2.5 pb-2 lg:gap-3.5 lg:pb-0">
         <Reveal>
-          <p className="text-sm font-medium text-fg-muted lg:text-[length:max(13px,calc(var(--s)*15))]">{s.eyebrow}</p>
+          <p className="text-sm font-medium text-fg-muted md:text-[length:max(13px,calc(var(--t)*15))] lg:text-[length:max(13px,calc(var(--s)*15))]">{s.eyebrow}</p>
         </Reveal>
-        <h2 className="text-[44px] font-medium tracking-[-1.6px] lg:text-[length:calc(var(--s)*76)] lg:tracking-[-0.0395em]">
+        <h2 className="text-[44px] font-medium tracking-[-1.6px] md:text-[length:calc(var(--t)*60)] md:tracking-[-0.04em] lg:text-[length:calc(var(--s)*76)] lg:tracking-[-0.0395em]">
           <RiseText text={s.title} />
         </h2>
       </div>
 
-      <div className="flex flex-col gap-3 lg:h-[calc(var(--s)*560)] lg:flex-row lg:gap-[calc(var(--s)*20)]">
-        <article className="flex h-[470px] flex-col justify-between overflow-hidden rounded-[36px] bg-[radial-gradient(120%_120%_at_50%_35%,#F8A97A99,#F8A97A00_50%),linear-gradient(#FFF3EA,#FFF3EA)] p-7 lg:h-full lg:min-w-0 lg:flex-1 lg:rounded-[calc(var(--s)*40)] lg:p-[calc(var(--s)*40)]">
+      <div className="flex flex-col gap-3 md:gap-[calc(var(--t)*16)] lg:h-[calc(var(--s)*560)] lg:flex-row lg:gap-[calc(var(--s)*20)]">
+        <article className="flex h-[470px] flex-col justify-between overflow-hidden rounded-[36px] bg-[radial-gradient(120%_120%_at_50%_35%,#F8A97A99,#F8A97A00_50%),linear-gradient(#FFF3EA,#FFF3EA)] p-7 md:h-[calc(var(--t)*560)] md:rounded-[calc(var(--t)*40)] md:p-[calc(var(--t)*40)] lg:h-full lg:min-w-0 lg:flex-1 lg:rounded-[calc(var(--s)*40)] lg:p-[calc(var(--s)*40)]">
           <div className="flex justify-between text-sm text-fg-muted">
-            <span className="font-mono">{s.big.number}</span>
+            <span className="tabular-nums">{s.big.number}</span>
             <span>{s.big.tag}</span>
           </div>
           {/* The export is 800 × 370 with room for the shadow below the 300 px stage */}
-          <div className="relative h-[250px] lg:h-[calc(var(--s)*300)]">
+          <div className="relative h-[250px] md:h-[calc(var(--t)*300)] lg:h-[calc(var(--s)*300)]">
             <ScrollLift from={20} to={-20} className="absolute inset-0">
-              <div className="absolute -top-3.5 left-1/2 h-[288px] w-[624px] -translate-x-1/2 lg:top-0 lg:h-[calc(var(--s)*370)] lg:w-[calc(var(--s)*800)]">
+              <div className="absolute -top-3.5 left-1/2 h-[288px] w-[624px] -translate-x-1/2 md:top-0 md:h-[calc(var(--t)*370)] md:w-[calc(var(--t)*800)] lg:h-[calc(var(--s)*370)] lg:w-[calc(var(--s)*800)]">
                 <ClayIn className="absolute inset-0" delay={150}>
                   <Image src="/clay/quarter-coin.webp" alt="" fill sizes="(min-width: 1024px) 800px, 624px" />
                 </ClayIn>
@@ -71,29 +71,29 @@ export function TheMath() {
             </ScrollLift>
           </div>
           <div className="relative flex flex-col gap-2">
-            <h3 className="text-[26px] leading-[1.15] font-medium tracking-[-0.8px] lg:text-[length:max(24px,calc(var(--s)*36))] lg:tracking-[-0.033em]">{s.big.title}</h3>
-            <p className="text-[17px] leading-[1.45] text-fg-muted lg:text-[length:max(15px,calc(var(--s)*17))]">{s.big.body}</p>
+            <h3 className="text-[26px] leading-[1.15] font-medium tracking-[-0.8px] md:text-[length:max(24px,calc(var(--t)*36))] md:tracking-[-0.033em] lg:text-[length:max(24px,calc(var(--s)*36))] lg:tracking-[-0.033em]">{s.big.title}</h3>
+            <p className="text-[17px] leading-[1.45] text-fg-muted md:text-[length:max(15px,calc(var(--t)*17))] lg:text-[length:max(15px,calc(var(--s)*17))]">{s.big.body}</p>
           </div>
         </article>
 
-        <div className="flex gap-3 lg:w-[calc(var(--s)*380)] lg:flex-col lg:gap-[calc(var(--s)*20)]">
+        <div className="flex gap-3 md:gap-[calc(var(--t)*16)] lg:w-[calc(var(--s)*380)] lg:flex-col lg:gap-[calc(var(--s)*20)]">
           {facts.map((f) => (
             <article
               key={f.label}
-              className="flex h-[220px] min-w-0 flex-1 flex-col justify-between rounded-[28px] bg-surface p-5 lg:h-auto lg:rounded-[calc(var(--s)*36)] lg:p-[calc(var(--s)*32)]"
+              className="flex h-[220px] min-w-0 flex-1 flex-col justify-between rounded-[28px] bg-surface p-5 md:h-[calc(var(--t)*250)] md:rounded-[calc(var(--t)*36)] md:p-[calc(var(--t)*32)] lg:h-auto lg:rounded-[calc(var(--s)*36)] lg:p-[calc(var(--s)*32)]"
             >
               <div className="flex items-start justify-between gap-3">
-                <h3 className="text-[13px] font-medium lg:text-[length:max(13px,calc(var(--s)*15))]">{f.label}</h3>
-                <span className="hidden lg:block">{f.visual}</span>
+                <h3 className="text-[13px] font-medium md:text-[length:max(13px,calc(var(--t)*15))] lg:text-[length:max(13px,calc(var(--s)*15))]">{f.label}</h3>
+                <span className="hidden md:block">{f.visual}</span>
               </div>
               <div className="flex flex-col gap-1.5">
                 <p className="flex items-end gap-1.5">
-                  <span className="text-[52px] leading-[0.9] font-medium tracking-[-2px] lg:text-[length:calc(var(--s)*88)] lg:tracking-[-0.041em]">
+                  <span className="text-[52px] leading-[0.9] font-medium tracking-[-2px] md:text-[length:calc(var(--t)*88)] md:tracking-[-0.041em] lg:text-[length:calc(var(--s)*88)] lg:tracking-[-0.041em]">
                     <CountUp to={f.value} />
                   </span>
-                  <span className="text-lg leading-[1.7] font-medium text-fg-subtle lg:text-[length:max(20px,calc(var(--s)*28))]">{f.unit}</span>
+                  <span className="text-lg leading-[1.7] font-medium text-fg-subtle md:text-[length:max(20px,calc(var(--t)*28))] lg:text-[length:max(20px,calc(var(--s)*28))]">{f.unit}</span>
                 </p>
-                <p className="text-[13px] text-fg-muted lg:text-[length:max(13px,calc(var(--s)*15))]">{f.sub}</p>
+                <p className="text-[13px] text-fg-muted md:text-[length:max(13px,calc(var(--t)*15))] lg:text-[length:max(13px,calc(var(--s)*15))]">{f.sub}</p>
               </div>
             </article>
           ))}

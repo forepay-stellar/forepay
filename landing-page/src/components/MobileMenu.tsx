@@ -58,7 +58,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
       aria-label="Menu"
       inert={closing}
       data-closing={closing || undefined}
-      className="menu-enter fixed inset-0 z-50 flex flex-col overflow-hidden bg-canvas lg:hidden"
+      className="menu-enter fixed inset-0 z-50 flex flex-col overflow-hidden bg-canvas md:hidden"
     >
       <div className="flex h-15 shrink-0 items-center justify-between px-4">
         <Mark />
@@ -82,7 +82,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
             className="menu-link flex items-center justify-between border-b border-line-strong py-[18px] outline-none focus-visible:bg-subtle"
           >
             <span className="flex items-end gap-3.5">
-              <span className="font-mono text-[13px] leading-[2.2] text-fg-subtle">
+              <span className="text-[13px] leading-[2.2] text-fg-subtle tabular-nums">
                 {String(i + 1).padStart(2, "0")}
               </span>
               <span className="text-[40px] leading-none font-medium tracking-[-1.4px]">{link.label}</span>

@@ -42,29 +42,29 @@ export function Nav() {
         {/* Landing / Desktop → Nav */}
         <div
           className={cn(
-            "mx-auto hidden max-w-[1440px] items-center justify-between px-20 transition-[height] duration-300 lg:flex",
-            scrolled ? "h-[72px]" : "h-24",
+            "mx-auto hidden max-w-[1440px] items-center justify-between px-10 transition-[height] duration-300 md:flex lg:px-20",
+            scrolled ? "h-[72px]" : "h-20 lg:h-24",
           )}
         >
-          <a data-nav-item href="#top" className="w-[300px]" aria-label="Forepay, back to top">
+          <a data-nav-item href="#top" className="w-[220px] lg:w-[300px]" aria-label="Forepay, back to top">
             <Wordmark aria-hidden />
           </a>
-          <nav data-nav-item className="flex gap-9">
+          <nav data-nav-item className="flex gap-7 lg:gap-9">
             {desktopLinks.map((l) => (
               <a key={l.href} href={l.href} className="text-[15px] font-medium text-fg-muted transition-colors hover:text-fg">
                 {l.label}
               </a>
             ))}
           </nav>
-          <div data-nav-item className="flex w-[300px] justify-end">
+          <div data-nav-item className="flex w-[220px] justify-end lg:w-[300px]">
             <ButtonLink href={APP_URL} size="md">
               {landing.nav.cta}
             </ButtonLink>
           </div>
         </div>
 
-        {/* Landing / Mobile menu / Closed → Nav */}
-        <div className="flex h-15 items-center justify-between px-4 lg:hidden">
+        {/* Landing / Mobile menu / Closed → Nav, phones only */}
+        <div className="flex h-15 items-center justify-between px-4 md:hidden">
           <a data-nav-item href="#top" aria-label="Forepay, back to top">
             <Mark aria-hidden />
           </a>
