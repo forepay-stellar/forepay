@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowUpRight, FlaskConical, X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { lockScroll } from "@/lib/scroll";
 import { landing } from "@/content/landing";
 import { APP_URL } from "@/lib/env";
@@ -9,9 +9,30 @@ import { Mark } from "./brand/Logo";
 import { ButtonLink } from "./Button";
 
 // Landing / Mobile menu / Open. Opening: the overlay fades in over 200 ms, the links rise
-// 16 px one after another (40 ms apart), the button and the testnet line come last.
+// 16 px one after another (40 ms apart), the button and the testnet line come last. Closing plays
+// the same motion backwards and a little faster: the bottom goes first, the links sink from the
+// last one up, then the overlay fades. The menu stays mounted until that has finished.
+// The whole close, in ms: the overlay's fade (globals.css) starts at 160 and lasts 180.
+const CLOSE_MS = 340;
+
 export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
   const firstLink = useRef<HTMLAnchorElement>(null);
+  const [mounted, setMounted] = useState(open);
+  const [closing, setClosing] = useState(false);
+
+  // Follow `open` during render, so the closing frames start in the same paint.
+  if (open && (!mounted || closing)) {
+    setMounted(true);
+    setClosing(false);
+  }
+  if (!open && mounted && !closing) setClosing(true);
+
+  useEffect(() => {
+    if (!closing) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const timer = window.setTimeout(() => setMounted(false), reduced ? 0 : CLOSE_MS);
+    return () => window.clearTimeout(timer);
+  }, [closing]);
 
   useEffect(() => {
     if (!open) return;
@@ -27,13 +48,16 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!mounted) return null;
+  const links = landing.nav.links.length;
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label="Menu"
+      inert={closing}
+      data-closing={closing || undefined}
       className="menu-enter fixed inset-0 z-50 flex flex-col overflow-hidden bg-canvas lg:hidden"
     >
       <div className="flex h-15 shrink-0 items-center justify-between px-4">
@@ -54,7 +78,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
             ref={i === 0 ? firstLink : undefined}
             href={link.href}
             onClick={onClose}
-            style={{ animationDelay: `${120 + i * 40}ms` }}
+            style={{ animationDelay: closing ? `${60 + (links - 1 - i) * 30}ms` : `${120 + i * 40}ms` }}
             className="menu-link flex items-center justify-between border-b border-line-strong py-[18px] outline-none focus-visible:bg-subtle"
           >
             <span className="flex items-end gap-3.5">

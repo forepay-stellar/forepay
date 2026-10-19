@@ -58,6 +58,29 @@ body {
 .menu-bottom {
   animation: menu-fade 260ms ease-out 320ms both;
 }
+/* Closing: the opening backwards, under its own names so the browser starts them afresh. The
+   bottom goes first, then the links from the last one up (delays set inline), then the overlay.
+   MobileMenu unmounts after CLOSE_MS. */
+@keyframes menu-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes menu-sink {
+  to {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+[data-closing].menu-enter {
+  animation: menu-fade-out 180ms ease-in 160ms both;
+}
+[data-closing] .menu-link {
+  animation: menu-sink 200ms cubic-bezier(0.7, 0, 0.84, 0) both;
+}
+[data-closing] .menu-bottom {
+  animation: menu-fade-out 160ms ease-in both;
+}
 
 /* Hero: the still image hands over to the 3D scene once its first frames are drawn. */
 [data-hero-stage] > img,
