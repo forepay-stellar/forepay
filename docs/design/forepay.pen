@@ -63422,6 +63422,519 @@
           "fontWeight": "normal"
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "rwQxY",
+      "x": 16890,
+      "y": 10300,
+      "name": "Label Empty",
+      "width": 1500,
+      "layout": "vertical",
+      "gap": 8,
+      "children": [
+        {
+          "type": "text",
+          "id": "E3xfYE",
+          "name": "Title",
+          "fill": "$fg",
+          "content": "Tablet, 768 to 1023",
+          "fontFamily": "$font-sans",
+          "fontSize": 40,
+          "fontWeight": "600",
+          "letterSpacing": -1.2
+        },
+        {
+          "type": "text",
+          "id": "AmDjZ",
+          "name": "Desc",
+          "fill": "$fg-muted",
+          "content": "The main app screens at 834, built from 08 Layout and responsive. One column up to 640 wide and centred, the top nav, side cards under the main card. Other screens follow the same rules.",
+          "fontFamily": "$font-sans",
+          "fontSize": 16,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "LILW6",
+      "x": 16890,
+      "y": 10500,
+      "name": "Repayment / 3a No advance yet / Desktop",
+      "clip": true,
+      "width": 1440,
+      "height": 900,
+      "fill": "$canvas",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        0,
+        80,
+        64,
+        80
+      ],
+      "children": [
+        {
+          "id": "B3fLHZ",
+          "type": "ref",
+          "ref": "L3H24",
+          "name": "Top nav",
+          "width": "fill_container"
+        },
+        {
+          "type": "frame",
+          "id": "NhNuX",
+          "name": "Header",
+          "width": "fill_container",
+          "justifyContent": "space_between",
+          "alignItems": "end",
+          "children": [
+            {
+              "type": "frame",
+              "id": "am57m",
+              "name": "Text",
+              "layout": "vertical",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "kmCvt",
+                  "name": "Eyebrow",
+                  "fill": "$brand",
+                  "content": "Welcome back",
+                  "fontFamily": "$font-sans",
+                  "fontSize": 15,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "Z150B",
+                  "name": "Title",
+                  "fill": "$fg",
+                  "content": "Repayment",
+                  "fontFamily": "$font-sans",
+                  "fontSize": 40,
+                  "fontWeight": "600",
+                  "letterSpacing": -1.2
+                }
+              ]
+            },
+            {
+              "id": "UbhK0",
+              "type": "ref",
+              "ref": "kBlXW",
+              "name": "View contract",
+              "padding": [
+                12,
+                20
+              ],
+              "descendants": {
+                "jGlpO": {
+                  "enabled": true,
+                  "icon": "arrow-up-right",
+                  "width": 16,
+                  "height": 16
+                },
+                "StVcP": {
+                  "content": "View contract",
+                  "fontSize": 14
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "T8O8Na",
+          "name": "Empty",
+          "width": "fill_container",
+          "padding": [
+            48,
+            0
+          ],
+          "justifyContent": "center",
+          "children": [
+            {
+              "id": "KY4Zg",
+              "type": "ref",
+              "ref": "xzGuf",
+              "name": "Empty state",
+              "width": 400,
+              "padding": 24
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "InXOg",
+      "x": 18450,
+      "y": 10500,
+      "name": "Repayment / 3a No advance yet / Mobile",
+      "clip": true,
+      "width": 390,
+      "height": 844,
+      "fill": "$canvas",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": [
+        0,
+        0,
+        120,
+        0
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "Ted4k",
+          "name": "Status bar",
+          "width": "fill_container",
+          "height": 44,
+          "padding": [
+            0,
+            24
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "O2SSzO",
+              "name": "Time",
+              "fill": "$fg",
+              "content": "9.41",
+              "fontFamily": "$font-sans",
+              "fontSize": 15,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "dHGLt",
+              "name": "Icons",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "qaX13",
+                  "name": "signal",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "signal",
+                  "library": "lucide",
+                  "fill": "$fg"
+                },
+                {
+                  "type": "icon",
+                  "id": "kKjXL",
+                  "name": "wifi",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "wifi",
+                  "library": "lucide",
+                  "fill": "$fg"
+                },
+                {
+                  "type": "icon",
+                  "id": "iMQ3n",
+                  "name": "battery-full",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "battery-full",
+                  "library": "lucide",
+                  "fill": "$fg"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "vHpb7",
+          "type": "ref",
+          "ref": "iAkTS",
+          "name": "Header",
+          "width": "fill_container"
+        },
+        {
+          "type": "frame",
+          "id": "CiI8l",
+          "name": "Body",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "padding": [
+            0,
+            16
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "BVEES",
+              "name": "Title",
+              "fill": "$fg",
+              "content": "Repayment",
+              "fontFamily": "$font-sans",
+              "fontSize": 30,
+              "fontWeight": "600",
+              "letterSpacing": -0.9
+            },
+            {
+              "id": "u97rRc",
+              "type": "ref",
+              "ref": "xzGuf",
+              "name": "Empty state",
+              "width": "fill_container",
+              "padding": 24
+            }
+          ]
+        },
+        {
+          "id": "mBJol",
+          "type": "ref",
+          "ref": "PtHKU",
+          "name": "Tab bar",
+          "layoutPosition": "absolute",
+          "x": 16,
+          "y": 757
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "rT3Ps",
+      "x": 18960,
+      "y": 10500,
+      "name": "Repayment / 3b History, no advance yet / Desktop",
+      "clip": true,
+      "width": 1440,
+      "height": 900,
+      "fill": "$canvas",
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        0,
+        80,
+        64,
+        80
+      ],
+      "children": [
+        {
+          "id": "jEse3",
+          "type": "ref",
+          "ref": "L3H24",
+          "name": "Top nav",
+          "width": "fill_container",
+          "descendants": {
+            "xLcAA/jx9GV": {
+              "fill": "#00000000"
+            },
+            "xLcAA/zJPFO": {
+              "fill": "$stone-400"
+            },
+            "xLcAA/w1mLn": {
+              "fill": "$brand"
+            },
+            "xLcAA/unTFK": {
+              "fill": "$fg-on-brand"
+            }
+          }
+        },
+        {
+          "type": "frame",
+          "id": "jJ75B",
+          "name": "Header",
+          "layout": "vertical",
+          "gap": 6,
+          "children": [
+            {
+              "type": "text",
+              "id": "j9fCs",
+              "name": "Title",
+              "fill": "$fg",
+              "content": "History",
+              "fontFamily": "$font-sans",
+              "fontSize": 40,
+              "fontWeight": "600",
+              "letterSpacing": -1.2
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "S55E0v",
+          "name": "Empty",
+          "width": "fill_container",
+          "padding": [
+            48,
+            0
+          ],
+          "justifyContent": "center",
+          "children": [
+            {
+              "id": "oaBXK",
+              "type": "ref",
+              "ref": "xzGuf",
+              "name": "Empty state",
+              "width": 400,
+              "padding": 24
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "FIuXc",
+      "x": 20520,
+      "y": 10500,
+      "name": "Repayment / 3b History, no advance yet / Mobile",
+      "clip": true,
+      "width": 390,
+      "height": 844,
+      "fill": "$canvas",
+      "layout": "vertical",
+      "gap": 16,
+      "padding": [
+        0,
+        0,
+        120,
+        0
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "c7VYHA",
+          "name": "Status bar",
+          "width": "fill_container",
+          "height": 44,
+          "padding": [
+            0,
+            24
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "AP9lw",
+              "name": "Time",
+              "fill": "$fg",
+              "content": "9.41",
+              "fontFamily": "$font-sans",
+              "fontSize": 15,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "O720D",
+              "name": "Icons",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "VFOCB",
+                  "name": "signal",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "signal",
+                  "library": "lucide",
+                  "fill": "$fg"
+                },
+                {
+                  "type": "icon",
+                  "id": "ssCJ5",
+                  "name": "wifi",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "wifi",
+                  "library": "lucide",
+                  "fill": "$fg"
+                },
+                {
+                  "type": "icon",
+                  "id": "XcNAq",
+                  "name": "battery-full",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "battery-full",
+                  "library": "lucide",
+                  "fill": "$fg"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "QC6so",
+          "type": "ref",
+          "ref": "iAkTS",
+          "name": "Header",
+          "width": "fill_container"
+        },
+        {
+          "type": "frame",
+          "id": "L1dEM",
+          "name": "Body",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "padding": [
+            0,
+            16
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "F8Oo3",
+              "name": "Title",
+              "fill": "$fg",
+              "content": "History",
+              "fontFamily": "$font-sans",
+              "fontSize": 30,
+              "fontWeight": "600",
+              "letterSpacing": -0.9
+            },
+            {
+              "id": "tFoRr",
+              "type": "ref",
+              "ref": "xzGuf",
+              "name": "Empty state",
+              "width": "fill_container",
+              "padding": 24
+            }
+          ]
+        },
+        {
+          "id": "jYliY",
+          "type": "ref",
+          "ref": "PtHKU",
+          "name": "Tab bar",
+          "layoutPosition": "absolute",
+          "x": 16,
+          "y": 757,
+          "descendants": {
+            "Wq7Ig": {
+              "fill": "#00000000"
+            },
+            "bFSv6": {
+              "fill": "$stone-400"
+            },
+            "ZshCc": {
+              "fill": "$stone-400"
+            },
+            "SaKSr": {
+              "fill": "$brand"
+            },
+            "CDtvb": {
+              "fill": "$fg-on-brand"
+            },
+            "BLTac": {
+              "fill": "$fg-on-brand"
+            }
+          }
+        }
+      ]
     }
   ],
   "variables": {
