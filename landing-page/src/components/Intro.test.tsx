@@ -1,6 +1,5 @@
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { INTRO_SEEN } from "@/lib/intro";
 import { Intro } from "./Intro";
 
 // jsdom has no Web Animations; a stub records each call and whether it was finished.
@@ -19,7 +18,6 @@ beforeEach(() => {
     return { finish: () => (call.finished = true), cancel() {} } as unknown as Animation;
   };
   stubMotion(false);
-  sessionStorage.clear();
   document.documentElement.dataset.intro = "";
 });
 
@@ -34,9 +32,8 @@ afterEach(() => {
 const playing = () => "intro" in document.documentElement.dataset;
 
 describe("Intro", () => {
-  it("plays when <head> asked for it, remembers it for the session and ends on its own", () => {
+  it("plays when <head> asked for it and ends on its own", () => {
     render(<Intro />);
-    expect(sessionStorage.getItem(INTRO_SEEN)).toBe("1");
     expect(calls.length).toBeGreaterThan(0);
     expect(playing()).toBe(true);
     vi.advanceTimersByTime(4000);
@@ -47,7 +44,6 @@ describe("Intro", () => {
     delete document.documentElement.dataset.intro;
     render(<Intro />);
     expect(calls).toHaveLength(0);
-    expect(sessionStorage.getItem(INTRO_SEEN)).toBeNull();
   });
 
   it("skips to the end on a key press", () => {

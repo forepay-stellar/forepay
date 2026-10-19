@@ -5,11 +5,17 @@
    --s is one design pixel for the desktop sections below the hero, which are drawn at 1440 × 900:
    they scale with the width and with the height (a 150% scaled laptop is about 1280 × 670), but
    not below 0.75 on height alone, so text stays readable and a section may take a little more
-   than one screen. The hero has its own --u, which leaves room for the nav. */
+   than one screen. The hero has its own --u, which leaves room for the nav.
+   No visible page scrollbar; the page still scrolls with the wheel, keys and touch. */
 html {
+  scrollbar-width: none;
   --s: min(1px, calc(100vw / 1440), max(0.75px, calc(100svh / 900)));
   scroll-behavior: smooth;
   scroll-padding-top: 72px;
+}
+
+html::-webkit-scrollbar {
+  display: none;
 }
 
 body {

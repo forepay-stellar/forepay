@@ -1,7 +1,6 @@
-// Whether the first-visit intro (components/Intro.tsx) plays is decided in <head>, before the
-// first paint, so its cover is there from the start and a returning visit never sees it flash.
-// It plays once per session, and not when the link goes straight to a section (/#faq).
-
-export const INTRO_SEEN = "forepay:intro";
-
-export const INTRO_SCRIPT = `try{if(!location.hash&&!sessionStorage.getItem("${INTRO_SEEN}")){document.documentElement.dataset.intro=""}}catch(e){}`;
+// Runs in <head>, before the first paint. Every load starts from the top of the page with the
+// intro (components/Intro.tsx), so its cover is there from the start: a reload too, even after
+// a nav link put a section in the address (/#faq), which is cleared. Only a fresh visit to a
+// section link, such as a shared /#faq, goes straight to that section without the intro.
+// The browser never restores an old position on its own: a section link scrolls to its section.
+export const HEAD_SCRIPT = `try{history.scrollRestoration="manual";var n=performance.getEntriesByType("navigation")[0];if(n&&n.type==="reload"&&location.hash)history.replaceState(null,"",location.pathname+location.search);if(!location.hash){scrollTo(0,0);document.documentElement.dataset.intro=""}}catch(e){}`;

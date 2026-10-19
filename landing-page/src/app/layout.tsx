@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SmoothScroll } from "@/components/SmoothScroll";
-import { INTRO_SCRIPT } from "@/lib/intro";
+import { HEAD_SCRIPT } from "@/lib/intro";
 import "lenis/dist/lenis.css";
 import "./globals.css";
 
@@ -28,17 +28,12 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", title, description },
 };
 
-// A reload starts at the top, where the hero and its motion begin, instead of wherever the
-// browser left off. A link to a section (/#faq) still lands on that section. Runs in <head>,
-// before the browser restores the old position.
-const startAtTop = `if(!location.hash){history.scrollRestoration="manual";scrollTo(0,0)}`;
-
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     // The intro script may set data-intro on <html> before React hydrates it.
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: startAtTop + INTRO_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: HEAD_SCRIPT }} />
       </head>
       <body className="min-h-dvh bg-canvas text-fg">
         <SmoothScroll />

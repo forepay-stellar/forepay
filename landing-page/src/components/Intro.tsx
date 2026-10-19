@@ -2,9 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import { heroEntrance } from "@/lib/heroEntrance";
-import { INTRO_SEEN } from "@/lib/intro";
 
-// The first visit in a session opens on the wave mark: orange rises inside the circle like
+// Every load opens on the wave mark: orange rises inside the circle like
 // water, the two waves draw through it, it holds, then the same motion plays backwards (a third
 // faster) and the hero builds itself. A click, a key, the wheel or a touch skips it. With
 // reduced motion the mark just shows briefly and fades.
@@ -63,11 +62,8 @@ export function Intro() {
     const html = document.documentElement;
     const r = root.current;
     if (!r || !("intro" in html.dataset)) return;
-    try {
-      sessionStorage.setItem(INTRO_SEEN, "1");
-    } catch {
-      // storage blocked: it plays again next time, which is fine
-    }
+    // The hero is where the intro hands over, whatever moved the page before hydration.
+    window.scrollTo(0, 0);
 
     const end = () => delete html.dataset.intro;
     if (typeof r.animate !== "function") {
