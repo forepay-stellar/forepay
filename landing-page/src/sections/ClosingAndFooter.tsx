@@ -36,8 +36,10 @@ export function ClosingAndFooter() {
       <section className="relative mx-auto max-w-[1440px]">
         {/* Desktop */}
         <div className="relative hidden lg:block" style={{ height: S(860) }}>
-          {/* The sunrise rises as the section scrolls in */}
-          <ScrollLift from={120} to={-40} className="absolute inset-0">
+          {/* The sunrise rises as the section scrolls in. Its wrapper gets its own layer
+              (will-change), so the large blurs are drawn once and only moved while scrolling;
+              without it they were repainted every frame and the footer stuttered. */}
+          <ScrollLift from={120} to={-40} className="absolute inset-0 will-change-transform">
             <div
               aria-hidden
               className="absolute rounded-full bg-glow"
@@ -77,7 +79,7 @@ export function ClosingAndFooter() {
 
         {/* Tablet */}
         <div className="relative hidden md:block lg:hidden" style={{ height: T(760) }}>
-          <ScrollLift from={100} to={-30} className="absolute inset-0">
+          <ScrollLift from={100} to={-30} className="absolute inset-0 will-change-transform">
             <div
               aria-hidden
               className="absolute left-1/2 -translate-x-1/2 rounded-full bg-glow"
@@ -117,7 +119,7 @@ export function ClosingAndFooter() {
 
         {/* Phone */}
         <div className="relative h-[680px] md:hidden">
-          <ScrollLift from={80} to={-30} className="absolute inset-0">
+          <ScrollLift from={80} to={-30} className="absolute inset-0 will-change-transform">
             <div
               aria-hidden
               className="absolute top-[410px] left-1/2 h-[520px] w-[910px] -translate-x-1/2 rounded-full bg-glow blur-[50px]"
