@@ -44,15 +44,15 @@ export function ReviewOffer({
 
   return (
     <div className="flex w-full flex-col gap-4 lg:flex-row">
-      <div className="flex flex-1 flex-col gap-4">
+      <div className="flex min-w-0 flex-1 flex-col gap-4">
         <section
           data-focus
           aria-label={`You can get ${amount}`}
-          className="relative flex flex-col gap-3 overflow-hidden rounded-hero bg-brand p-[22px] lg:gap-[18px] lg:p-8"
+          className="relative flex flex-col gap-3 overflow-hidden rounded-hero bg-brand p-[22px] md:gap-[18px] md:p-8"
         >
           <span
             aria-hidden
-            className="absolute left-[220px] top-[30px] size-[180px] rounded-full bg-fg-on-brand/12 lg:left-[560px] lg:top-10 lg:size-[300px]"
+            className="absolute left-[220px] top-[30px] size-[180px] rounded-full bg-fg-on-brand/12 md:left-[560px] md:top-10 md:size-[300px]"
           />
           <div className="relative flex items-center justify-between">
             <p className="text-[15px] text-fg-on-brand/80">You can get</p>
@@ -64,12 +64,12 @@ export function ReviewOffer({
           <p className="relative">
             <Amount
               stroops={advance}
-              className="text-[56px] font-semibold leading-[56px] tracking-[-1.7px] text-fg-on-brand lg:text-[88px] lg:leading-[88px] lg:tracking-[-2.6px]"
+              className="text-hero text-fg-on-brand"
               decimalsClassName="text-fg-on-brand/55"
-              unitClassName="pb-1.5 pl-2.5 text-[18px] font-medium text-fg-on-brand/80 lg:pb-2.5 lg:text-[24px]"
+              unitClassName="pb-1.5 pl-2.5 text-[18px] font-medium text-fg-on-brand/80 md:pb-2.5 md:text-[24px]"
             />
           </p>
-          <p className="relative text-[15px] leading-[22px] text-fg-on-brand lg:max-w-[480px]">
+          <p className="relative text-[15px] leading-[22px] text-fg-on-brand md:max-w-[480px]">
             {capped
               ? `The most one advance can be. You earned ${revenue} on AdSense from ${windowLong}.`
               : capped === null || !terms
@@ -94,8 +94,9 @@ export function ReviewOffer({
         />
       </div>
 
-      <div className="flex flex-col gap-4 lg:w-[420px] lg:shrink-0">
-        <section className="hidden flex-col gap-3.5 rounded-card bg-surface p-6 lg:flex" aria-label="If you accept">
+      {/* Section 08: under the offer on a tablet; from 1024 a side column, 320 wide and 360 from 1200. */}
+      <div className="flex flex-col gap-4 lg:w-[320px] lg:shrink-0 min-[1200px]:w-[360px]">
+        <section className="hidden flex-col gap-3.5 rounded-card bg-surface p-6 md:flex" aria-label="If you accept">
           <h2 className="text-[18px] font-semibold text-fg">If you accept</h2>
           <ul className="flex flex-col gap-3.5">
             {[
@@ -114,8 +115,8 @@ export function ReviewOffer({
           <Timer className="size-[18px] shrink-0 text-icon" aria-hidden />
           Your proof stays valid for one hour. Accept before then, or prove again.
         </p>
-        <div className="flex flex-col gap-4 lg:gap-2.5">
-          <Button size="lg" className="w-full lg:px-6" onClick={onAccept}>
+        <div className="flex flex-col gap-4 md:gap-2.5">
+          <Button size="lg" className="w-full md:px-6" onClick={onAccept}>
             Accept {amount}
           </Button>
           <Button variant="outline" className="w-full" onClick={onNotNow}>

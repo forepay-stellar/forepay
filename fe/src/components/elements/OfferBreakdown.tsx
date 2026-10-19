@@ -36,8 +36,8 @@ export function OfferBreakdown({
     {
       key: (
         <>
-          <span className="hidden lg:inline">Your AdSense revenue, {windowShort}</span>
-          <span className="lg:hidden">AdSense revenue, {months}</span>
+          <span className="hidden md:inline">Your AdSense revenue, {windowShort}</span>
+          <span className="md:hidden">AdSense revenue, {months}</span>
         </>
       ),
       value: revenue,
@@ -51,15 +51,16 @@ export function OfferBreakdown({
         <h2 className="text-[18px] font-semibold tracking-[-0.2px] text-fg">How we got this number</h2>
         <p className="text-[14px] text-fg-muted">The same proof always gives the same advance.</p>
       </div>
+      {/* Section 08: where a row has no room, its value moves under its label. */}
       <div className="flex flex-col gap-3.5">
         {rows.map((r) => (
-          <p key={r.value} className="flex items-center justify-between gap-4">
+          <p key={r.value} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
             <span className="text-[14px] text-fg-muted">{r.key}</span>
             <span className="text-[14px] font-medium text-fg">{r.value}</span>
           </p>
         ))}
         <div className="h-px w-full bg-divider" />
-        <div className="flex items-end justify-between gap-4">
+        <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
           <p className="text-[15px] font-medium text-fg">Your advance</p>
           <p>
             <Amount
