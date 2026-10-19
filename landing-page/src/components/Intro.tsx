@@ -100,14 +100,14 @@ export function Intro() {
           el: water,
           keyframes: [{ transform: "translateY(44px)" }, { transform: "none" }],
           start: 80,
-          duration: 1300,
+          duration: 1030,
           easing: EASE_IN_OUT,
-          // The water drains almost as slowly as it rose.
-          back: 0.9,
+          // The water drains a little faster than it rose.
+          back: 0.78,
         });
       // The waves start while the water is still coming up, about two thirds of the way.
       r.querySelectorAll("[data-intro-cut]").forEach((cut, i) =>
-        tracks.push({ el: cut, keyframes: undrawn, start: 900 + i * 160, duration: 750, easing: EASE_OUT, back: 0.65 }),
+        tracks.push({ el: cut, keyframes: undrawn, start: 710 + i * 160, duration: 750, easing: EASE_OUT, back: 0.65 }),
       );
 
       const drawn = Math.max(...tracks.map((t) => t.start + t.duration));
