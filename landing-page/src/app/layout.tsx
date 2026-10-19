@@ -15,17 +15,18 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const title = "Forepay, get paid early on your AdSense revenue";
+// The browser tab shows just the name; a shared link gets the longer line under the image.
+const shareTitle = "Forepay, get paid early on your AdSense revenue";
 const description =
   "Prove three months of AdSense revenue without sharing your Google password and get up to 100 USDC. Live on Stellar testnet.";
 
 // The share image is app/opengraph-image.png; metadataBase turns its path into a full URL.
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
-  title,
+  title: "Forepay",
   description,
-  openGraph: { title, description, type: "website", siteName: "Forepay" },
-  twitter: { card: "summary_large_image", title, description },
+  openGraph: { title: shareTitle, description, type: "website", siteName: "Forepay" },
+  twitter: { card: "summary_large_image", title: shareTitle, description },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
