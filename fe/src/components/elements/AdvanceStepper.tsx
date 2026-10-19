@@ -16,7 +16,7 @@ const BAR: Record<State, string> = { done: "bg-action", current: "bg-brand", nex
 /** Desktop: one column per step, the bar on top, then "Step 2", its name and Done, You are here or Next. */
 export function AdvanceStepper({ current }: { current: number }) {
   return (
-    <ol className="hidden w-full gap-3 lg:flex" aria-label="Advance progress">
+    <ol className="hidden w-full gap-3 md:flex" aria-label="Advance progress">
       {ADVANCE_STEPS.map((name, i) => {
         const state = stateOf(i, current);
         return (
@@ -51,7 +51,7 @@ export function AdvanceStepper({ current }: { current: number }) {
 export function AdvanceProgress({ current }: { current: number }) {
   const allDone = current >= ADVANCE_STEPS.length;
   return (
-    <div className="flex w-full items-center gap-4 rounded-tile bg-surface px-[18px] py-4 lg:hidden">
+    <div className="flex w-full items-center gap-4 rounded-tile bg-surface px-[18px] py-4 md:hidden">
       <div className="flex flex-1 flex-col gap-0.5">
         <p className="text-[12px] text-fg-muted">
           {allDone ? "All steps done" : `Step ${current + 1} of ${ADVANCE_STEPS.length}`}

@@ -36,10 +36,10 @@ export function AdvanceScreen({
   }, [focusKey]);
 
   return (
-    <div ref={root} className="flex w-full flex-col gap-4 lg:gap-8 lg:pt-8 [&_[data-focus]:focus]:outline-none [&_h2:focus]:outline-none">
+    <div ref={root} className="flex w-full flex-col gap-4 md:gap-8 md:pt-8 [&_[data-focus]:focus]:outline-none [&_h2:focus]:outline-none">
       <div className="flex flex-col gap-1.5">
-        <p className="hidden text-[15px] text-brand lg:block">Advance</p>
-        <h1 className="text-[30px] font-semibold tracking-[-0.9px] text-fg lg:text-[40px] lg:tracking-[-1.2px]">{title}</h1>
+        <p className="hidden text-[15px] text-brand md:block">Advance</p>
+        <h1 className="text-page-title text-fg">{title}</h1>
       </div>
       <AdvanceStepper current={step} />
       <AdvanceProgress current={step} />
