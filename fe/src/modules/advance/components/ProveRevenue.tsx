@@ -63,7 +63,7 @@ export function ProveRevenue({
         </div>
       </section>
 
-      <div className="flex flex-col gap-4 md:flex-row md:[&>*]:flex-1 lg:w-[320px] lg:shrink-0 lg:flex-col lg:[&>*]:flex-none wide:w-[360px]">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:[&>*]:flex-1 lg:items-stretch lg:w-[320px] lg:shrink-0 lg:flex-col lg:[&>*]:flex-none wide:w-[360px]">
         <section className="hidden flex-col gap-4 rounded-card bg-surface p-6 md:flex" aria-label="Your wallet">
           <h2 className="text-[18px] font-semibold text-fg">Your wallet</h2>
           <dl className="flex flex-col gap-4">
