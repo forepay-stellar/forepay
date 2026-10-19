@@ -131,3 +131,15 @@ test("repayment and history", async ({ page }) => {
   await expect(page.getByText("October 2026").first()).toBeVisible();
   await holdsAtEveryWidth(page, "3b");
 });
+
+test("repayment and history before the first advance", async ({ page }) => {
+  await mockApi(page, { advances: [], transactions: [] });
+  await mockRpc(page, { account: true, trustline: true, usdc: 0n, contract: {} });
+  await connected(page);
+  await page.goto("/repayment");
+  await expect(heading(page, "No advance yet")).toBeVisible();
+  await holdsAtEveryWidth(page, "3a no advance");
+  await page.goto("/history");
+  await expect(heading(page, "No advance yet")).toBeVisible();
+  await holdsAtEveryWidth(page, "3b no advance");
+});

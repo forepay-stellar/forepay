@@ -49,7 +49,8 @@ function HistoryScreen({ address }: { address: string }) {
     );
   } else if (!picked) {
     body = (
-      <div className="flex w-full justify-center pt-4">
+      // 16 under the title on a phone, 48 more from a tablet up ("No advance yet" frames).
+      <div className="flex w-full justify-center md:pt-12">
         <NoAdvance />
       </div>
     );
