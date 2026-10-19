@@ -190,3 +190,47 @@ test("the top nav keeps the wordmark whole from 768", async ({ page }) => {
   const wordmark = () => page.getByRole("banner").getByRole("img", { name: "Forepay" }).first();
   expect(await widths(page, wordmark, [768, 800, 834, 1024, 1440])).toEqual({ 768: 179, 800: 179, 834: 179, 1024: 179, 1440: 179 });
 });
+
+/** Whether the two buttons sit one under the other, at each window width. */
+async function stackedAt(page: Page, first: string, second: string, at: number[]) {
+  const out: Record<number, boolean> = {};
+  for (const width of at) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.waitForTimeout(150);
+    const a = await page.getByRole("button", { name: first }).boundingBox();
+    const b = await page.getByRole("button", { name: second }).boundingBox();
+    out[width] = !!a && !!b && b.y >= a.y + a.height;
+  }
+  return out;
+}
+
+test("under 768 two buttons stack, main first, unless the pair fits at 320", async ({ page }) => {
+  const chain: Chain = { account: true, trustline: true, advance: { send: "refused" } };
+  await mockRpc(page, chain);
+  await connected(page);
+  await page.addInitScript(() => localStorage.setItem("forepay.mock.revenue", "1240.00"));
+  await page.goto("/advance");
+  await page.getByRole("button", { name: "Prove my revenue" }).click();
+  await expect(page.getByRole("button", { name: "Accept 100.00 USDC" })).toBeVisible();
+  // "Approve in Freighter" (or "Allow USDC") and "Not now" do not fit side by side at 320.
+  chain.trustline = false;
+  await page.getByRole("button", { name: "Accept 100.00 USDC" }).click();
+  await expect(heading(page, "Your wallet needs to accept USDC first")).toBeVisible();
+  const allow = (await page.getByRole("button", { name: /Allow USDC|Approve in/ }).first().textContent()) ?? "";
+  expect(await stackedAt(page, allow.trim(), "Not now", [320, 375, 390, 767, 768, 1440])).toEqual({
+    320: true,
+    375: true,
+    390: true,
+    767: true,
+    768: false,
+    1440: false,
+  });
+  // "Try again" and "Back" do.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.getByRole("button", { name: "Not now" }).click();
+  chain.trustline = true;
+  await page.getByRole("button", { name: "Accept 100.00 USDC" }).click();
+  await expect(heading(page, "The transaction did not go through")).toBeVisible();
+  expect(await stackedAt(page, "Try again", "Back", [320, 768, 1440])).toEqual({ 320: false, 768: false, 1440: false });
+  await holdsAtEveryWidth(page, "refused panel");
+});

@@ -61,6 +61,8 @@ export function FailurePanel({
 
   let illustration: ReactNode;
   let actions: ReactNode;
+  // Side by side on a phone only for "Try again" or "Prove again" with "Back": the pairs that fit at 320.
+  let row = false;
   let copy;
 
   if ("code" in failure) {
@@ -71,11 +73,13 @@ export function FailurePanel({
       case 30:
         illustration = <IlloProofNotConfirmed data-illo="proof-not-confirmed" />;
         actions = failure.code === 30 ? back : <>{proveAgain}{back}</>;
+        row = true;
         break;
       case 12:
       case 13:
         illustration = <IlloProofExpired data-illo="proof-expired" />;
         actions = <>{proveAgain}{back}</>;
+        row = true;
         break;
       case 20:
         illustration = <IlloProofAlreadyUsed data-illo="proof-already-used" />;
@@ -104,6 +108,7 @@ export function FailurePanel({
         // A refusal a creator cannot cause (admin and upgrade codes): the transaction did not happen.
         illustration = <IlloNothingCharged data-illo="nothing-charged" />;
         actions = <>{<Button onClick={a.onRetry}>Try again</Button>}{back}</>;
+        row = true;
     }
   } else if (failure.kind === "tooSmall") {
     copy = tooSmallCopy(
@@ -134,6 +139,7 @@ export function FailurePanel({
             {back}
           </>
         );
+        row = true;
         break;
       case "charged":
         illustration = <IlloSessionCancelled data-illo="session-cancelled" />;
@@ -143,6 +149,7 @@ export function FailurePanel({
             {back}
           </>
         );
+        row = true;
         break;
       case "unconfirmed":
         illustration = <IlloNothingCharged data-illo="nothing-charged" />;
@@ -166,6 +173,7 @@ export function FailurePanel({
             {back}
           </>
         );
+        row = true;
         break;
       case "relayNotReady":
       case "notConfigured":
@@ -190,5 +198,5 @@ export function FailurePanel({
     }
   }
 
-  return <ErrorPanel illustration={illustration} title={copy.title} body={copy.body} actions={actions} />;
+  return <ErrorPanel illustration={illustration} title={copy.title} body={copy.body} actions={actions} row={row} />;
 }

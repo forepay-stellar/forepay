@@ -10,6 +10,7 @@ export function ErrorPanel({
   actions,
   centered = false,
   stacked = false,
+  row = false,
   className,
 }: {
   illustration: ReactNode;
@@ -20,6 +21,11 @@ export function ErrorPanel({
   centered?: boolean;
   /** Actions one above the other at every width, as the board draws some panels. */
   stacked?: boolean;
+  /**
+   * Two actions side by side on a phone too. Only for a pair whose labels fit on one line at 320, such
+   * as "Try again" and "Back" (section 08).
+   */
+  row?: boolean;
   className?: string;
 }) {
   return (
@@ -34,9 +40,16 @@ export function ErrorPanel({
       <div className="flex w-full justify-center">{illustration}</div>
       <h2 className="text-[19px] font-semibold tracking-[-0.3px] text-fg">{title}</h2>
       <p className="w-full text-[14px] leading-[21px] text-fg-muted">{body}</p>
-      {/* Section 08: two buttons share a row only while both labels fit on it; otherwise the second
-          moves under the first, so the main action, passed first, stays on top. */}
-      <div className={cn("flex w-full gap-2.5", stacked ? "flex-col" : "flex-wrap [&>*]:flex-1")}>{actions}</div>
+      {/* Section 08: under 768 two buttons sit one under the other, the main one (passed first) on top,
+          unless the pair fits at 320 (`row`). */}
+      <div
+        className={cn(
+          "flex w-full gap-2.5",
+          stacked ? "flex-col" : row ? "[&>*]:flex-1" : "flex-col md:flex-row md:[&>*]:flex-1",
+        )}
+      >
+        {actions}
+      </div>
     </section>
   );
 }
