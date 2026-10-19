@@ -188,7 +188,7 @@ export function ClosingAndFooter() {
               src="/brand/wordmark-cream.webp"
               alt="Forepay"
               width={1283}
-              height={191}
+              height={204}
               sizes="(min-width: 1440px) 1280px, 90vw"
               className="h-auto w-full"
             />
