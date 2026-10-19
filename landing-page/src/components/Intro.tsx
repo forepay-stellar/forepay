@@ -55,7 +55,8 @@ function DrawnMark() {
   );
 }
 
-type Track = { el: Element; keyframes: Keyframe[]; start: number; duration: number; easing: string };
+// `back` is how fast the track plays when the mark undraws, as a share of its drawing time.
+type Track = { el: Element; keyframes: Keyframe[]; start: number; duration: number; easing: string; back: number };
 
 export function Intro() {
   const root = useRef<HTMLDivElement>(null);
@@ -99,31 +100,35 @@ export function Intro() {
           el: water,
           keyframes: [{ transform: "translateY(44px)" }, { transform: "none" }],
           start: 80,
-          duration: 760,
+          duration: 1300,
           easing: EASE_IN_OUT,
+          // The water drains almost as slowly as it rose.
+          back: 0.9,
         });
-      // The waves start while the water is still coming up.
+      // The waves start while the water is still coming up, about two thirds of the way.
       r.querySelectorAll("[data-intro-cut]").forEach((cut, i) =>
-        tracks.push({ el: cut, keyframes: undrawn, start: 520 + i * 160, duration: 750, easing: EASE_OUT }),
+        tracks.push({ el: cut, keyframes: undrawn, start: 900 + i * 160, duration: 750, easing: EASE_OUT, back: 0.65 }),
       );
 
       const drawn = Math.max(...tracks.map((t) => t.start + t.duration));
       const undraw = drawn + 320;
-      // The same motion backwards, a third faster: leaving should take less time than arriving.
-      const BACK = 0.65;
+      // The same motion backwards, the last thing drawn the first to go, each a little faster
+      // (`back`): leaving should take less time than arriving.
+      let gone = 0;
       tracks.forEach((t) => {
         anims.push(t.el.animate(t.keyframes, { duration: t.duration, delay: t.start, easing: t.easing, fill: "both" }));
+        const delay = undraw + (drawn - t.start - t.duration) * 0.65;
+        gone = Math.max(gone, delay + t.duration * t.back);
         anims.push(
           t.el.animate(t.keyframes, {
-            duration: t.duration * BACK,
-            delay: undraw + (drawn - t.start - t.duration) * BACK,
+            duration: t.duration * t.back,
+            delay,
             easing: t.easing,
             direction: "reverse",
             fill: "forwards",
           }),
         );
       });
-      const gone = undraw + (drawn - 80) * BACK;
       // The page starts building just before the last stroke leaves; the cream cover drops then.
       const at = gone - 80;
       const cover = r.querySelector("[data-intro-cover]");
