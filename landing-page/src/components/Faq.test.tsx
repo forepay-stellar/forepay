@@ -10,14 +10,20 @@ const items = [
 ];
 
 const question = (name: string) => screen.getByRole("button", { name });
+// Answers stay mounted for their animation; a closed one is inert.
+const panel = (answer: string) => screen.getByText(answer).closest("[data-open]");
+const isOpen = (answer: string) => panel(answer)?.getAttribute("data-open") === "true";
+const isInert = (answer: string) => panel(answer)?.hasAttribute("inert");
 
 describe("Faq", () => {
   it("opens the default item and keeps the others closed", () => {
     render(<Faq items={items} defaultOpen={1} />);
     expect(question("Which wallets work?").getAttribute("aria-expanded")).toBe("true");
     expect(question("Is this real money?").getAttribute("aria-expanded")).toBe("false");
-    expect(screen.getByText("Freighter.")).toBeTruthy();
-    expect(screen.queryByText("No.")).toBeNull();
+    expect(isOpen("Freighter.")).toBe(true);
+    expect(isOpen("No.")).toBe(false);
+    expect(isInert("No.")).toBe(true);
+    expect(isInert("Freighter.")).toBe(false);
   });
 
   it("links each open question to its answer", () => {
@@ -29,9 +35,9 @@ describe("Faq", () => {
   it("opens one item at a time and closes an open one on a second press", () => {
     render(<Faq items={items} defaultOpen={1} />);
     fireEvent.click(question("Is this real money?"));
-    expect(screen.getByText("No.")).toBeTruthy();
-    expect(screen.queryByText("Freighter.")).toBeNull();
+    expect(isOpen("No.")).toBe(true);
+    expect(isOpen("Freighter.")).toBe(false);
     fireEvent.click(question("Is this real money?"));
-    expect(screen.queryByText("No.")).toBeNull();
+    expect(isOpen("No.")).toBe(false);
   });
 });

@@ -1,11 +1,8 @@
 import Image from "next/image";
 import { ButtonLink } from "@/components/Button";
-import { Reveal } from "@/components/Reveal";
 import { ScrollLift } from "@/components/ScrollLift";
 import { landing } from "@/content/landing";
 import { APP_URL, CONTRACT_URL } from "@/lib/env";
-import { ClayIn } from "@/components/ClayIn";
-import { RiseText } from "@/components/RiseText";
 
 // Landing / Desktop → CTA and footer: "Paid early." in tangerine with the clay wallet over it,
 // an orange sunrise rising from below, and the footer continuing the sunrise's deep orange
@@ -54,31 +51,25 @@ export function ClosingAndFooter() {
             className="absolute inset-x-0 text-center leading-[0.9] font-semibold tracking-[-0.048em] text-brand"
             style={{ top: S(40), fontSize: S(230) }}
           >
-            <RiseText text={c.headline} stagger={40} />
+            {c.headline}
           </h2>
           <div className="absolute" style={{ left: fromCentre(464), top: S(105), width: S(505), height: S(525) }}>
-            <ClayIn className="absolute inset-0" delay={300}>
-              <Image src="/clay/sunrise-wallet.webp" alt="" fill sizes="505px" />
-            </ClayIn>
+            <Image src="/clay/sunrise-wallet.webp" alt="" fill sizes="505px" />
           </div>
           <div className="absolute inset-x-0 flex flex-col items-center" style={{ top: S(640), gap: S(18) }}>
-            <Reveal delay={200}>
-              <ButtonLink
-                href={APP_URL}
-                variant="light"
-                className="px-[calc(var(--s)*40)] py-[calc(var(--s)*22)] text-[length:max(15px,calc(var(--s)*18))]"
-              >
-                {c.cta}
-              </ButtonLink>
-            </Reveal>
-            <Reveal delay={280}>
-              <p
-                className="text-center leading-normal text-white/85"
-                style={{ width: `max(440px, ${S(560)})`, fontSize: `max(15px, ${S(17)})` }}
-              >
-                {c.body}
-              </p>
-            </Reveal>
+            <ButtonLink
+              href={APP_URL}
+              variant="light"
+              className="px-[calc(var(--s)*40)] py-[calc(var(--s)*22)] text-[length:max(15px,calc(var(--s)*18))]"
+            >
+              {c.cta}
+            </ButtonLink>
+            <p
+              className="text-center leading-normal text-white/85"
+              style={{ width: `max(440px, ${S(560)})`, fontSize: `max(15px, ${S(17)})` }}
+            >
+              {c.body}
+            </p>
           </div>
         </div>
 
@@ -97,26 +88,20 @@ export function ClosingAndFooter() {
           </ScrollLift>
           {/* "Paid early." on two lines, as drawn for phones */}
           <h2 className="absolute inset-x-0 top-[30px] text-center text-[112px] leading-[0.88] font-semibold tracking-[-5.5px] text-brand">
-            {c.headline.split(" ").map((word, i) => (
+            {c.headline.split(" ").map((word) => (
               <span key={word} className="block">
-                <RiseText text={word} stagger={40} delay={i * 160} />
+                {word}
               </span>
             ))}
           </h2>
           <div className="absolute top-[205px] left-1/2 h-[262px] w-[253px] -translate-x-1/2">
-            <ClayIn className="absolute inset-0" delay={300}>
-              <Image src="/clay/sunrise-wallet.webp" alt="" fill sizes="253px" />
-            </ClayIn>
+            <Image src="/clay/sunrise-wallet.webp" alt="" fill sizes="253px" />
           </div>
           <div className="absolute inset-x-5 top-[500px] flex flex-col items-center gap-3.5">
-            <Reveal delay={200} className="w-full">
-              <ButtonLink href={APP_URL} variant="light" size="menu" className="w-full">
-                {c.cta}
-              </ButtonLink>
-            </Reveal>
-            <Reveal delay={280}>
-              <p className="text-center text-[15px] leading-normal text-white/85">{c.body}</p>
-            </Reveal>
+            <ButtonLink href={APP_URL} variant="light" size="menu" className="w-full">
+              {c.cta}
+            </ButtonLink>
+            <p className="text-center text-[15px] leading-normal text-white/85">{c.body}</p>
           </div>
         </div>
       </section>
