@@ -20,8 +20,8 @@ const VARIANTS: Variant[] = [
   { id: "F3", name: "Dive", note: "Dive into a cream wave until the screen is cream, which is the page" },
   { id: "F4", name: "Message", note: "Paid early. appears on the orange, then the page opens" },
   { id: "F5", name: "Soft", note: "A feathered opening, the hero eases back as it appears" },
-  { id: "B1", name: "Slice", note: "The mark splits along its waves, the pieces slide apart, the page builds itself" },
-  { id: "B2", name: "Fall", note: "The mark breaks along its waves and the pieces fall, the page builds itself" },
+  { id: "C1", name: "Slide", note: "Three pieces slide together into the mark, then rewind apart, the page builds itself" },
+  { id: "C2", name: "Stack", note: "The pieces drop in and stack into the mark, then rewind up and away, the page builds itself" },
 ];
 
 const WAVE_D = (y: number) => `M-2 ${y}c4.5-3 8.5-3 12.5 0 4 3 8 3 12 0 4-3 8-3 11.5 0`;
@@ -64,7 +64,7 @@ const PIECE_REGIONS = [
   `${WAVE_D(24.5)} L40 42 L-8 42 Z`,
 ];
 
-function PiecesMark({ size }: { size: number }) {
+function PiecesMark({ size, draw }: { size: number; draw: boolean }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden className="block overflow-visible">
       <defs>
@@ -83,8 +83,8 @@ function PiecesMark({ size }: { size: number }) {
           {[18.5, 24.5].map((y, w) => (
             <path
               key={y}
-              className="intro-wave"
-              style={{ animationDelay: `${120 + w * 110}ms` }}
+              className={draw ? "intro-wave" : undefined}
+              style={draw ? { animationDelay: `${120 + w * 110}ms` } : undefined}
               pathLength={1}
               d={WAVE_D(y)}
               fill="none"
@@ -252,7 +252,7 @@ const SOFT_IRIS_MASK = "radial-gradient(circle at 50% 50%, #0000 var(--iris), #0
 const WAVE_POINT = `${(10.5 / 32) * 100}% ${(18.5 / 32) * 100}%`;
 
 export function IntroLab() {
-  const [variant, setVariant] = useState("B1");
+  const [variant, setVariant] = useState("C1");
   const [run, setRun] = useState(0);
   const [playing, setPlaying] = useState(true);
   const root = useRef<HTMLDivElement>(null);
@@ -270,7 +270,8 @@ export function IntroLab() {
     let done = 1500;
 
     const marks = [...r.querySelectorAll<HTMLElement>("[data-mark]")];
-    marks.forEach((m) => add(settle(m)));
+    // The C intros build the mark from its pieces instead.
+    if (!variant.startsWith("C")) marks.forEach((m) => add(settle(m)));
     const mark = marks[0];
 
     const cover = (Math.hypot(innerWidth, innerHeight) / MARK) * 1.15;
@@ -333,49 +334,42 @@ export function IntroLab() {
       done = 1700;
     }
 
-    if (variant === "B1" || variant === "B2") {
+    if (variant === "C1" || variant === "C2") {
+      // The mark builds from its three pieces, holds, then the same animation plays backwards:
+      // the last piece in is the first out. Units are the mark's 32 × 32 box, 3.5 px on screen.
       const pieces = [...r.querySelectorAll<SVGGElement>("[data-piece]")];
-      // Units are the mark's 32 × 32 box: one unit is 3.5 px on screen.
-      if (variant === "B1") {
-        // A small gather, then the three bands slide apart sideways, alternating, like a slice.
+      const slide = variant === "C1";
+      const from = slide
+        ? ["translate(-22px, -4px) rotate(-10deg)", "translate(24px, 0) rotate(8deg)", "translate(-18px, 5px) rotate(-6deg)"]
+        : ["translateY(-26px) rotate(-8deg)", "translateY(-30px) rotate(6deg)", "translateY(-34px) rotate(-4deg)"];
+      // Slide brings them in top to bottom; Stack drops the bottom piece first and builds upward.
+      const order = slide ? [0, 1, 2] : [2, 1, 0];
+      // Stack lands with a small overshoot; played backwards it becomes a small lift before leaving.
+      const easing = slide ? EASE_OUT : "cubic-bezier(0.34, 1.36, 0.64, 1)";
+      const BUILD = 620;
+      const GAP = 90;
+      const IN = 80;
+      const HOLD = IN + 2 * GAP + BUILD + 260;
+      pieces.forEach((p, i) => {
+        const keyframes = [
+          { transform: from[i], opacity: 0 },
+          { opacity: 1, offset: 0.4 },
+          { transform: "none", opacity: 1 },
+        ];
+        const step = order.indexOf(i);
+        add(p.animate(keyframes, { duration: BUILD, delay: IN + step * GAP, easing, fill: "backwards" }));
         add(
-          mark.animate([{ transform: "scale(1)" }, { transform: "scale(0.94)" }, { transform: "scale(1)" }], {
-            duration: 260,
-            delay: HAND_OVER,
-            easing: EASE_IN_OUT,
+          p.animate(keyframes, {
+            duration: BUILD,
+            delay: HOLD + (2 - step) * GAP,
+            easing,
+            direction: "reverse",
+            fill: "forwards",
           }),
         );
-        const to = ["translate(-16px, -5px) rotate(-9deg)", "translate(18px, 0) rotate(5deg)", "translate(-12px, 6px) rotate(-6deg)"];
-        pieces.forEach((p, i) =>
-          add(
-            p.animate(
-              [
-                { transform: "none", opacity: 1 },
-                { opacity: 1, offset: 0.3 },
-                { transform: to[i], opacity: 0 },
-              ],
-              { duration: 620, delay: HAND_OVER + 120 + i * 30, easing: EASE_OUT, fill: "forwards" },
-            ),
-          ),
-        );
-      } else {
-        // The bands come loose from the bottom up: a small lift, then they fall and tip.
-        const tip = ["rotate(-14deg)", "rotate(10deg)", "rotate(-6deg)"];
-        pieces.forEach((p, i) =>
-          add(
-            p.animate(
-              [
-                { transform: "none", opacity: 1 },
-                { transform: "translateY(-1.5px)", opacity: 1, offset: 0.18 },
-                { opacity: 1, offset: 0.55 },
-                { transform: `translateY(56px) ${tip[i]}`, opacity: 0 },
-              ],
-              { duration: 680, delay: HAND_OVER + (2 - i) * 80, easing: "cubic-bezier(0.5, 0, 0.75, 0)", fill: "forwards" },
-            ),
-          ),
-        );
-      }
-      const at = HAND_OVER + (variant === "B1" ? 380 : 520);
+      });
+      // The page starts building as the last piece fades, so the rewind plays on clean cream.
+      const at = HOLD + 2 * GAP + 480;
       add(swap(q("[data-bg]"), at, 1, 0));
       add(heroEntrance(at));
       done = at + 900;
@@ -429,7 +423,7 @@ export function IntroLab() {
 
   const markEl = (
     <div data-mark>
-      {variant.startsWith("B") ? <PiecesMark size={MARK} /> : <WaveMark size={MARK} />}
+      {variant.startsWith("C") ? <PiecesMark size={MARK} draw={false} /> : <WaveMark size={MARK} />}
     </div>
   );
 
