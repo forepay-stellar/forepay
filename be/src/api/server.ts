@@ -10,6 +10,8 @@ import { serve } from "@hono/node-server";
 import { rpc } from "@stellar/stellar-sdk";
 
 import { die, loadEnv } from "../cli/env.js";
+import { readAdvance } from "../chain/advance.js";
+import { fetchOperations } from "../chain/history.js";
 import { createApp } from "./app.js";
 import { loadConfig } from "./config.js";
 
@@ -32,7 +34,16 @@ if (!loaded.recorded) {
   );
 }
 
-const app = createApp({ loaded, rpc: new rpc.Server(loaded.config.rpcUrl) });
+const server = new rpc.Server(loaded.config.rpcUrl);
+const { horizonUrl, networkPassphrase } = loaded.config;
+const app = createApp({
+  loaded,
+  rpc: server,
+  chain: {
+    operations: (account) => fetchOperations(account, { horizonUrl }),
+    readAdvance: (contract, nullifier) => readAdvance(server, networkPassphrase, contract, nullifier),
+  },
+});
 serve({ fetch: app.fetch, port: loaded.config.port }, (info) => {
   console.log(`Forepay API on :${info.port} (${loaded.config.network}, CORS: ${loaded.config.corsOrigins.join(", ") || "none"})`);
 });

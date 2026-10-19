@@ -7,7 +7,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { RECORDED } from "./network.js";
+import { Asset } from "@stellar/stellar-sdk";
+
+import { RECORDED, USDC_ASSET } from "./network.js";
 
 const DOC = readFileSync(join(import.meta.dirname, "../../docs/deployments.md"), "utf8");
 
@@ -27,4 +29,9 @@ test("every recorded contract also appears in the human-readable part of the doc
     if (address === null) continue;
     assert.ok(prose.includes(address), `${name} ${address} is recorded but never explained in the doc`);
   }
+});
+
+test("USDC_ASSET is the classic asset behind the recorded USDC SAC", () => {
+  const sac = new Asset(USDC_ASSET.code, USDC_ASSET.issuer).contractId(RECORDED.networkPassphrase);
+  assert.equal(sac, RECORDED.contracts.usdcSac);
 });
