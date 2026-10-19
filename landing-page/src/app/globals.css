@@ -151,13 +151,21 @@ html[data-intro] [data-intro-overlay] {
   }
 }
 
-/* Headings outside the hero (components/RiseText.tsx): each word clips its letters, with room
-   below the baseline for descenders; until the heading comes into view they wait under it. */
+/* Letters that rise from a line: the hero's words (lib/heroEntrance.ts) and the headings
+   below it (components/RiseText.tsx). Each word clips its letters at a line just under the
+   text, so they come up through a slit, one after another from the left. The padding makes
+   room for descenders without moving the layout. Until a heading comes into view its letters
+   wait under the line. */
+[data-rise-word],
+[data-hero-line] {
+  padding-bottom: 0.2em;
+  margin-bottom: -0.2em;
+}
 [data-rise-word] {
-  clip-path: inset(-0.3em -0.2em -0.3em -0.2em);
+  clip-path: inset(-0.35em -0.1em 0 -0.1em);
 }
 [data-rise="wait"] [data-rise-letter] {
-  transform: translateY(140%);
+  transform: translateY(120%);
 }
 
 /* Clay objects outside the hero (components/ClayIn.tsx): hidden until they rise into view,

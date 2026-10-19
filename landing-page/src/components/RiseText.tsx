@@ -2,13 +2,14 @@
 
 import { Fragment, useLayoutEffect, useRef } from "react";
 
-const EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)";
+// Shoots out, then settles softly.
+const EASE_RISE = "cubic-bezier(0.35, 0, 0, 1)";
 
 // A heading's letters rise one by one from under their line the first time it scrolls into
-// view, the way the hero's words arrive after the intro. Each word clips its own letters, with
-// room below the baseline for descenders, so lines still wrap between words. Screen readers get
+// view, the way the hero's words arrive after the intro. Each word clips its own letters at a
+// line just under the text (globals.css), so lines still wrap between words. Screen readers get
 // the text whole. With reduced motion, or before the script runs, the text is simply there.
-export function RiseText({ text, delay = 0, stagger = 22 }: { text: string; delay?: number; stagger?: number }) {
+export function RiseText({ text, delay = 0, stagger = 28 }: { text: string; delay?: number; stagger?: number }) {
   const ref = useRef<HTMLSpanElement>(null);
 
   useLayoutEffect(() => {
@@ -25,10 +26,10 @@ export function RiseText({ text, delay = 0, stagger = 22 }: { text: string; dela
         io.disconnect();
         el.querySelectorAll("[data-rise-letter]").forEach((letter, i) =>
           anims.push(
-            letter.animate([{ transform: "translateY(140%)" }, { transform: "none" }], {
-              duration: 750,
+            letter.animate([{ transform: "translateY(120%)" }, { transform: "none" }], {
+              duration: 900,
               delay: delay + i * stagger,
-              easing: EASE_OUT,
+              easing: EASE_RISE,
               fill: "backwards",
             }),
           ),

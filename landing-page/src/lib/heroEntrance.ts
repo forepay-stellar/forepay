@@ -4,6 +4,8 @@
 // stays hidden behind the intro until then.
 
 const EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)";
+// The letters: shoot out, then settle softly.
+const EASE_RISE = "cubic-bezier(0.35, 0, 0, 1)";
 
 // Only the layout on screen: the hero renders a desktop and a phone version.
 function visible<T extends HTMLElement>(selector: string) {
@@ -33,23 +35,23 @@ export function heroEntrance(at: number): Animation[] {
       }),
     );
 
-  // Letters 35 ms apart, the second word 140 ms after the first. Each line clips its letters
-  // while they rise; the clip reaches below the baseline so descenders never get cut.
-  const LETTER = 750;
+  // Letters 35 ms apart, the second word 140 ms after the first. Each line clips its letters at
+  // a line just under the text while they rise (globals.css gives it room for descenders).
+  const LETTER = 900;
   visible<HTMLElement>("[data-hero-line]").forEach((line, w) => {
     const letters = [...line.querySelectorAll<HTMLElement>("[data-hero-letter]")];
     const start = at + 60 + w * 140;
     letters.forEach((l, i) =>
       anims.push(
-        l.animate([{ transform: "translateY(140%)" }, { transform: "none" }], {
+        l.animate([{ transform: "translateY(120%)" }, { transform: "none" }], {
           duration: LETTER,
           delay: start + i * 35,
-          easing: EASE_OUT,
+          easing: EASE_RISE,
           fill: "backwards",
         }),
       ),
     );
-    const clip = "inset(-0.3em -0.2em -0.3em -0.2em)";
+    const clip = "inset(-0.35em -0.1em 0 -0.1em)";
     anims.push(
       line.animate([{ clipPath: clip }, { clipPath: clip }], {
         duration: 60 + w * 140 + letters.length * 35 + LETTER,
