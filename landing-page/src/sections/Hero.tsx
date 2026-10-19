@@ -11,6 +11,23 @@ import { HeroWordsDrift } from "./HeroWordsDrift";
 // The design's 20 × 34 px, 17 px buttons, in design pixels.
 const HERO_BUTTON = "px-[calc(var(--u)*34)] py-[calc(var(--u)*20)] text-[length:max(14px,calc(var(--u)*17))]";
 
+// One span per letter, so the intro can raise them one by one from under their line. Screen
+// readers get the word whole.
+function Letters({ text }: { text: string }) {
+  return (
+    <>
+      <span className="sr-only">{text}</span>
+      <span aria-hidden data-hero-line className="inline-block">
+        {[...text].map((ch, i) => (
+          <span key={i} data-hero-letter className="inline-block">
+            {ch}
+          </span>
+        ))}
+      </span>
+    </>
+  );
+}
+
 export function Hero() {
   const h = landing.hero;
   const giant = "font-semibold leading-[0.9] tracking-[-0.047em] text-fg";
@@ -26,10 +43,14 @@ export function Hero() {
       >
         <h1 id="hero-title" className={`${giant} text-[calc(var(--u)*180)]`}>
           <span data-hero-word="left" className="absolute top-[calc(var(--u)*60)] left-[min(5.6vw,80px)]">
-            <span className="hero-word-in inline-block">{h.wordLeft}</span>
+            <span className="hero-word-in inline-block">
+              <Letters text={h.wordLeft} />
+            </span>
           </span>{" "}
           <span data-hero-word="right" className="absolute top-[calc(var(--u)*470)] right-[min(5.6vw,80px)]">
-            <span className="hero-word-in inline-block [animation-delay:80ms]">{h.wordRight}</span>
+            <span className="hero-word-in inline-block [animation-delay:80ms]">
+              <Letters text={h.wordRight} />
+            </span>
           </span>
         </h1>
         <div
@@ -42,11 +63,11 @@ export function Hero() {
         {/* The copy and buttons shrink with --u too, so on a short screen they never meet "Early";
             floors keep the text readable. */}
         <div className="absolute bottom-[calc(var(--u)*88)] left-[min(5.6vw,80px)] flex w-[min(30.5vw,440px)] flex-col gap-[calc(var(--u)*14)]">
-          <span className="text-[length:max(13px,calc(var(--u)*15))] font-medium text-brand-strong">{h.eyebrow}</span>
-          <p className="text-[length:max(15px,calc(var(--u)*18))] leading-normal text-fg-muted">{h.body}</p>
+          <span data-hero-rise className="text-[length:max(13px,calc(var(--u)*15))] font-medium text-brand-strong">{h.eyebrow}</span>
+          <p data-hero-rise className="text-[length:max(15px,calc(var(--u)*18))] leading-normal text-fg-muted">{h.body}</p>
         </div>
         <div className="absolute right-[min(5.6vw,80px)] bottom-[calc(var(--u)*88)] flex flex-col items-end gap-[calc(var(--u)*14)]">
-          <div className="flex gap-[calc(var(--u)*12)]">
+          <div data-hero-rise className="flex gap-[calc(var(--u)*12)]">
             <ButtonLink href={APP_URL} className={HERO_BUTTON}>
               {h.primary}
             </ButtonLink>
@@ -54,7 +75,7 @@ export function Hero() {
               {h.secondary}
             </ButtonLink>
           </div>
-          <span className="text-[length:max(12px,calc(var(--u)*14))] text-fg-subtle">{h.note}</span>
+          <span data-hero-rise className="text-[length:max(12px,calc(var(--u)*14))] text-fg-subtle">{h.note}</span>
         </div>
       </div>
 
@@ -66,13 +87,13 @@ export function Hero() {
             <HeroScene media="(max-width: 1023.98px)" />
           </div>
           <h1 className="hero-word-in absolute inset-x-0 top-[244px] text-center text-[76px] leading-[0.88] font-semibold tracking-[-3.6px] whitespace-nowrap text-fg">
-            {`${h.wordLeft} ${h.wordRight}`}
+            <Letters text={h.wordLeft} /> <Letters text={h.wordRight} />
           </h1>
         </div>
         <div className="flex flex-col gap-4 px-5 pb-10">
-          <span className="text-sm font-medium text-brand-strong">{h.eyebrow}</span>
-          <p className="text-[17px] leading-normal text-fg-muted">{h.body}</p>
-          <div className="flex flex-col gap-2.5">
+          <span data-hero-rise className="text-sm font-medium text-brand-strong">{h.eyebrow}</span>
+          <p data-hero-rise className="text-[17px] leading-normal text-fg-muted">{h.body}</p>
+          <div data-hero-rise className="flex flex-col gap-2.5">
             <ButtonLink href={APP_URL} size="menu" className="w-full">
               {h.primary}
             </ButtonLink>

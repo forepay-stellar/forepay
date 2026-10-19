@@ -46,17 +46,17 @@ export function Nav() {
             scrolled ? "h-[72px]" : "h-24",
           )}
         >
-          <a href="#top" className="w-[300px]" aria-label="Forepay, back to top">
+          <a data-nav-item href="#top" className="w-[300px]" aria-label="Forepay, back to top">
             <Wordmark aria-hidden />
           </a>
-          <nav className="flex gap-9">
+          <nav data-nav-item className="flex gap-9">
             {desktopLinks.map((l) => (
               <a key={l.href} href={l.href} className="text-[15px] font-medium text-fg-muted transition-colors hover:text-fg">
                 {l.label}
               </a>
             ))}
           </nav>
-          <div className="flex w-[300px] justify-end">
+          <div data-nav-item className="flex w-[300px] justify-end">
             <ButtonLink href={APP_URL} size="md">
               {landing.nav.cta}
             </ButtonLink>
@@ -65,10 +65,10 @@ export function Nav() {
 
         {/* Landing / Mobile menu / Closed → Nav */}
         <div className="flex h-15 items-center justify-between px-4 lg:hidden">
-          <a href="#top" aria-label="Forepay, back to top">
+          <a data-nav-item href="#top" aria-label="Forepay, back to top">
             <Mark aria-hidden />
           </a>
-          <div className="flex items-center gap-2">
+          <div data-nav-item className="flex items-center gap-2">
             <ButtonLink href={APP_URL} size="sm">
               {landing.nav.cta}
             </ButtonLink>
