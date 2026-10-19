@@ -368,7 +368,8 @@ export function IntroLab() {
             easing: EASE_IN_OUT,
           });
       }
-      const wavesAt = variant === "D1" ? 760 : 680;
+      // Rise draws its waves while the water is still coming up, not after.
+      const wavesAt = variant === "D1" ? 760 : 300;
       cuts.forEach((c, i) =>
         tracks.push({ el: c, keyframes: undrawn, start: wavesAt + i * 110, duration: 420, easing: EASE_OUT }),
       );
