@@ -16216,6 +16216,7 @@
                               "id": "Ecuw4",
                               "name": "Actions",
                               "width": "fill_container",
+                              "layout": "vertical",
                               "gap": 10,
                               "children": [
                                 {
@@ -16668,6 +16669,7 @@
                               "id": "uqCBu",
                               "name": "Actions",
                               "width": "fill_container",
+                              "layout": "vertical",
                               "gap": 10,
                               "children": [
                                 {
@@ -22326,6 +22328,7 @@
                               "id": "SkfuB",
                               "name": "Actions",
                               "width": "fill_container",
+                              "layout": "vertical",
                               "gap": 10,
                               "children": [
                                 {
@@ -22582,6 +22585,7 @@
                               "id": "f84w4e",
                               "name": "Actions",
                               "width": "fill_container",
+                              "layout": "vertical",
                               "gap": 10,
                               "children": [
                                 {
@@ -22868,6 +22872,7 @@
                               "id": "DcqCa",
                               "name": "Actions",
                               "width": "fill_container",
+                              "layout": "vertical",
                               "gap": 10,
                               "children": [
                                 {
@@ -23338,6 +23343,7 @@
                               "id": "uIEMN",
                               "name": "Actions",
                               "width": "fill_container",
+                              "layout": "vertical",
                               "gap": 10,
                               "children": [
                                 {
@@ -26759,8 +26765,8 @@
                       "type": "frame",
                       "id": "rdPY2",
                       "name": "Amount",
-                      "gap": 6,
-                      "alignItems": "end",
+                      "layout": "vertical",
+                      "gap": 2,
                       "children": [
                         {
                           "type": "text",
@@ -26812,8 +26818,8 @@
                       "type": "frame",
                       "id": "MwpTz",
                       "name": "Amount",
-                      "gap": 6,
-                      "alignItems": "end",
+                      "layout": "vertical",
+                      "gap": 2,
                       "children": [
                         {
                           "type": "text",
@@ -26865,8 +26871,8 @@
                       "type": "frame",
                       "id": "WrsdH",
                       "name": "Amount",
-                      "gap": 6,
-                      "alignItems": "end",
+                      "layout": "vertical",
+                      "gap": 2,
                       "children": [
                         {
                           "type": "text",
