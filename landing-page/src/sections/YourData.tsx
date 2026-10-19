@@ -1,6 +1,9 @@
 import Image from "next/image";
 import { Marquee } from "@/components/Marquee";
 import { landing } from "@/content/landing";
+import { ClayIn } from "@/components/ClayIn";
+import { Reveal } from "@/components/Reveal";
+import { RiseText } from "@/components/RiseText";
 
 // Landing / Desktop → Your data (1440 × 900) and Landing / Mobile → Your data (390 × 760).
 // Desktop measures are the design's pixels times --s (globals.css), so the section shrinks with
@@ -31,32 +34,39 @@ export function YourData() {
           className="absolute rounded-full bg-[radial-gradient(closest-side,#F3EEE8_35%,#F3EEE800)]"
           style={{ left: fromCentre(430), top: S(200), width: S(600), height: S(463) }}
         />
-        <p className="absolute font-medium text-fg-muted" style={{ left: G, top: S(96), fontSize: `max(13px, ${S(15)})` }}>
-          {s.eyebrow}
-        </p>
+        <div className="absolute" style={{ left: G, top: S(96) }}>
+          <Reveal>
+            <p className="font-medium text-fg-muted" style={{ fontSize: `max(13px, ${S(15)})` }}>
+              {s.eyebrow}
+            </p>
+          </Reveal>
+        </div>
         <h2 className="absolute" style={{ left: G, top: S(126) }}>
           <span className={`block ${title}`} style={{ fontSize: S(96) }}>
-            {s.titleTop}
+            <RiseText text={s.titleTop} />
           </span>
           <span className="sr-only"> {s.titleBottom}</span>
         </h2>
         {/* The export carries room for the lock's shadow: 448 px square, top aligned and centred on the 260 × 343 frame */}
         <div className="absolute" style={{ left: fromCentre(506), top: S(260), width: S(448), height: S(448) }}>
-          <Image src="/clay/lock.webp" alt="" fill sizes="448px" />
+          <ClayIn className="absolute inset-0" delay={150}>
+            <Image src="/clay/lock.webp" alt="" fill sizes="448px" />
+          </ClayIn>
         </div>
         <p
           aria-hidden
           className={`absolute text-right ${title}`}
           style={{ right: G, top: S(680), fontSize: S(96) }}
         >
-          {s.titleBottom}
+          <RiseText text={s.titleBottom} delay={200} />
         </p>
-        <p
-          className="absolute leading-normal text-fg-muted"
-          style={{ left: G, top: S(700), width: `max(360px, ${S(470)})`, fontSize: `max(15px, ${S(18)})` }}
-        >
-          {s.body}
-        </p>
+        <div className="absolute" style={{ left: G, top: S(700), width: `max(360px, ${S(470)})` }}>
+          <Reveal delay={150}>
+            <p className="leading-normal text-fg-muted" style={{ fontSize: `max(15px, ${S(18)})` }}>
+              {s.body}
+            </p>
+          </Reveal>
+        </div>
       </div>
 
       {/* Phone */}
@@ -69,20 +79,26 @@ export function YourData() {
           aria-hidden
           className="absolute top-[200px] left-1/2 h-[330px] w-[280px] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,#F3EEE8_35%,#F3EEE800)]"
         />
-        <p className="absolute top-10 left-5 text-sm font-medium text-fg-muted">{s.eyebrow}</p>
+        <Reveal className="absolute top-10 left-5">
+          <p className="text-sm font-medium text-fg-muted">{s.eyebrow}</p>
+        </Reveal>
         <h2 className="absolute top-16 left-5">
-          <span className={`block text-[44px] ${title}`}>{s.titleTop}</span>
+          <span className={`block text-[44px] ${title}`}>
+            <RiseText text={s.titleTop} />
+          </span>
           <span className="sr-only"> {s.titleBottom}</span>
         </h2>
         <div className="absolute top-[200px] left-1/2 size-[277px] -translate-x-1/2">
-          <Image src="/clay/lock.webp" alt="" fill sizes="277px" />
+          <ClayIn className="absolute inset-0" delay={150}>
+            <Image src="/clay/lock.webp" alt="" fill sizes="277px" />
+          </ClayIn>
         </div>
         <p aria-hidden className={`absolute top-[470px] right-5 text-right text-[44px] ${title}`}>
-          {s.titleBottom}
+          <RiseText text={s.titleBottom} delay={200} />
         </p>
-        <p className="absolute top-[560px] right-5 left-5 max-w-[350px] text-base leading-normal text-fg-muted">
-          {s.body}
-        </p>
+        <Reveal delay={150} className="absolute top-[560px] right-5 left-5 max-w-[350px]">
+          <p className="text-base leading-normal text-fg-muted">{s.body}</p>
+        </Reveal>
       </div>
     </section>
   );

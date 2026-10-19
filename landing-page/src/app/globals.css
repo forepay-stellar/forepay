@@ -127,3 +127,29 @@ html[data-intro] [data-intro-overlay] {
     stroke-dashoffset: 1;
   }
 }
+
+/* Headings outside the hero (components/RiseText.tsx): each word clips its letters, with room
+   below the baseline for descenders; until the heading comes into view they wait under it. */
+[data-rise-word] {
+  clip-path: inset(-0.3em -0.2em -0.3em -0.2em);
+}
+[data-rise="wait"] [data-rise-letter] {
+  transform: translateY(140%);
+}
+
+/* Clay objects outside the hero (components/ClayIn.tsx): hidden until they rise into view,
+   then a slow float of a few pixels, like the hero's coins. */
+[data-clay="wait"] {
+  opacity: 0;
+}
+@keyframes clay-float {
+  from {
+    transform: translateY(5px);
+  }
+  to {
+    transform: translateY(-5px);
+  }
+}
+.clay-float {
+  animation: clay-float 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+}

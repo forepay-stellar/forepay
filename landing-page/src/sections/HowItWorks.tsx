@@ -3,6 +3,8 @@ import { Reveal } from "@/components/Reveal";
 import { ScrollLift } from "@/components/ScrollLift";
 import { landing } from "@/content/landing";
 import { cn } from "@/lib/cn";
+import { ClayIn } from "@/components/ClayIn";
+import { RiseText } from "@/components/RiseText";
 
 // Landing / Desktop → How it works: three warm glass cards, the middle one shorter,
 // each with a faint glass ring, a mono number, one clay object and the words at the bottom.
@@ -37,9 +39,11 @@ export function HowItWorks() {
       className="mx-auto flex max-w-[1440px] flex-col gap-5 px-5 pt-20 pb-10 lg:gap-[calc(var(--s)*64)] lg:px-20 lg:pt-[calc(var(--s)*160)] lg:pb-[calc(var(--s)*80)]"
     >
       <div className="flex flex-col gap-2.5 pb-2 lg:gap-3.5 lg:pb-0">
-        <p className="text-sm font-medium text-fg-muted lg:text-[length:max(13px,calc(var(--s)*15))]">{s.eyebrow}</p>
+        <Reveal>
+          <p className="text-sm font-medium text-fg-muted lg:text-[length:max(13px,calc(var(--s)*15))]">{s.eyebrow}</p>
+        </Reveal>
         <h2 className="text-[44px] leading-[1.02] font-medium tracking-[-1.6px] lg:text-[length:calc(var(--s)*88)] lg:leading-none lg:tracking-[-0.0386em]">
-          {s.title}
+          <RiseText text={s.title} />
         </h2>
       </div>
       <div className="flex flex-col gap-5 lg:h-[calc(var(--s)*640)] lg:flex-row lg:items-end lg:gap-[calc(var(--s)*24)]">
@@ -60,7 +64,9 @@ export function HowItWorks() {
               />
               <span className="relative font-mono text-[15px] text-fg-muted">{step.number}</span>
               <ScrollLift from={CARDS[i].lift[0]} to={CARDS[i].lift[1]} className="relative h-[300px] lg:h-[calc(var(--s)*300)]">
-                <Image src={step.image} alt="" fill sizes="(min-width: 1024px) 330px, 90vw" className="object-contain" />
+                <ClayIn className="absolute inset-0" delay={200 + i * 90} float={i * 0.9}>
+                  <Image src={step.image} alt="" fill sizes="(min-width: 1024px) 330px, 90vw" className="object-contain" />
+                </ClayIn>
               </ScrollLift>
               <div className="relative flex flex-col gap-2.5">
                 <h3 className="text-[32px] leading-[1.02] font-medium tracking-[-1px] lg:text-[length:max(26px,calc(var(--s)*40))] lg:tracking-[-0.0325em]">
