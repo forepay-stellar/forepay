@@ -20,8 +20,8 @@ const VARIANTS: Variant[] = [
   { id: "F3", name: "Dive", note: "Dive into a cream wave until the screen is cream, which is the page" },
   { id: "F4", name: "Message", note: "Paid early. appears on the orange, then the page opens" },
   { id: "F5", name: "Soft", note: "A feathered opening, the hero eases back as it appears" },
-  { id: "C1", name: "Slide", note: "Three pieces slide together into the mark, then rewind apart, the page builds itself" },
-  { id: "C2", name: "Stack", note: "The pieces drop in and stack into the mark, then rewind up and away, the page builds itself" },
+  { id: "D1", name: "Ink", note: "The ring draws, the orange blooms inside, the waves cut through, then it all undraws" },
+  { id: "D2", name: "Rise", note: "Orange rises inside the circle like water, the waves cut through, then it drains away" },
 ];
 
 const WAVE_D = (y: number) => `M-2 ${y}c4.5-3 8.5-3 12.5 0 4 3 8 3 12 0 4-3 8-3 11.5 0`;
@@ -52,40 +52,27 @@ function WaveMark({ size }: { size: number }) {
   );
 }
 
-// The same mark cut along the middle of its two waves into three orange pieces. Each piece is
-// the whole mark clipped to its band, waves included, so at rest the three add up to the mark
-// pixel for pixel.
-// Each piece turns around its own middle, in the mark's 32 × 32 box.
-const PIECE_ORIGINS = ["16px 9px", "16px 21px", "16px 28px"];
-
-const PIECE_REGIONS = [
-  `${WAVE_D(18.5)} L40 -10 L-8 -10 Z`,
-  `${WAVE_D(18.5)} L40 42 L-8 42 Z`,
-  `${WAVE_D(24.5)} L40 42 L-8 42 Z`,
-];
-
-function PiecesMark({ size, draw }: { size: number; draw: boolean }) {
+// The mark built to be drawn in place: an outline ring and the orange fill, both with the two
+// waves cut out through a mask. At rest it is the mark exactly. D1 draws the ring, blooms the
+// fill inside it, then cuts the waves; D2 raises the orange from the bottom like water, then
+// cuts the waves.
+function DrawMark({ size, rise }: { size: number; rise: boolean }) {
+  // The water: a block with one soft crest on top, tall enough to cover the circle when risen.
+  const water = "M-4 -6 q9 -4 18 0 t18 0 t18 0 L40 36 L-4 36 Z";
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden className="block overflow-visible">
       <defs>
-        <clipPath id="piece-circle">
+        <clipPath id="draw-circle">
           <rect width="32" height="32" rx="16" />
         </clipPath>
-        {PIECE_REGIONS.map((d, i) => (
-          <clipPath key={i} id={`piece-${i}`}>
-            <path d={d} />
-          </clipPath>
-        ))}
-        {/* The waves are cut out, not painted cream, so a moving piece never drags a cream sliver
-            over the page */}
-        <mask id="piece-cut" maskUnits="userSpaceOnUse" x="-8" y="-10" width="48" height="52">
-          <rect x="-8" y="-10" width="48" height="52" fill="white" />
-          {[18.5, 24.5].map((y, w) => (
+        <mask id="draw-cut" maskUnits="userSpaceOnUse" x="-8" y="-8" width="48" height="48">
+          <rect x="-8" y="-8" width="48" height="48" fill="white" />
+          {[18.5, 24.5].map((y) => (
             <path
               key={y}
-              className={draw ? "intro-wave" : undefined}
-              style={draw ? { animationDelay: `${120 + w * 110}ms` } : undefined}
+              data-draw-cut
               pathLength={1}
+              strokeDasharray={1}
               d={WAVE_D(y)}
               fill="none"
               stroke="black"
@@ -94,22 +81,38 @@ function PiecesMark({ size, draw }: { size: number; draw: boolean }) {
             />
           ))}
         </mask>
-        {/* The middle band also stops at the second wave */}
-        <clipPath id="piece-1b">
-          <path d={`${WAVE_D(24.5)} L40 -10 L-8 -10 Z`} />
-        </clipPath>
       </defs>
-      {PIECE_REGIONS.map((_, i) => (
-        <g key={i} data-piece style={{ transformBox: "view-box", transformOrigin: PIECE_ORIGINS[i] }}>
-          <g clipPath={`url(#piece-${i})`}>
-            <g clipPath={i === 1 ? "url(#piece-1b)" : undefined}>
-              <g clipPath="url(#piece-circle)">
-                <rect width="32" height="32" rx="16" fill="#F2620F" mask="url(#piece-cut)" />
-              </g>
-            </g>
+      <g mask="url(#draw-cut)">
+        {rise ? (
+          <g clipPath="url(#draw-circle)">
+            <path data-draw-water d={water} fill="#F2620F" />
           </g>
-        </g>
-      ))}
+        ) : (
+          <>
+            {/* Starts at the top and runs clockwise */}
+            <circle
+              data-draw-ring
+              cx="16"
+              cy="16"
+              r="15"
+              transform="rotate(-90 16 16)"
+              pathLength={1}
+              strokeDasharray={1}
+              fill="none"
+              stroke="#F2620F"
+              strokeWidth="2"
+            />
+            <rect
+              data-draw-fill
+              width="32"
+              height="32"
+              rx="16"
+              fill="#F2620F"
+              style={{ transformBox: "fill-box", transformOrigin: "center" }}
+            />
+          </>
+        )}
+      </g>
     </svg>
   );
 }
@@ -252,7 +255,7 @@ const SOFT_IRIS_MASK = "radial-gradient(circle at 50% 50%, #0000 var(--iris), #0
 const WAVE_POINT = `${(10.5 / 32) * 100}% ${(18.5 / 32) * 100}%`;
 
 export function IntroLab() {
-  const [variant, setVariant] = useState("C1");
+  const [variant, setVariant] = useState("D1");
   const [run, setRun] = useState(0);
   const [playing, setPlaying] = useState(true);
   const root = useRef<HTMLDivElement>(null);
@@ -270,8 +273,8 @@ export function IntroLab() {
     let done = 1500;
 
     const marks = [...r.querySelectorAll<HTMLElement>("[data-mark]")];
-    // The C intros build the mark from its pieces instead.
-    if (!variant.startsWith("C")) marks.forEach((m) => add(settle(m)));
+    // The D intros draw the mark instead.
+    if (!variant.startsWith("D")) marks.forEach((m) => add(settle(m)));
     const mark = marks[0];
 
     const cover = (Math.hypot(innerWidth, innerHeight) / MARK) * 1.15;
@@ -334,42 +337,59 @@ export function IntroLab() {
       done = 1700;
     }
 
-    if (variant === "C1" || variant === "C2") {
-      // The mark builds from its three pieces, holds, then the same animation plays backwards:
-      // the last piece in is the first out. Units are the mark's 32 × 32 box, 3.5 px on screen.
-      const pieces = [...r.querySelectorAll<SVGGElement>("[data-piece]")];
-      const slide = variant === "C1";
-      const from = slide
-        ? ["translate(-22px, -4px) rotate(-10deg)", "translate(24px, 0) rotate(8deg)", "translate(-18px, 5px) rotate(-6deg)"]
-        : ["translateY(-26px) rotate(-8deg)", "translateY(-30px) rotate(6deg)", "translateY(-34px) rotate(-4deg)"];
-      // Slide brings them in top to bottom; Stack drops the bottom piece first and builds upward.
-      const order = slide ? [0, 1, 2] : [2, 1, 0];
-      // Stack lands with a small overshoot; played backwards it becomes a small lift before leaving.
-      const easing = slide ? EASE_OUT : "cubic-bezier(0.34, 1.36, 0.64, 1)";
-      const BUILD = 620;
-      const GAP = 90;
-      const IN = 80;
-      const HOLD = IN + 2 * GAP + BUILD + 260;
-      pieces.forEach((p, i) => {
-        const keyframes = [
-          { transform: from[i], opacity: 0 },
-          { opacity: 1, offset: 0.4 },
-          { transform: "none", opacity: 1 },
-        ];
-        const step = order.indexOf(i);
-        add(p.animate(keyframes, { duration: BUILD, delay: IN + step * GAP, easing, fill: "backwards" }));
+    if (variant === "D1" || variant === "D2") {
+      // Each step is a track; the undraw plays every track backwards in reverse order, so the
+      // last thing drawn is the first to go.
+      type Track = { el: Element; keyframes: Keyframe[]; start: number; duration: number; easing: string };
+      const tracks: Track[] = [];
+      const cuts = [...r.querySelectorAll("[data-draw-cut]")];
+      const undrawn = [{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }];
+      if (variant === "D1") {
+        const ring = r.querySelector("[data-draw-ring]");
+        const fill = r.querySelector("[data-draw-fill]");
+        if (ring) tracks.push({ el: ring, keyframes: undrawn, start: 80, duration: 560, easing: EASE_IN_OUT });
+        if (fill)
+          tracks.push({
+            el: fill,
+            keyframes: [{ opacity: 0, transform: "scale(0.6)" }, { opacity: 1, transform: "none" }],
+            start: 480,
+            duration: 420,
+            easing: EASE_OUT,
+          });
+      } else {
+        const water = r.querySelector("[data-draw-water]");
+        if (water)
+          tracks.push({
+            el: water,
+            keyframes: [{ transform: "translateY(44px)" }, { transform: "none" }],
+            start: 80,
+            duration: 760,
+            easing: EASE_IN_OUT,
+          });
+      }
+      const wavesAt = variant === "D1" ? 760 : 680;
+      cuts.forEach((c, i) =>
+        tracks.push({ el: c, keyframes: undrawn, start: wavesAt + i * 110, duration: 420, easing: EASE_OUT }),
+      );
+
+      const drawn = Math.max(...tracks.map((t) => t.start + t.duration));
+      const undraw = drawn + 320;
+      // The same motion backwards, a third faster: leaving should take less time than arriving.
+      const BACK = 0.65;
+      tracks.forEach((t) => {
+        add(t.el.animate(t.keyframes, { duration: t.duration, delay: t.start, easing: t.easing, fill: "backwards" }));
         add(
-          p.animate(keyframes, {
-            duration: BUILD,
-            delay: HOLD + (2 - step) * GAP,
-            easing,
+          t.el.animate(t.keyframes, {
+            duration: t.duration * BACK,
+            delay: undraw + (drawn - t.start - t.duration) * BACK,
+            easing: t.easing,
             direction: "reverse",
             fill: "forwards",
           }),
         );
       });
-      // The page starts building as the last piece fades, so the rewind plays on clean cream.
-      const at = HOLD + 2 * GAP + 480;
+      // The page starts building as the last stroke leaves.
+      const at = undraw + (drawn - 80) * BACK - 80;
       add(swap(q("[data-bg]"), at, 1, 0));
       add(heroEntrance(at));
       done = at + 900;
@@ -423,7 +443,7 @@ export function IntroLab() {
 
   const markEl = (
     <div data-mark>
-      {variant.startsWith("C") ? <PiecesMark size={MARK} draw={false} /> : <WaveMark size={MARK} />}
+      {variant.startsWith("D") ? <DrawMark size={MARK} rise={variant === "D2"} /> : <WaveMark size={MARK} />}
     </div>
   );
 
