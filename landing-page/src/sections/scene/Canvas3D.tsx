@@ -224,6 +224,9 @@ export function Canvas3D() {
         flat
         frameloop={visible ? "always" : "never"}
         dpr={[1, phone ? 1.5 : 2]}
+        // Measure the layout size, not the on-screen box: the intro scales the stage while the
+        // scene mounts, and a scaled measure would size the canvas too big and crop its bottom.
+        resize={{ offsetSize: true }}
         camera={{ position: [0, 0, 10], zoom: 100, near: 0.1, far: 50 }}
         gl={{ alpha: true, antialias: true, powerPreference: "low-power" }}
         onCreated={({ gl }) => {
