@@ -1,0 +1,186 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* Anchor jumps land below the sticky nav. Lenis takes the same offset in SmoothScroll.
+   --s is one design pixel for the desktop sections below the hero, which are drawn at 1440 × 900:
+   they scale with the width and with the height (a 150% scaled laptop is about 1280 × 670), but
+   not below 0.75 on height alone, so text stays readable and a section may take a little more
+   than one screen. The hero has its own --u, which leaves room for the nav.
+   No visible page scrollbar; the page still scrolls with the wheel, keys and touch. */
+html {
+  scrollbar-width: none;
+  --s: min(1px, calc(100vw / 1440), max(0.75px, calc(100svh / 900)));
+  scroll-behavior: smooth;
+  scroll-padding-top: 72px;
+}
+
+html::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Mobile menu, from Landing / Mobile menu / Opening. */
+@keyframes menu-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes menu-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+.menu-enter {
+  animation: menu-fade 200ms ease-out both;
+}
+.menu-link {
+  animation: menu-rise 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.menu-bottom {
+  animation: menu-fade 260ms ease-out 320ms both;
+}
+
+/* Hero: the still image hands over to the 3D scene once its first frames are drawn. */
+[data-hero-stage] > img,
+[data-hero-stage] canvas,
+[data-hero-stage] .hero-live-only {
+  transition: opacity 400ms ease-out;
+}
+[data-hero-stage][data-live] > img,
+[data-hero-stage]:not([data-live]) canvas,
+[data-hero-stage]:not([data-live]) .hero-live-only {
+  opacity: 0;
+}
+
+/* Hero words fade up 16 px on load, before the canvas loads, so text never waits for 3D. */
+@keyframes hero-word-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+.hero-word-in {
+  animation: hero-word-in 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Your data: two rows of faint words running in opposite directions, about 40 s a loop. */
+@keyframes marquee-x {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.marquee-left,
+.marquee-right {
+  display: inline-flex;
+  animation: marquee-x 40s linear infinite;
+  animation-play-state: paused;
+}
+.marquee-right {
+  animation-direction: reverse;
+}
+.marquee-left[data-running],
+.marquee-right[data-running] {
+  animation-play-state: running;
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-left,
+  .marquee-right {
+    animation: none;
+  }
+}
+
+/* FAQ: an answer's row grows from nothing to its height, and its text follows a beat later;
+   closing, the text fades first while the row folds away. */
+.faq-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 360ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.faq-panel[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+.faq-panel > div {
+  min-height: 0;
+  overflow: hidden;
+}
+.faq-answer {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    opacity 160ms ease-out,
+    transform 300ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.faq-panel[data-open="true"] .faq-answer {
+  opacity: 1;
+  transform: none;
+  transition-delay: 80ms;
+  transition-duration: 260ms, 360ms;
+}
+
+/* The first-visit intro (components/Intro.tsx). <head> sets html[data-intro] when it plays;
+   until the intro's own animations start, the mark waits undrawn. With reduced motion it is
+   shown whole and only fades. */
+html[data-intro] [data-intro-overlay] {
+  display: block;
+}
+@media (prefers-reduced-motion: no-preference) {
+  html[data-intro] [data-intro-water] {
+    transform: translateY(44px);
+  }
+  html[data-intro] [data-intro-cut] {
+    stroke-dashoffset: 1;
+  }
+}
+
+/* Letters that rise from a line: the hero's words (lib/heroEntrance.ts) and the headings
+   below it (components/RiseText.tsx). Each word clips its letters at a line just under the
+   text, so they come up through a slit, one after another from the left. The padding makes
+   room for descenders without moving the layout. Until a heading comes into view its letters
+   wait under the line. */
+[data-rise-word],
+[data-hero-line] {
+  padding-bottom: 0.2em;
+  margin-bottom: -0.2em;
+}
+[data-rise-word] {
+  clip-path: inset(-0.35em -0.1em 0 -0.1em);
+}
+[data-rise="wait"] [data-rise-letter] {
+  transform: translateY(120%);
+}
+
+/* Clay objects outside the hero (components/ClayIn.tsx): hidden until they rise into view,
+   then a slow float of a few pixels, like the hero's coins. */
+[data-clay="wait"] {
+  opacity: 0;
+}
+@keyframes clay-float {
+  from {
+    transform: translateY(5px);
+  }
+  to {
+    transform: translateY(-5px);
+  }
+}
+.clay-float {
+  animation: clay-float 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+}

@@ -1,0 +1,167 @@
+/*
+ * Forepay design tokens (#38).
+ *
+ * Source of truth is the "Design Tokens" page in Figma, frame
+ * "Forepay · Design tokens · Orange" (Semantic collection, mode "Orange"); every
+ * semantic variable there shows the CSS name it maps to here. Change both
+ * together.
+ *
+ * Use the semantic utilities in components (bg-surface, text-fg-muted,
+ * rounded-card, bg-brand). The --fp-* primitives exist so a dark theme can
+ * later re-point the semantic layer without touching components; do not
+ * reference them directly.
+ */
+
+/* Primitives: raw palette, no utilities generated. */
+:root {
+  --fp-white: #ffffff;
+
+  /* Status. */
+  --fp-emerald-700: #047857;
+  --fp-emerald-600: #059669;
+  --fp-emerald-100: #d1fae5;
+  --fp-mint-300: #6ee7b7;
+
+  --fp-rose-600: #e11d48;
+  --fp-rose-200: #fecdd3;
+  --fp-rose-100: #ffe4e6;
+
+  /* Brand: Tangerine, with Golden Yellow as a spare accent. */
+  --fp-tangerine-500: #f2620f;
+  --fp-tangerine-100: #ffe2cc;
+  --fp-tangerine-50: #fff3ea;
+  --fp-rust-800: #8a3207;
+  --fp-yellow-500: #f8a91f;
+
+  /* Neutrals: warm Stone, near-black for text and primary actions. */
+  --fp-stone-950: #1c1612;
+  --fp-stone-600: #6e655f;
+  --fp-stone-400: #a59c95;
+  --fp-stone-200: #e3dbd3;
+  --fp-stone-150: #ede7e1;
+  --fp-stone-100: #f3eee9;
+  --fp-stone-canvas: #f3eee8;
+}
+
+/* Semantic colours: these generate bg-*, text-*, border-*, fill-* utilities. */
+@theme inline {
+  --color-canvas: var(--fp-stone-canvas);
+  --color-surface: var(--fp-white);
+  --color-subtle: var(--fp-stone-100);
+  --color-brand-subtle: var(--fp-tangerine-50);
+
+  --color-fg: var(--fp-stone-950);
+  --color-fg-muted: var(--fp-stone-600);
+  --color-fg-subtle: var(--fp-stone-400);
+  --color-fg-on-brand: var(--fp-white);
+  /* Dark orange text on brand-subtle (the trust note, the selected chip). */
+  --color-brand-strong: var(--fp-rust-800);
+
+  --color-line: var(--fp-stone-150);
+  --color-line-strong: var(--fp-stone-200);
+  --color-divider: var(--fp-stone-100);
+
+  --color-brand: var(--fp-tangerine-500);
+  /* Golden Yellow: not used by the orange design; kept as a spare accent. */
+  --color-accent: var(--fp-yellow-500);
+  /* Primary buttons are near-black, not brand: orange stays for the hero and accents. */
+  --color-action: var(--fp-stone-950);
+  --color-icon: var(--fp-tangerine-500);
+  --color-icon-subtle: var(--fp-tangerine-100);
+
+  /* Emerald means money arrived. Never use it for a neutral action. */
+  --color-success: var(--fp-emerald-600);
+  --color-success-strong: var(--fp-emerald-700);
+  --color-success-subtle: var(--fp-emerald-100);
+  --color-danger: var(--fp-rose-600);
+  --color-danger-muted: var(--fp-rose-200);
+  --color-danger-subtle: var(--fp-rose-100);
+  --color-live: var(--fp-mint-300);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+@theme {
+  /* Radius: rounded-chip, rounded-icon, rounded-input, rounded-tile, rounded-card, rounded-hero. */
+  --radius-chip: 8px;
+  --radius-icon: 14px;
+  --radius-input: 18px;
+  --radius-tile: 22px;
+  --radius-card: 24px;
+  --radius-hero: 28px;
+
+  /* Type scale (Geist). text-display, text-page, text-amount, text-card-title, ... */
+  --text-display: 4rem;
+  --text-display--line-height: 1;
+  --text-display--letter-spacing: -0.03em;
+  --text-display--font-weight: 600;
+
+  --text-page: 2.5rem;
+  --text-page--line-height: 1.1;
+  --text-page--letter-spacing: -0.03em;
+  --text-page--font-weight: 600;
+
+  --text-amount: 2.25rem;
+  --text-amount--line-height: 1.1;
+  --text-amount--letter-spacing: -0.03em;
+  --text-amount--font-weight: 600;
+
+  --text-card-title: 1.125rem;
+  --text-card-title--line-height: 1.3;
+  --text-card-title--letter-spacing: -0.01em;
+  --text-card-title--font-weight: 600;
+
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.5;
+
+  --text-body-sm: 0.875rem;
+  --text-body-sm--line-height: 1.5;
+
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1.4;
+
+  --text-label: 0.75rem;
+  --text-label--line-height: 1.3;
+  --text-label--font-weight: 500;
+
+  /* Status chips: pair with `uppercase`. */
+  --text-overline: 0.6875rem;
+  --text-overline--line-height: 1.3;
+  --text-overline--letter-spacing: 0.08em;
+  --text-overline--font-weight: 600;
+
+  /*
+   * Shadows. Not used by the orange design, which is flat: surfaces separate
+   * by contrast, white on the Stone canvas. Kept, tinted Stone 950, until the
+   * audit; no orange glows.
+   */
+  --shadow-card: 0 8px 24px rgb(28 22 18 / 0.06);
+  --shadow-hero: 0 12px 32px rgb(28 22 18 / 0.12);
+  --shadow-nav: 0 10px 30px rgb(28 22 18 / 0.18);
+  --shadow-glow: 0 10px 24px rgb(28 22 18 / 0.16);
+}
+
+/*
+ * Landing additions (#54), from the 04 Landing column of docs/design/forepay.pen.
+ * The deep orange runs from the closing sunrise into the footer; the cream is the
+ * footer wordmark (Tangerine 100); the peach glow is the sunrise halo.
+ */
+:root {
+  --fp-orange-deep: #c24a08;
+  --fp-peach-300: #f8a97a;
+  --fp-stone-850: #3a2f28;
+  --fp-black: #000000;
+}
+
+@theme inline {
+  --color-footer: var(--fp-orange-deep);
+  --color-cream: var(--fp-tangerine-100);
+  --color-glow: var(--fp-peach-300);
+  --color-action-hover: var(--fp-stone-850);
+  --color-action-pressed: var(--fp-black);
+}
+
+@theme {
+  --radius-pill: 999px;
+}

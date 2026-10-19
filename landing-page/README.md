@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Forepay landing page
 
-## Getting Started
+The public page for AdSense creators (#54, out of SOW). It explains Forepay in plain words and
+sends people into the app.
 
-First, run the development server:
+- Design: the 04 Landing column of `docs/design/forepay.pen` (desktop, mobile, hero storyboard,
+  mobile menu states).
+- Spec: `docs/superpowers/specs/2026-10-16-landing-page-design.md`.
+- Plan: `docs/superpowers/plans/2026-10-17-landing-page.md`.
+
+## Run
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# from the repo root, once
+pnpm install --frozen-lockfile
+
+cd landing-page
+pnpm dev          # http://localhost:3000
+pnpm lint && pnpm typecheck && pnpm test && pnpm build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Tests use jsdom 30, which needs Node 22.19 or newer (CI runs Node 24).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+All optional, all public. Set them where the page is deployed.
 
-## Learn More
+| Name | What it is | Without it |
+| --- | --- | --- |
+| `NEXT_PUBLIC_APP_URL` | Where "Open the app" goes: the deployed `fe` from #22 | the `fe` folder on GitHub |
+| `NEXT_PUBLIC_CONTRACT_URL` | "Contract on Stellar" in the footer: the advance contract on stellar.expert, from `docs/deployments.md` | `docs/deployments.md` on GitHub |
+| `NEXT_PUBLIC_SITE_URL` | This page's own URL, so share images get a full URL | `http://localhost:3000` |
 
-To learn more about Next.js, take a look at the following resources:
+## Where things are
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Path | What |
+| --- | --- |
+| `src/content/landing.ts` | Every word on the page. `landing.test.ts` checks each one against the copy rules in `docs/design/brief.md` §3 and pins the contract's 25% and 100 USDC. |
+| `src/sections/` | One file per section, in page order: `Hero`, `HowItWorks`, `YourData`, `TheMath`, `FaqSection`, `ClosingAndFooter`. |
+| `src/sections/scene/` | The 3D clay hero (React Three Fiber), built in code from the hero's 3D stage in the design. |
+| `src/components/` | Nav, mobile menu, buttons, FAQ, marquee, count up, reveal and scroll lift. |
+| `src/components/brand/Logo.tsx` | Wordmark and mark, the same file as in `fe/`. Change both together. |
+| `public/clay/` | The clay objects, exported from the design as WebP. `hero-still.webp` is also the hero for reduced motion and for browsers without WebGL. |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Motion and fallbacks
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Every load opens on the wave mark (`src/components/Intro.tsx`): orange rises inside the circle,
+  the waves draw through it, then the same motion plays backwards and the hero builds itself. A
+  click, a key, the wheel or a touch skips it. A script in `<head>` (`src/lib/intro.ts`) runs
+  before the first paint: a reload always starts at the top with the intro, clearing a section
+  from the address; only a fresh visit to a section link (`/#faq`) goes straight there.
+- The headline and the still hero render first as plain HTML. The 3D canvas loads once the still is
+  on screen and the browser is idle (the WebGL check waits too: its first context is a slow GPU
+  start-up), only for the layout on screen, and renders only while the hero is visible.
+- With `prefers-reduced-motion`, or without WebGL, the still image stays and nothing moves:
+  no 3D, no marquee, no count up, no scroll motion, no smooth scroll. The intro only shows the
+  mark and fades.
+- Smooth scroll (Lenis) is for wheel and trackpad only; phones keep their own scrolling.
+- The page has no visible scrollbar; it scrolls as usual.
