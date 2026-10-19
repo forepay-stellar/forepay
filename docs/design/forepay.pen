@@ -13297,6 +13297,114 @@
                 },
                 {
                   "type": "frame",
+                  "id": "mlZb8",
+                  "name": "Figure",
+                  "width": "fill_container",
+                  "stroke": "$line",
+                  "strokeWidth": {
+                    "bottom": 1
+                  },
+                  "gap": 16,
+                  "padding": [
+                    14,
+                    0
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "DdfAu",
+                      "name": "Cell",
+                      "width": "fill_container",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "n2vQG",
+                          "name": "Value",
+                          "fill": "$fg",
+                          "content": "Figure",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 15,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "c56RFF",
+                      "name": "Cell",
+                      "width": 96,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "SNHiz",
+                          "name": "Value",
+                          "fill": "$fg",
+                          "content": "20",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "CiMXu",
+                      "name": "Cell",
+                      "width": 96,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Uyan6",
+                          "name": "Value",
+                          "fill": "$fg",
+                          "content": "28",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "LqNSY",
+                      "name": "Cell",
+                      "width": 96,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "k4xIsq",
+                          "name": "Value",
+                          "fill": "$fg",
+                          "content": "32",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "hjLlD",
+                      "name": "Cell",
+                      "width": 260,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "LAdVk",
+                          "name": "Value",
+                          "fill": "$fg-muted",
+                          "content": "Figures in tiles and breakdowns",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
                   "id": "ZASlr",
                   "name": "Body",
                   "width": "fill_container",
