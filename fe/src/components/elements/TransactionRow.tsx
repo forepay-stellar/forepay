@@ -76,8 +76,10 @@ export function TransactionRow({
       <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-icon [&_svg]:size-[22px]", tile[icon].className)}>
         {tile[icon].icon}
       </span>
-      <span className="flex min-w-0 flex-1 flex-col gap-1">
-        <span className="truncate text-[15px] font-medium text-fg">
+      {/* Section 08: the title column keeps at least its longest word, so a title wraps between words
+          and is never cut; on a narrow phone the amount gives way instead (its unit wraps under it). */}
+      <span className="flex min-w-min flex-1 flex-col gap-1">
+        <span className="text-[15px] font-medium text-fg">
           <Text label={title} />
         </span>
         {/* On a narrow phone the date moves under the status rather than past the row (section 08). */}
@@ -88,12 +90,12 @@ export function TransactionRow({
           <span className="text-fg-muted">{date}</span>
         </span>
       </span>
-      <span className="flex shrink-0 flex-col items-end gap-1 whitespace-nowrap">
+      <span className="flex flex-col items-end gap-1 text-right">
         <span className={cn("text-[15px] font-semibold", tone[amountTone])}>
           <Text label={amount} />
         </span>
         {receiptHref && (
-          <span className="flex items-center gap-1 text-[13px] text-fg-muted group-hover:text-brand-strong">
+          <span className="flex items-center gap-1 whitespace-nowrap text-[13px] text-fg-muted group-hover:text-brand-strong">
             Receipt
             <ArrowUpRight className="size-3.5" aria-hidden />
           </span>

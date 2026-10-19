@@ -260,3 +260,18 @@ test("the repay chips share their row equally, and the balance circles sit where
     expect(lefts, `circles at ${width}`).toEqual([560, 610]);
   }
 });
+
+test("a transaction's title is never cut short, even at 320", async ({ page }) => {
+  await mockApi(page, frameLedger());
+  await mockRpc(page, { account: true, trustline: true, usdc: 8_200_000_000n, contract: {} });
+  await connected(page);
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.goto("/history");
+  await expect(page.getByText("October 2026").first()).toBeVisible();
+  const cut = await page.getByRole("listitem").evaluateAll((rows) =>
+    rows.flatMap((row) => [...row.querySelectorAll<HTMLElement>("span")].filter((s) => s.scrollWidth > s.clientWidth + 1).map((s) => s.textContent)),
+  );
+  expect(cut).toEqual([]);
+  await expect(page.getByText("Advance received", { exact: true })).toBeVisible();
+});
+
