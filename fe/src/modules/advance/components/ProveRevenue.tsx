@@ -46,8 +46,8 @@ export function ProveRevenue({
           <div className="hidden flex-col gap-4 md:flex @[26rem]:flex-row @[26rem]:gap-6">
             <List
               head="What we read"
-              // Not named months: the window comes from the contract's claim template and moves to the
-              // next period, and 2a shows before any proof says which (review S8).
+              // Not named months (review S8): the window is not chain data before the advance. It is
+              // what the #17 relay asks AdSense for, so 2a can name it once the relay exists.
               items={["Revenue from the last three complete months", "Your AdSense publisher ID"]}
               icon={<Check className="size-4 text-success" aria-hidden />}
             />
