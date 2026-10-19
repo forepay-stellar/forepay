@@ -46,11 +46,22 @@ describe("Intro", () => {
     expect(calls).toHaveLength(0);
   });
 
-  it("skips to the end on a key press", () => {
+  it("plays through: a key, a click or the wheel does not skip it", () => {
     render(<Intro />);
     fireEvent.keyDown(window, { key: "Escape" });
-    expect(playing()).toBe(false);
-    expect(calls.every((c) => c.finished)).toBe(true);
+    fireEvent.pointerDown(window);
+    fireEvent.wheel(window);
+    expect(playing()).toBe(true);
+    expect(calls.some((c) => c.finished)).toBe(false);
+  });
+
+  it("holds the page still while it plays and marks the hero as settling until done", () => {
+    render(<Intro />);
+    expect(document.body.style.overflow).toBe("hidden");
+    expect("settling" in document.documentElement.dataset).toBe(true);
+    vi.advanceTimersByTime(4000);
+    expect(document.body.style.overflow).toBe("");
+    expect("settling" in document.documentElement.dataset).toBe(false);
   });
 
   it("only fades the mark with reduced motion", () => {

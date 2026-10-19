@@ -2,11 +2,13 @@
 
 import { useEffect, useRef } from "react";
 import { heroEntrance } from "@/lib/heroEntrance";
+import { lockScroll } from "@/lib/scroll";
 
 // Every load opens on the wave mark: orange rises inside the circle like
 // water, the two waves draw through it, it holds, then the same motion plays backwards (a third
-// faster) and the hero builds itself. A click, a key, the wheel or a touch skips it. With
-// reduced motion the mark just shows briefly and fades.
+// faster) and the hero builds itself. It plays through, the page held at the top meanwhile.
+// With reduced motion the mark just shows briefly and fades. Until the hero has finished
+// building, html carries data-settling, so heavy work waits (lib/intro.ts, whenIntroSettled).
 // Whether it plays is decided in <head>: see lib/intro.ts.
 
 const EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)";
@@ -64,19 +66,28 @@ export function Intro() {
     if (!r || !("intro" in html.dataset)) return;
     // The hero is where the intro hands over, whatever moved the page before hydration.
     window.scrollTo(0, 0);
-
-    const end = () => delete html.dataset.intro;
+    html.dataset.settling = "";
+    const unlock = lockScroll();
+    const timers: number[] = [];
+    const end = () => {
+      delete html.dataset.intro;
+      unlock();
+    };
+    const settled = () => delete html.dataset.settling;
     if (typeof r.animate !== "function") {
       end();
+      settled();
       return;
     }
 
     const anims: Animation[] = [];
     let finish = 0;
+    let quiet = 0;
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       anims.push(r.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, delay: 500, fill: "forwards" }));
       finish = 800;
+      quiet = 800;
     } else {
       // Each step is a track; the undraw plays every track backwards in reverse order, so the
       // last thing drawn is the first to go.
@@ -117,22 +128,22 @@ export function Intro() {
       const at = gone - 80;
       const cover = r.querySelector("[data-intro-cover]");
       if (cover) anims.push(cover.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 1, delay: at, fill: "forwards" }));
-      anims.push(...heroEntrance(at));
+      const entrance = heroEntrance(at);
+      anims.push(...entrance);
       finish = gone + 40;
+      // The hero has built itself once its last entrance animation is over.
+      quiet = Math.max(...entrance.map((a) => {
+        const t = a.effect?.getComputedTiming();
+        return Number(t?.endTime ?? 0);
+      }), finish);
     }
 
-    const timer = window.setTimeout(end, finish);
-    const skip = () => {
-      anims.forEach((a) => a.finish());
-      window.clearTimeout(timer);
-      end();
-    };
-    const events = ["pointerdown", "keydown", "wheel", "touchstart"] as const;
-    events.forEach((e) => window.addEventListener(e, skip, { passive: true }));
+    timers.push(window.setTimeout(end, finish), window.setTimeout(settled, quiet));
     return () => {
-      window.clearTimeout(timer);
-      events.forEach((e) => window.removeEventListener(e, skip));
+      timers.forEach((t) => window.clearTimeout(t));
       anims.forEach((a) => a.cancel());
+      unlock();
+      settled();
     };
   }, []);
 

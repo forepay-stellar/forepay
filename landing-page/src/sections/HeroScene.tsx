@@ -2,15 +2,17 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
+import { whenIntroSettled } from "@/lib/intro";
 import { canRender3D, hasWebGL, useMediaQuery, usePrefersReducedMotion } from "@/lib/motion";
 
 // The 3D scene loads late and only in the browser, so the headline and the still image paint
 // first. Without WebGL, or with reduced motion, nothing loads and the still stays.
 const Canvas3D = dynamic(() => import("./scene/Canvas3D").then((m) => m.Canvas3D), { ssr: false });
 
-// True once the still hero is decoded and on screen, the browser is idle, and WebGL works. Building the scene
-// is one long task (three.js, geometry, shaders); run before that paint, it delays the largest
-// contentful paint, so the still image always paints first and covers the wait.
+// True once the still hero is decoded and on screen, the intro and the hero's entrance are over,
+// the browser is idle, and WebGL works. Building the scene is one long task (three.js, geometry,
+// shaders); run before that paint it delays the largest contentful paint, and run during the
+// intro it makes the waves stutter, so the still image always paints first and covers the wait.
 function useIdleAfterStill(): boolean {
   const [idle, setIdle] = useState(false);
   useEffect(() => {
@@ -24,6 +26,7 @@ function useIdleAfterStill(): boolean {
     const stills = [...document.querySelectorAll<HTMLImageElement>("[data-hero-stage] > img")];
 
     whenLoaded()
+      .then(whenIntroSettled)
       .then(() => Promise.all(stills.map((img) => img.decode().catch(() => {}))))
       .then(afterPaint)
       .then(() => {
