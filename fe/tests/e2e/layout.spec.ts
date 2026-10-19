@@ -294,3 +294,31 @@ test("the History figure tiles keep their size and move to a new line at 320", a
   }
 });
 
+
+test("advance in progress: proving, approving in the wallet, sending, and 2d", async ({ page }) => {
+  const chain: Chain = { account: true, trustline: true, advance: { holdLedger: true } };
+  await mockRpc(page, chain);
+  await connected(page);
+  // The mock's proving stages last under a second each: the walk measures whichever one shows.
+  await page.goto("/advance");
+  await page.getByRole("button", { name: "Prove my revenue" }).click();
+  await expect(heading(page, "Log in to AdSense in the new window")).toBeVisible();
+  await holdsAtEveryWidth(page, "2a proving");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(page.getByRole("button", { name: "Accept 90.00 USDC" })).toBeVisible();
+  await page.getByRole("button", { name: "Accept 90.00 USDC" }).click();
+  await expect(heading(page, "Sending your USDC")).toBeVisible();
+  await holdsAtEveryWidth(page, "2c sending");
+  chain.advance!.holdLedger = false;
+  await expect(heading(page, "The USDC is in your wallet")).toBeVisible();
+  await holdsAtEveryWidth(page, "2d");
+});
+
+test("repayment while the ledger loads", async ({ page }) => {
+  await mockApi(page, { ...frameLedger(), delayMs: 60_000 });
+  await mockRpc(page, { account: true, trustline: true, usdc: 8_200_000_000n, contract: {} });
+  await connected(page);
+  await page.goto("/repayment");
+  await expect(page.getByRole("status", { name: "Reading your balance from Stellar" })).toBeVisible();
+  await holdsAtEveryWidth(page, "3a loading");
+});
