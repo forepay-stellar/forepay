@@ -371,7 +371,7 @@ export function IntroLab() {
       // Rise draws its waves while the water is still coming up, not after.
       const wavesAt = variant === "D1" ? 760 : 520;
       cuts.forEach((c, i) =>
-        tracks.push({ el: c, keyframes: undrawn, start: wavesAt + i * 110, duration: 420, easing: EASE_OUT }),
+        tracks.push({ el: c, keyframes: undrawn, start: wavesAt + i * 160, duration: 750, easing: EASE_OUT }),
       );
 
       const drawn = Math.max(...tracks.map((t) => t.start + t.duration));
