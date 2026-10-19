@@ -34,7 +34,7 @@ export function SegmentedTabs() {
             aria-current={active ? "page" : undefined}
             className={cn(
               tab,
-              "px-5 py-2.5 text-[14px]",
+              "px-2.5 py-2.5 text-[14px] nav:px-5",
               active ? "bg-brand text-fg-on-brand" : "text-fg-subtle hover:text-fg-on-brand",
             )}
           >

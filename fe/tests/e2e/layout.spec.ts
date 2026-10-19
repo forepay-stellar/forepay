@@ -180,3 +180,13 @@ test("columns follow section 08: 640 on a tablet, 1200 at most, a side column of
   const wallet = () => page.getByRole("region", { name: "Your wallet" });
   expect(await widths(page, wallet, [1024, 1199, 1200, 1440])).toEqual({ 1024: 320, 1199: 320, 1200: 360, 1440: 360 });
 });
+
+test("the top nav keeps the wordmark whole from 768", async ({ page }) => {
+  await mockApi(page, frameLedger());
+  await mockRpc(page, { account: true, trustline: true, usdc: 8_200_000_000n, contract: {} });
+  await connected(page);
+  await page.goto("/history");
+  await expect(page.getByText("October 2026").first()).toBeVisible();
+  const wordmark = () => page.getByRole("banner").getByRole("img", { name: "Forepay" }).first();
+  expect(await widths(page, wordmark, [768, 800, 834, 1024, 1440])).toEqual({ 768: 179, 800: 179, 834: 179, 1024: 179, 1440: 179 });
+});

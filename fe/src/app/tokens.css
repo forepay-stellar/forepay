@@ -102,6 +102,11 @@
    * breakpoints, so `wide:` sorts after `lg:` (a px breakpoint would sort before it and never win).
    */
   --breakpoint-wide: 75rem;
+  /*
+   * Where the top nav fits as the 834 tablet frame draws it (wordmark 179, tabs 318, chips 248, 12
+   * apart). Narrower, from 768, the tabs take 10 of side padding instead of 20.
+   */
+  --breakpoint-nav: 52.125rem;
 
   /*
    * Shadows. Not used by the orange design, which is flat: surfaces separate
