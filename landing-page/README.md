@@ -44,10 +44,16 @@ All optional, all public. Set them where the page is deployed.
 
 ## Motion and fallbacks
 
+- The first visit in a session opens on the wave mark (`src/components/Intro.tsx`): orange rises
+  inside the circle, the waves draw through it, then the same motion plays backwards and the hero
+  builds itself. A click, a key, the wheel or a touch skips it. A script in `<head>`
+  (`src/lib/intro.ts`) decides before the first paint whether it plays, so it never flashes on a
+  reload, and it does not play on a link to a section. To see it again, open a new tab.
 - The headline and the still hero render first as plain HTML. The 3D canvas loads once the still is
   on screen and the browser is idle (the WebGL check waits too: its first context is a slow GPU
   start-up), only for the layout on screen, and renders only while the hero is visible.
 - With `prefers-reduced-motion`, or without WebGL, the still image stays and nothing moves:
-  no 3D, no marquee, no count up, no scroll motion, no smooth scroll.
+  no 3D, no marquee, no count up, no scroll motion, no smooth scroll. The intro only shows the
+  mark and fades.
 - Smooth scroll (Lenis) is for wheel and trackpad only; phones keep their own scrolling.
 - A reload starts at the top; a link to a section (`/#faq`) still lands on it.

@@ -108,23 +108,17 @@ body {
   animation: faq-answer 220ms ease-out both;
 }
 
-/* /preview intro A: the mark's waves draw left to right. */
-@keyframes intro-wave {
-  from {
+/* The first-visit intro (components/Intro.tsx). <head> sets html[data-intro] when it plays;
+   until the intro's own animations start, the mark waits undrawn. With reduced motion it is
+   shown whole and only fades. */
+html[data-intro] [data-intro-overlay] {
+  display: block;
+}
+@media (prefers-reduced-motion: no-preference) {
+  html[data-intro] [data-intro-water] {
+    transform: translateY(44px);
+  }
+  html[data-intro] [data-intro-cut] {
     stroke-dashoffset: 1;
   }
-}
-.intro-wave {
-  stroke-dasharray: 1;
-  animation: intro-wave 480ms cubic-bezier(0.23, 1, 0.32, 1) both;
-}
-
-/* /preview intro A2: the tide's wavy edge slides sideways as it ebbs. */
-@keyframes intro-tide {
-  to {
-    transform: translateX(-160px);
-  }
-}
-.intro-tide {
-  animation: intro-tide 900ms linear infinite;
 }

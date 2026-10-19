@@ -1,3 +1,4 @@
+import { Intro } from "@/components/Intro";
 import { Nav } from "@/components/Nav";
 import { ClosingAndFooter } from "@/sections/ClosingAndFooter";
 import { FaqSection } from "@/sections/FaqSection";
@@ -9,6 +10,7 @@ import { YourData } from "@/sections/YourData";
 export default function Home() {
   return (
     <>
+      <Intro />
       <Nav />
       <main id="top">
         <Hero />

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SmoothScroll } from "@/components/SmoothScroll";
+import { INTRO_SCRIPT } from "@/lib/intro";
 import "lenis/dist/lenis.css";
 import "./globals.css";
 
@@ -34,9 +35,10 @@ const startAtTop = `if(!location.hash){history.scrollRestoration="manual";scroll
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+    // The intro script may set data-intro on <html> before React hydrates it.
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: startAtTop }} />
+        <script dangerouslySetInnerHTML={{ __html: startAtTop + INTRO_SCRIPT }} />
       </head>
       <body className="min-h-dvh bg-canvas text-fg">
         <SmoothScroll />
