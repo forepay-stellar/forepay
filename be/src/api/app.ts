@@ -177,7 +177,9 @@ export function createApp({ loaded, rpc, chain, prover, jobs = new ProofJobs(), 
       if (typeof borrower !== "string" || !StrKey.isValidEd25519PublicKey(borrower)) {
         return c.json({ error: "borrower must be a Stellar account address (G…)" }, 400);
       }
-      if (typeof accessToken !== "string" || !accessToken || accessToken.length > 4096) {
+      // Google's tokens run to hundreds of characters. A short string is not one, and scrubbing it out
+      // of error messages would cut every word it appears in.
+      if (typeof accessToken !== "string" || accessToken.length < 16 || accessToken.length > 4096) {
         return c.json({ error: "accessToken must be a Google OAuth access token with adsense.readonly" }, 400);
       }
       if (publisherId !== undefined && (typeof publisherId !== "string" || !/^pub-\d{16}$/.test(publisherId))) {

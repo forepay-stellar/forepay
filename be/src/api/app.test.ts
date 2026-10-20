@@ -321,6 +321,7 @@ test("POST /proofs refuses what is not a proof request", async () => {
     [{ borrower: DEV, accessToken: TOKEN }, 400],
     [{ borrower: BORROWER }, 400],
     [{ borrower: BORROWER, accessToken: "" }, 400],
+    [{ borrower: BORROWER, accessToken: "x" }, 400],
     [{ borrower: BORROWER, accessToken: TOKEN, publisherId: "pub-1" }, 400],
     [{ borrower: BORROWER, accessToken: "x".repeat(9000) }, 413],
   ];
