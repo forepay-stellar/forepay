@@ -38,8 +38,8 @@ export function ErrorPanel({
       )}
     >
       <div className="flex w-full justify-center">{illustration}</div>
-      <h2 className="text-[19px] font-semibold tracking-[-0.3px] text-fg">{title}</h2>
-      <p className="w-full text-[14px] leading-[21px] text-fg-muted">{body}</p>
+      <h2 className="text-card-title text-fg">{title}</h2>
+      <p className="w-full text-body text-fg-muted">{body}</p>
       {/* Section 08: under 768 two buttons sit one under the other, the main one (passed first) on top,
           unless the pair fits at 320 (`row`). */}
       <div

@@ -51,14 +51,14 @@ function Header() {
   return (
     <header className="flex w-full items-end justify-between">
       <div className="flex flex-col gap-1.5">
-        <p className="hidden text-[15px] text-brand md:block">Welcome back</p>
+        <p className="hidden text-body text-brand md:block">Welcome back</p>
         <h1 className="text-page-title text-fg">Repayment</h1>
       </div>
       <a
         href={explorerContractUrl()}
         target="_blank"
         rel="noreferrer"
-        className="hidden items-center gap-2 rounded-pill bg-surface px-5 py-3 text-[14px] font-medium text-fg outline outline-1 -outline-offset-[0.5px] outline-line-strong hover:bg-subtle focus-visible:ring-2 focus-visible:ring-brand md:flex"
+        className="hidden items-center gap-2 rounded-pill bg-surface px-5 py-3 text-small font-medium text-fg outline outline-1 -outline-offset-[0.5px] outline-line-strong hover:bg-subtle focus-visible:ring-2 focus-visible:ring-brand md:flex"
       >
         <ArrowUpRight className="size-4" aria-hidden />
         View contract
@@ -418,12 +418,12 @@ function Ledger({
           className="order-4 flex w-full flex-col gap-1 rounded-card bg-surface px-5 pb-2 pt-5 md:px-6 md:pb-3 md:pt-6"
         >
           <div className="flex w-full items-center justify-between pb-2">
-            <h2 id="transactions-title" className="text-[18px] font-semibold text-fg">
+            <h2 id="transactions-title" className="text-card-title text-fg">
               Transactions
             </h2>
             <Link
               href="/history"
-              className="flex items-center gap-1 rounded-sm text-[14px] font-medium text-brand-strong outline-none hover:underline focus-visible:ring-2 focus-visible:ring-brand"
+              className="flex items-center gap-1 rounded-sm text-small font-medium text-brand-strong outline-none hover:underline focus-visible:ring-2 focus-visible:ring-brand"
             >
               See all
               <ChevronRight className="size-[15px]" aria-hidden />

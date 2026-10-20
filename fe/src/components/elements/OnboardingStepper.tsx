@@ -17,7 +17,7 @@ export function OnboardingStepper({ current }: { current: number }) {
       {ONBOARDING_STEPS.map((name, i) => (
         <li key={name} className="flex flex-1 flex-col gap-2" aria-current={i === current ? "step" : undefined}>
           <span className={cn("h-1 w-full rounded-[2px]", barColour(i, current))} />
-          <span className={cn("text-[13px] font-medium", i <= current ? "text-fg" : "text-fg-subtle")}>{name}</span>
+          <span className={cn("text-small font-medium", i <= current ? "text-fg" : "text-fg-subtle")}>{name}</span>
         </li>
       ))}
     </ol>
@@ -32,7 +32,7 @@ export function OnboardingProgress({ current }: { current: number }) {
           <span key={name} className={cn("h-[5px] rounded-[3px]", i === current ? "w-7" : "w-[18px]", barColour(i, current))} />
         ))}
       </div>
-      <p className="text-[13px] text-fg-muted">
+      <p className="text-small text-fg-muted">
         Step {current + 1} of {ONBOARDING_STEPS.length}
       </p>
     </div>

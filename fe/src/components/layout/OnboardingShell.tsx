@@ -84,7 +84,7 @@ export function OnboardingShell({
               <button
                 type="button"
                 onClick={onBack}
-                className="flex items-center gap-2 rounded-pill py-2 text-[14px] font-medium text-brand-strong outline-none hover:underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-brand"
+                className="flex items-center gap-2 rounded-pill py-2 text-small font-medium text-brand-strong outline-none hover:underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-brand"
               >
                 <ChevronLeft className="size-4" aria-hidden />
                 Back
@@ -110,10 +110,10 @@ export function StepText({ title, body, extra }: { title: string; body: string; 
       <h1 className="w-full text-center text-page-title text-fg">
         {title}
       </h1>
-      <p className="w-full text-center text-[15px] leading-[23px] text-fg-muted md:text-[17px] md:leading-[26px]">
+      <p className="w-full text-center text-body text-fg-muted">
         {body}
       </p>
-      {extra && <p className="w-full text-center text-[14px] leading-[21px] text-fg-muted">{extra}</p>}
+      {extra && <p className="w-full text-center text-body text-fg-muted">{extra}</p>}
     </>
   );
 }

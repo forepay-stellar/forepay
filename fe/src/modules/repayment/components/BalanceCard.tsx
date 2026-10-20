@@ -46,10 +46,10 @@ export function BalanceCard({
 
       <div className="relative flex w-full items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <h2 className="text-[15px] font-medium">Advance {number}</h2>
+          <h2 className="text-body font-medium">Advance {number}</h2>
           <span
             className={cn(
-              "rounded-chip px-2.5 py-[5px] text-[12px] font-medium",
+              "rounded-chip px-2.5 py-[5px] text-small font-medium",
               done ? "bg-surface text-success-strong" : "bg-surface/18",
             )}
           >
@@ -57,14 +57,14 @@ export function BalanceCard({
           </span>
         </div>
         {!done && (
-          <span className="hidden rounded-pill bg-surface/18 px-3.5 py-[9px] text-[12px] font-medium md:inline">
+          <span className="hidden rounded-pill bg-surface/18 px-3.5 py-[9px] text-small font-medium md:inline">
             USDC on Stellar testnet
           </span>
         )}
       </div>
 
       <div className="relative flex flex-col gap-1.5">
-        <p className={cn("text-[15px]", !done && "text-fg-on-brand/80")}>{done ? "Nothing left to repay" : "Left to repay"}</p>
+        <p className={cn("text-body", !done && "text-fg-on-brand/80")}>{done ? "Nothing left to repay" : "Left to repay"}</p>
         {/* The hero amount role: 56, 72, 88 (section 08). */}
         <p className="flex items-end text-hero">
           <span>{whole}</span>
@@ -72,7 +72,7 @@ export function BalanceCard({
             {decimals}
           </span>
           <span
-            className={cn("pb-2 pl-2.5 text-[22px] font-medium tracking-normal", !done && "text-fg-on-brand/80")}
+            className={cn("pb-2 pl-2.5 text-card-title font-medium tracking-normal", !done && "text-fg-on-brand/80")}
           >
             USDC
           </span>
@@ -80,7 +80,7 @@ export function BalanceCard({
       </div>
 
       <div className="relative flex w-full flex-col gap-2.5">
-        <div className="flex w-full justify-between text-[14px]">
+        <div className="flex w-full justify-between text-body">
           <span>{repaidOf}</span>
           <span className="font-semibold">{percent}%</span>
         </div>

@@ -23,15 +23,15 @@ export function AdvanceStepper({ current }: { current: number }) {
           <li key={name} className="flex flex-1 flex-col gap-3" aria-current={state === "current" ? "step" : undefined}>
             <span className={cn("h-1 w-full rounded-[2px]", BAR[state])} />
             <span className="flex flex-col gap-0.5">
-              <span className={cn("text-[12px]", state === "current" ? "text-brand-strong" : "text-fg-subtle")}>
+              <span className={cn("text-small", state === "current" ? "text-brand-strong" : "text-fg-subtle")}>
                 Step {i + 1}
               </span>
-              <span className={cn("text-[15px] font-medium", state === "next" ? "text-fg-subtle" : "text-fg")}>
+              <span className={cn("text-body font-medium", state === "next" ? "text-fg-subtle" : "text-fg")}>
                 {name}
               </span>
               <span
                 className={cn(
-                  "text-[12px]",
+                  "text-small",
                   state === "done" && "text-success",
                   state === "current" && "text-brand",
                   state === "next" && "text-fg-subtle",
@@ -53,10 +53,10 @@ export function AdvanceProgress({ current }: { current: number }) {
   return (
     <div className="flex w-full items-center gap-4 rounded-tile bg-surface px-[18px] py-4 md:hidden">
       <div className="flex flex-1 flex-col gap-0.5">
-        <p className="text-[12px] text-fg-muted">
+        <p className="text-small text-fg-muted">
           {allDone ? "All steps done" : `Step ${current + 1} of ${ADVANCE_STEPS.length}`}
         </p>
-        <p className="text-[16px] font-semibold text-fg">{allDone ? "USDC received" : ADVANCE_STEPS[current]}</p>
+        <p className="text-body font-semibold text-fg">{allDone ? "USDC received" : ADVANCE_STEPS[current]}</p>
       </div>
       <div className="flex items-center gap-1.5" aria-hidden>
         {ADVANCE_STEPS.map((name, i) => {

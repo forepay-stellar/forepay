@@ -28,7 +28,7 @@ export function WalletChip({
   }
 
   const item =
-    "flex w-full items-center gap-2.5 rounded-[12px] px-3 py-[11px] text-[14px] font-medium outline-none data-[highlighted]:bg-subtle";
+    "flex w-full items-center gap-2.5 rounded-[12px] px-3 py-[11px] text-small font-medium outline-none data-[highlighted]:bg-subtle";
 
   return (
     <Menu.Root>
@@ -39,7 +39,7 @@ export function WalletChip({
         <span className="flex size-[30px] items-center justify-center rounded-pill bg-brand-subtle">
           <Wallet className="size-4 text-icon" aria-hidden />
         </span>
-        <span className="font-mono text-[14px] font-medium text-fg">{short}</span>
+        <span className="font-mono text-small font-medium text-fg">{short}</span>
         {/* A phone drops the chevron to fit the header (1c Mobile). It points up while the menu is open.
             The chip itself stays white, as on the board: a tint would melt into the canvas. */}
         <ChevronDown
@@ -51,8 +51,8 @@ export function WalletChip({
         <Menu.Positioner sideOffset={8} align="end" className="z-50">
           <Menu.Popup className="flex w-[280px] flex-col gap-0.5 rounded-tile bg-surface p-2 transition-opacity duration-150 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 motion-reduce:transition-none">
             <div className="flex flex-col gap-1 px-3 pb-3 pt-2.5">
-              {walletName && <p className="text-[12px] text-fg-muted">{walletName}</p>}
-              <p className="font-mono text-[15px] font-medium text-fg">{short}</p>
+              {walletName && <p className="text-small text-fg-muted">{walletName}</p>}
+              <p className="font-mono text-body font-medium text-fg">{short}</p>
             </div>
             <div className="h-px w-full bg-divider" />
             <Menu.Item className={`${item} text-fg`} onClick={copy}>

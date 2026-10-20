@@ -42,11 +42,11 @@ export function FundsReceived({
           sign="+"
           className="text-amount text-success"
           decimalsClassName="text-success-subtle"
-          unitClassName="pb-1.5 text-[18px] font-medium text-success-strong"
+          unitClassName="pb-1.5 text-card-title font-medium text-success-strong"
         />
       </p>
-      <h2 className="text-[22px] font-semibold tracking-[-0.5px] text-fg md:text-[26px]">The USDC is in your wallet</h2>
-      <p className="text-center text-[15px] leading-[23px] text-fg-muted">
+      <h2 className="text-card-title text-fg">The USDC is in your wallet</h2>
+      <p className="text-center text-body text-fg-muted">
         You can repay any amount, any time, from the Repayment tab.
       </p>
       <DetailRows

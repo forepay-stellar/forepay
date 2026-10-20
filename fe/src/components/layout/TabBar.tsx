@@ -34,7 +34,7 @@ export function SegmentedTabs() {
             aria-current={active ? "page" : undefined}
             className={cn(
               tab,
-              "px-2.5 py-2.5 text-[14px] nav:px-5",
+              "px-2.5 py-2.5 text-small nav:px-5",
               active ? "bg-brand text-fg-on-brand" : "text-fg-subtle hover:text-fg-on-brand",
             )}
           >
@@ -63,7 +63,7 @@ export function TabBar() {
             aria-current={active ? "page" : undefined}
             className={cn(
               tab,
-              "flex flex-1 flex-col items-center gap-[3px] py-2 text-[11px]",
+              "flex flex-1 flex-col items-center gap-[3px] py-2 text-small",
               active ? "bg-brand text-fg-on-brand" : "text-fg-subtle hover:text-fg-on-brand",
             )}
           >

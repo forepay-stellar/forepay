@@ -21,9 +21,9 @@ export const button = cva(
       },
       size: {
         /** The full-width call to action of an onboarding step (18/28 from a tablet, 18/24 on a phone). */
-        lg: "px-6 py-[18px] text-[16px] md:px-7 [&_svg]:size-[18px]",
+        lg: "px-6 py-[18px] text-body md:px-7 [&_svg]:size-[18px]",
         /** Buttons inside panels and dialogs. */
-        md: "px-6 py-3.5 text-[15px] [&_svg]:size-[18px]",
+        md: "px-6 py-3.5 text-body [&_svg]:size-[18px]",
       },
     },
     defaultVariants: { variant: "primary", size: "md" },

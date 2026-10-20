@@ -9,7 +9,7 @@ export function LedgerNote({ className }: { className?: string }) {
       <span className="flex size-9 shrink-0 items-center justify-center rounded-[12px] bg-surface">
         <BookOpenCheck className="size-[18px] text-icon" aria-hidden />
       </span>
-      <p className="flex-1 text-[14px] leading-[20px] text-brand-strong">
+      <p className="flex-1 text-small text-brand-strong">
         Every number on this page comes straight from Stellar, not from your browser.
       </p>
     </aside>

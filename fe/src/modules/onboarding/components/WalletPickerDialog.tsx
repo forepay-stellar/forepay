@@ -65,8 +65,8 @@ function Waiting({ wallet, onCancel }: { wallet: PickedWallet; onCancel: () => v
         )}
       </div>
       <div className="flex flex-col items-center gap-1.5 text-center">
-        <Base.Title className="text-[18px] font-semibold tracking-[-0.2px] text-fg">Waiting for {wallet.name}</Base.Title>
-        <Base.Description className="text-[14px] leading-[21px] text-fg-muted">
+        <Base.Title className="text-card-title text-fg">Waiting for {wallet.name}</Base.Title>
+        <Base.Description className="text-body text-fg-muted">
           Approve the connection in the {wallet.name} window.
         </Base.Description>
       </div>

@@ -37,15 +37,15 @@ export function AdvanceDetails({
   ];
   return (
     <section className={cn("flex w-full flex-col gap-5 rounded-card bg-surface p-6", className)}>
-      <h2 className="text-[18px] font-semibold tracking-[-0.2px] text-fg">Advance details</h2>
+      <h2 className="text-card-title text-fg">Advance details</h2>
       <dl className="flex flex-col gap-3.5">
         {rows.map((r) => (
-          <div key={r.label} className="flex items-center justify-between gap-4 text-[14px]">
+          <div key={r.label} className="flex items-center justify-between gap-4 text-body">
             <dt className="text-fg-muted">{r.label}</dt>
             <dd className="whitespace-nowrap font-medium text-fg">{r.value}</dd>
           </div>
         ))}
-        <div className="flex items-center justify-between gap-4 text-[14px]">
+        <div className="flex items-center justify-between gap-4 text-body">
           <dt className="text-fg-muted">Revenue proof</dt>
           <dd>
             <a
@@ -53,7 +53,7 @@ export function AdvanceDetails({
               target="_blank"
               rel="noreferrer"
               aria-label="Verified, view receipt"
-              className="flex items-center gap-1.5 rounded-chip bg-success-subtle px-2.5 py-[5px] text-[12px] font-medium text-success-strong outline-none hover:underline focus-visible:ring-2 focus-visible:ring-brand"
+              className="flex items-center gap-1.5 rounded-chip bg-success-subtle px-2.5 py-[5px] text-small font-medium text-success-strong outline-none hover:underline focus-visible:ring-2 focus-visible:ring-brand"
             >
               <Check className="size-3.5" aria-hidden />
               Verified

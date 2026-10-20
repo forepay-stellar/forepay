@@ -55,8 +55,8 @@ export function ReviewOffer({
             className="absolute left-[220px] top-[30px] size-[180px] rounded-full bg-fg-on-brand/12 md:left-[560px] md:top-10 md:size-[300px]"
           />
           <div className="relative flex items-center justify-between">
-            <p className="text-[15px] text-fg-on-brand/80">You can get</p>
-            <span className="flex items-center gap-1.5 rounded-chip bg-fg-on-brand/18 px-2.5 py-[5px] text-[12px] font-medium text-fg-on-brand">
+            <p className="text-body text-fg-on-brand/80">You can get</p>
+            <span className="flex items-center gap-1.5 rounded-chip bg-fg-on-brand/18 px-2.5 py-[5px] text-small font-medium text-fg-on-brand">
               <Check className="size-3.5" aria-hidden />
               Revenue verified
             </span>
@@ -66,10 +66,10 @@ export function ReviewOffer({
               stroops={advance}
               className="text-hero text-fg-on-brand"
               decimalsClassName="text-fg-on-brand/55"
-              unitClassName="pb-1.5 pl-2.5 text-[18px] font-medium text-fg-on-brand/80 md:pb-2.5 md:text-[24px]"
+              unitClassName="pb-1.5 pl-2.5 text-card-title font-medium text-fg-on-brand/80 md:pb-2.5"
             />
           </p>
-          <p className="relative text-[15px] leading-[22px] text-fg-on-brand md:max-w-[480px]">
+          <p className="relative text-body text-fg-on-brand md:max-w-[480px]">
             {capped
               ? `The most one advance can be. You earned ${revenue} on AdSense from ${windowLong}.`
               : capped === null || !terms
@@ -97,7 +97,7 @@ export function ReviewOffer({
       {/* Section 08: under the offer on a tablet; from 1024 a side column, 320 wide and 360 from 1200. */}
       <div className="flex flex-col gap-4 lg:w-[320px] lg:shrink-0 wide:w-[360px]">
         <section className="hidden flex-col gap-3.5 rounded-card bg-surface p-6 md:flex" aria-label="If you accept">
-          <h2 className="text-[18px] font-semibold text-fg">If you accept</h2>
+          <h2 className="text-card-title text-fg">If you accept</h2>
           <ul className="flex flex-col gap-3.5">
             {[
               { icon: <Wallet aria-hidden />, text: `${amount} arrives in your wallet within seconds` },
@@ -106,12 +106,12 @@ export function ReviewOffer({
             ].map((row) => (
               <li key={row.text} className="flex items-center gap-3">
                 <IconTile>{row.icon}</IconTile>
-                <span className="flex-1 text-[14px] leading-[20px] text-fg">{row.text}</span>
+                <span className="flex-1 text-body text-fg">{row.text}</span>
               </li>
             ))}
           </ul>
         </section>
-        <p className="flex items-center gap-2.5 rounded-tile bg-brand-subtle px-4 py-3.5 text-[14px] leading-[20px] text-brand-strong">
+        <p className="flex items-center gap-2.5 rounded-tile bg-brand-subtle px-4 py-3.5 text-small text-brand-strong">
           <Timer className="size-[18px] shrink-0 text-icon" aria-hidden />
           Your proof stays valid for one hour. Accept before then, or prove again.
         </p>

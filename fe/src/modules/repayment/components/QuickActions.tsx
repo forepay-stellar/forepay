@@ -19,7 +19,7 @@ function Face({ icon, label, short, disabled }: { icon: ReactNode; label: string
         {icon}
       </span>
       {/* A label with no room wraps under itself rather than being cut (section 08). */}
-      <span className={cn("text-center text-[12px] font-medium md:text-[15px]", disabled ? "text-fg-subtle" : "text-fg")}>
+      <span className={cn("text-center text-small font-medium", disabled ? "text-fg-subtle" : "text-fg")}>
         <span className="md:hidden">{short}</span>
         <span className="hidden md:inline">{label}</span>
       </span>

@@ -17,8 +17,8 @@ export function EmptyState({
   return (
     <section className="flex w-full max-w-[400px] flex-col items-center gap-4 rounded-card bg-surface p-6">
       <div className="flex w-full justify-center">{illustration}</div>
-      <h2 className="text-[20px] font-semibold tracking-[-0.3px] text-fg">{title}</h2>
-      <p className="w-full max-w-[320px] text-center text-[15px] leading-[23px] text-fg-muted">{body}</p>
+      <h2 className="text-card-title text-fg">{title}</h2>
+      <p className="w-full max-w-[320px] text-center text-body text-fg-muted">{body}</p>
       {action}
     </section>
   );

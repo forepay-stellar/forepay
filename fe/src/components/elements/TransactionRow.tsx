@@ -82,11 +82,11 @@ export function TransactionRow({
       {/* Section 08: the title column keeps at least its longest word, so a title wraps between words
           and is never cut; on a narrow phone the amount gives way instead (its unit wraps under it). */}
       <span className="flex min-w-min flex-1 flex-col gap-1">
-        <span className="text-[15px] font-medium text-fg">
+        <span className="text-body font-medium text-fg">
           <Text label={title} />
         </span>
         {/* On a narrow phone the date moves under the status rather than past the row (section 08). */}
-        <span className="flex flex-wrap gap-x-2.5 gap-y-0.5 text-[13px]">
+        <span className="flex flex-wrap gap-x-2.5 gap-y-0.5 text-small">
           <span className={tone[statusTone]}>
             <Text label={status} />
           </span>
@@ -96,7 +96,7 @@ export function TransactionRow({
       <span className="flex flex-col items-end gap-1 text-right">
         {/* Under 360 the longest amount no longer fits beside the title, so every row puts the unit
             under its figure, and the column stays even (section 08). */}
-        <span className={cn("text-[15px] font-semibold", tone[amountTone])}>
+        <span className={cn("text-body font-semibold", tone[amountTone])}>
           <Text label={amount} />
           {amount.unit && (
             <>
@@ -106,7 +106,7 @@ export function TransactionRow({
           )}
         </span>
         {receiptHref && (
-          <span className="flex items-center gap-1 whitespace-nowrap text-[13px] text-fg-muted group-hover:text-brand-strong">
+          <span className="flex items-center gap-1 whitespace-nowrap text-small text-fg-muted group-hover:text-brand-strong">
             Receipt
             <ArrowUpRight className="size-3.5" aria-hidden />
           </span>

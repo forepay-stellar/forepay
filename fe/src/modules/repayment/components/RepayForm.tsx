@@ -87,8 +87,8 @@ export function RepayForm({
       }}
     >
       <div className="flex flex-col gap-1">
-        <h2 className="text-[18px] font-semibold tracking-[-0.2px] text-fg">Make a repayment</h2>
-        <p className="text-[14px] text-fg-muted">Any amount, any time. Every payment is recorded on Stellar.</p>
+        <h2 className="text-card-title text-fg">Make a repayment</h2>
+        <p className="text-body text-fg-muted">Any amount, any time. Every payment is recorded on Stellar.</p>
       </div>
 
       <div
@@ -101,7 +101,7 @@ export function RepayForm({
               : "outline-1 -outline-offset-[0.5px] outline-line-strong focus-within:outline-[1.5px] focus-within:-outline-offset-[0.75px] focus-within:outline-brand",
         )}
       >
-        <div className="flex w-full justify-between text-[13px]">
+        <div className="flex w-full justify-between text-small">
           <label htmlFor="repay-amount" className="text-fg-muted">
             Amount
           </label>
@@ -113,7 +113,7 @@ export function RepayForm({
           )}
         </div>
         <div className="flex w-full items-center justify-between gap-3">
-          <div className="relative min-w-0 flex-1 text-[36px] font-semibold tracking-[-1.1px]">
+          <div className="relative min-w-0 flex-1 text-figure">
             <p aria-hidden className="truncate whitespace-pre">
               <span className="text-fg">{shown.whole}</span>
               <span className="text-fg-subtle">{shown.decimals}</span>
@@ -133,14 +133,14 @@ export function RepayForm({
             />
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <span className="rounded-pill px-2.5 py-1.5 text-[13px] font-medium text-fg outline outline-1 -outline-offset-[0.5px] outline-line">
+            <span className="rounded-pill px-2.5 py-1.5 text-small font-medium text-fg outline outline-1 -outline-offset-[0.5px] outline-line">
               USDC
             </span>
             <button
               type="button"
               onClick={onMax}
               disabled={settled || busy}
-              className="rounded-pill bg-action px-2.5 py-1.5 text-[12px] font-medium text-fg-on-brand outline-none hover:bg-action-hover focus-visible:ring-2 focus-visible:ring-brand disabled:bg-line disabled:text-fg-subtle"
+              className="rounded-pill bg-action px-2.5 py-1.5 text-small font-medium text-fg-on-brand outline-none hover:bg-action-hover focus-visible:ring-2 focus-visible:ring-brand disabled:bg-line disabled:text-fg-subtle"
             >
               Max
             </button>
@@ -162,7 +162,7 @@ export function RepayForm({
                 disabled={settled || busy}
                 onClick={() => onChip(c)}
                 className={cn(
-                  "flex justify-center whitespace-nowrap rounded-pill px-2.5 py-2.5 text-[14px] font-medium outline outline-1 -outline-offset-[0.5px] transition-colors focus-visible:ring-2 focus-visible:ring-brand disabled:text-fg-subtle",
+                  "flex justify-center whitespace-nowrap rounded-pill px-2.5 py-2.5 text-small font-medium outline outline-1 -outline-offset-[0.5px] transition-colors focus-visible:ring-2 focus-visible:ring-brand disabled:text-fg-subtle",
                   on ? "bg-brand-subtle text-brand-strong outline-brand" : "bg-surface text-fg outline-line-strong hover:bg-subtle",
                 )}
               >
@@ -173,7 +173,7 @@ export function RepayForm({
         </div>
       </div>
 
-      <dl className="flex w-full flex-col gap-3 text-[14px]">
+      <dl className="flex w-full flex-col gap-3 text-body">
         <div className="flex justify-between gap-4">
           <dt className="text-fg-muted">Left after this</dt>
           <dd id="repay-after" className={cn("whitespace-nowrap font-medium", invalid ? "text-danger" : "text-fg")}>

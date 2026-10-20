@@ -63,7 +63,7 @@ function HistoryScreen({ address }: { address: string }) {
     <div className="flex w-full flex-col gap-4 md:gap-7 md:pt-7">
       <header className="flex flex-col gap-1.5">
         {picked && !advances.isError && !transactions.isError && (
-          <p className="hidden text-[15px] text-brand md:block">Advance {picked.number}</p>
+          <p className="hidden text-body text-brand md:block">Advance {picked.number}</p>
         )}
         <h1 className="text-page-title text-fg">History</h1>
       </header>
@@ -76,14 +76,14 @@ function Figure({ label, stroops, tone }: { label: string; stroops: bigint; tone
   const { whole, decimals } = usdcParts(stroops);
   return (
     <div className="flex min-w-0 flex-col gap-1.5 rounded-tile bg-surface p-3.5 md:p-6">
-      <dt className="whitespace-nowrap text-[12px] text-fg-muted md:text-[14px]">{label}</dt>
+      <dt className="whitespace-nowrap text-small text-fg-muted">{label}</dt>
       {/* The unit under the figure on a phone, beside it from a tablet up, as the 3b frames draw. */}
       <dd className="flex flex-col gap-0.5 md:flex-row md:items-end md:gap-1.5">
-        <span className={cn("whitespace-nowrap text-[20px] font-semibold tracking-[-0.8px] md:text-[32px]", tone)}>
+        <span className={cn("whitespace-nowrap text-figure", tone)}>
           {whole}
           {decimals}
         </span>
-        <span className="text-[11px] font-medium text-fg-muted md:text-[14px]">USDC</span>
+        <span className="text-small font-medium text-fg-muted">USDC</span>
       </dd>
     </div>
   );
@@ -106,7 +106,7 @@ function Ledger({ advance, transactions }: { advance: AdvanceSummary; transactio
           aria-label={m.month}
           className="flex w-full flex-col gap-1 rounded-card bg-surface px-5 pb-2 pt-5 md:px-6 md:pb-3 md:pt-6"
         >
-          <h2 className="text-[14px] font-medium text-fg-muted">{m.month}</h2>
+          <h2 className="text-small font-medium text-fg-muted">{m.month}</h2>
           <ul className="flex w-full flex-col gap-1">
             {m.rows.map((row) => (
               <LedgerRow key={row.key} row={row} />

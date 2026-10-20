@@ -38,7 +38,7 @@ export function AdvanceScreen({
   return (
     <div ref={root} className="flex w-full flex-col gap-4 md:gap-8 md:pt-8 [&_[data-focus]:focus]:outline-none [&_h2:focus]:outline-none">
       <div className="flex flex-col gap-1.5">
-        <p className="hidden text-[15px] text-brand md:block">Advance</p>
+        <p className="hidden text-body text-brand md:block">Advance</p>
         <h1 className="text-page-title text-fg">{title}</h1>
       </div>
       <AdvanceStepper current={step} />
