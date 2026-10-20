@@ -9,6 +9,9 @@
  *                 the contract's current record of each (principal, repaid, window).
  *   GET /transactions?borrower=G…  advances, repayments and the USDC trustline,
  *                 newest first, failed ones included.
+ *   POST /proofs  the relay (#17): prove the creator's AdSense revenue, bound to their
+ *                 `G…`. Answers 202 with a job id at once; proving takes minutes.
+ *   GET /proofs/:id  the job's stage, then `request_advance`'s arguments or an error.
  *
  * Amounts are stroops and times are seconds, both as decimal strings: JSON numbers
  * lose precision past 2^53 and an i128 can exceed that.
@@ -16,13 +19,17 @@
  * The app is built from injected config and chain access so tests run without a network.
  */
 import { Hono, type Context } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
 
 import { StrKey } from "@stellar/stellar-sdk";
 
+import { ProveError } from "../adsense/account.js";
 import type { AdvanceRecord } from "../chain/advance.js";
 import { advanceCalls, ledgerTransactions, type HorizonOperation } from "../chain/history.js";
+import { BorrowerBusyError, ProofJobs, QueueFullError } from "../relay/jobs.js";
+import type { AdvanceRequestJson, ProveInput, ProveStep } from "../relay/prove.js";
 import type { LoadedConfig } from "./config.js";
 
 /** The slice of the Stellar RPC client the API uses. */
@@ -36,15 +43,20 @@ export interface ChainLike {
   readAdvance(contract: string, nullifierHex: string): Promise<AdvanceRecord | null>;
 }
 
+/** Makes one proof (relay/prove.ts with zkFetch bound). Absent when the relay is not configured. */
+export type Prover = (input: ProveInput, onStep: (s: ProveStep) => void) => Promise<AdvanceRequestJson>;
+
 export interface AppDeps {
   loaded: LoadedConfig;
   rpc: RpcLike;
   chain: ChainLike;
+  prover?: Prover;
+  jobs?: ProofJobs;
   /** Readiness check timeout. */
   readyTimeoutMs?: number;
 }
 
-export function createApp({ loaded, rpc, chain, readyTimeoutMs = 5000 }: AppDeps) {
+export function createApp({ loaded, rpc, chain, prover, jobs = new ProofJobs(), readyTimeoutMs = 5000 }: AppDeps) {
   const { config, sources, recorded } = loaded;
   const allowed = new Set(config.corsOrigins);
   const app = new Hono();
@@ -56,7 +68,8 @@ export function createApp({ loaded, rpc, chain, readyTimeoutMs = 5000 }: AppDeps
       // Echo only an exact, configured origin. An unknown origin gets no
       // Access-Control-Allow-Origin at all, so the browser refuses the response.
       origin: (origin) => (allowed.has(origin) ? origin : null),
-      allowMethods: ["GET", "OPTIONS"],
+      allowMethods: ["GET", "POST", "OPTIONS"],
+      allowHeaders: ["Content-Type"],
       maxAge: 600,
     }),
   );
@@ -85,6 +98,7 @@ export function createApp({ loaded, rpc, chain, readyTimeoutMs = 5000 }: AppDeps
       contracts: config.contracts,
       sources,
       recorded,
+      relay: prover !== undefined,
     }),
   );
 
@@ -144,6 +158,52 @@ export function createApp({ loaded, rpc, chain, readyTimeoutMs = 5000 }: AppDeps
         at: String(t.at),
       })),
     );
+  });
+
+  app.post(
+    "/proofs",
+    // A borrower and a token. Anything bigger is not a proof request.
+    bodyLimit({ maxSize: 8 * 1024, onError: (c) => c.json({ error: "request body too large" }, 413) }),
+    async (c) => {
+      c.header("Cache-Control", "no-store");
+      if (!prover) return c.json({ error: "the proof relay is not configured on this server" }, 503);
+      let body: { borrower?: unknown; accessToken?: unknown; publisherId?: unknown };
+      try {
+        body = await c.req.json();
+      } catch {
+        return c.json({ error: "expected a JSON body" }, 400);
+      }
+      const { borrower, accessToken, publisherId } = body ?? {};
+      if (typeof borrower !== "string" || !StrKey.isValidEd25519PublicKey(borrower)) {
+        return c.json({ error: "borrower must be a Stellar account address (G…)" }, 400);
+      }
+      if (typeof accessToken !== "string" || !accessToken || accessToken.length > 4096) {
+        return c.json({ error: "accessToken must be a Google OAuth access token with adsense.readonly" }, 400);
+      }
+      if (publisherId !== undefined && (typeof publisherId !== "string" || !/^pub-\d{16}$/.test(publisherId))) {
+        return c.json({ error: "publisherId, when given, must be pub- and 16 digits" }, 400);
+      }
+      try {
+        const job = jobs.submit(borrower, (onStep) =>
+          prover({ borrower, accessToken, publisherId }, onStep).catch((e: unknown) => {
+            // Whatever failed, its message must not carry this job's token.
+            if (e instanceof ProveError) throw new ProveError(e.code, e.message.split(accessToken).join("[redacted]"));
+            throw new Error(String((e as Error)?.stack ?? e).split(accessToken).join("[redacted]"));
+          }),
+        );
+        return c.json(job, 202, { Location: `/proofs/${job.id}` });
+      } catch (e) {
+        if (e instanceof BorrowerBusyError) return c.json({ error: "a proof for this borrower is already in progress" }, 409);
+        if (e instanceof QueueFullError) return c.json({ error: "the relay is busy; try again in a few minutes" }, 503, { "Retry-After": "120" });
+        throw e;
+      }
+    },
+  );
+
+  app.get("/proofs/:id", (c) => {
+    c.header("Cache-Control", "no-store");
+    const job = jobs.get(c.req.param("id"));
+    return job ? c.json(job) : c.json({ error: "no such proof job (they are kept for an hour)" }, 404);
   });
 
   app.notFound((c) => c.json({ error: "not found" }, 404));

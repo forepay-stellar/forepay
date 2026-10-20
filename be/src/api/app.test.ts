@@ -8,10 +8,13 @@ import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { ProveError } from "../adsense/account.js";
 import type { AdvanceRecord } from "../chain/advance.js";
 import type { HorizonOperation } from "../chain/history.js";
 import { RECORDED } from "../network.js";
-import { createApp, type ChainLike, type RpcLike } from "./app.js";
+import { ProofJobs } from "../relay/jobs.js";
+import type { AdvanceRequestJson } from "../relay/prove.js";
+import { createApp, type ChainLike, type Prover, type RpcLike } from "./app.js";
 import { loadConfig, parseOrigin } from "./config.js";
 
 const FRONT_END = "https://app.forepay.example";
@@ -74,6 +77,7 @@ test("with no overrides, /config reports exactly the recorded addresses", async 
       advance: "recorded",
     },
     recorded: true,
+    relay: false,
   });
 });
 
@@ -116,14 +120,14 @@ test("any other origin gets no CORS grant at all", async () => {
   }
 });
 
-test("a preflight from the front end succeeds, for GET only", async () => {
+test("a preflight from the front end succeeds, for GET and the relay's POST only", async () => {
   const res = await app().request("/config", {
     method: "OPTIONS",
     headers: { Origin: FRONT_END, "Access-Control-Request-Method": "GET" },
   });
   assert.equal(res.status, 204);
   assert.equal(res.headers.get("access-control-allow-origin"), FRONT_END);
-  assert.match(res.headers.get("access-control-allow-methods") ?? "", /^GET,OPTIONS$/);
+  assert.match(res.headers.get("access-control-allow-methods") ?? "", /^GET,POST,OPTIONS$/);
 });
 
 test("/health is up without touching the RPC", async () => {
@@ -236,4 +240,130 @@ test("history routes answer 502 when the chain cannot be read, without leaking w
   } finally {
     console.error = original;
   }
+});
+
+// --- the proof relay (#17) ---
+
+const REQUEST: AdvanceRequestJson = {
+  revenueUsd: "1234.56",
+  pubId: "pub-1234567890123456",
+  windowStart: "2026-07-01",
+  windowEnd: "2026-09-30",
+  timestampS: "1791590340",
+  epoch: "1",
+  signature: "ab".repeat(64),
+  recoveryId: 1,
+};
+const TOKEN = "ya29.a0-test-token";
+
+function relayApp(prover?: Prover) {
+  return createApp({
+    loaded: loadConfig({ CORS_ORIGINS: FRONT_END }),
+    rpc: healthy,
+    chain: fixtureChain,
+    prover,
+    jobs: new ProofJobs({ log: () => {} }),
+  });
+}
+
+function post(body: unknown, origin = FRONT_END) {
+  return new Request("http://api/proofs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Origin: origin },
+    body: typeof body === "string" ? body : JSON.stringify(body),
+  });
+}
+
+async function finished(api: ReturnType<typeof relayApp>, id: string) {
+  for (let i = 0; i < 100; i++) {
+    const job = (await (await api.request(`/proofs/${id}`)).json()) as { stage: string };
+    if (job.stage === "done" || job.stage === "failed") return job;
+    await new Promise((r) => setTimeout(r, 5));
+  }
+  assert.fail("job did not finish");
+}
+
+test("POST /proofs answers 202 with a job; polling it ends in request_advance's arguments", async () => {
+  const seen: unknown[] = [];
+  const api = relayApp(async (input, onStep) => {
+    seen.push(input);
+    onStep("proving");
+    return REQUEST;
+  });
+  const res = await api.request(post({ borrower: BORROWER, accessToken: TOKEN }));
+  assert.equal(res.status, 202);
+  assert.equal(res.headers.get("access-control-allow-origin"), FRONT_END);
+  assert.equal(res.headers.get("cache-control"), "no-store");
+  const job = (await res.json()) as { id: string; stage: string };
+  assert.match(job.id, /^[0-9a-f-]{36}$/);
+  assert.equal(res.headers.get("location"), `/proofs/${job.id}`);
+
+  const done = await finished(api, job.id);
+  assert.deepEqual({ ...done, createdAt: 0 }, { id: job.id, stage: "done", createdAt: 0, request: REQUEST });
+  assert.deepEqual(seen, [{ borrower: BORROWER, accessToken: TOKEN, publisherId: undefined }]);
+  assert.ok(!JSON.stringify(done).includes(TOKEN));
+});
+
+test("a failed proof reports its code, and the token never appears in it", async () => {
+  const api = relayApp(async () => {
+    throw new ProveError("token", `Google refused ${TOKEN}`);
+  });
+  const job = (await (await api.request(post({ borrower: BORROWER, accessToken: TOKEN }))).json()) as { id: string };
+  const done = (await finished(api, job.id)) as { error?: { code: string; message: string } };
+  assert.deepEqual(done.error, { code: "token", message: "Google refused [redacted]" });
+});
+
+test("POST /proofs refuses what is not a proof request", async () => {
+  const api = relayApp(async () => REQUEST);
+  const cases: [unknown, number][] = [
+    ["not json", 400],
+    [{ accessToken: TOKEN }, 400],
+    [{ borrower: DEV, accessToken: TOKEN }, 400],
+    [{ borrower: BORROWER }, 400],
+    [{ borrower: BORROWER, accessToken: "" }, 400],
+    [{ borrower: BORROWER, accessToken: TOKEN, publisherId: "pub-1" }, 400],
+    [{ borrower: BORROWER, accessToken: "x".repeat(9000) }, 413],
+  ];
+  for (const [body, status] of cases) {
+    const res = await api.request(post(body));
+    assert.equal(res.status, status, JSON.stringify(body).slice(0, 80));
+  }
+});
+
+test("a second proof for the same borrower while one runs is 409", async () => {
+  let release!: () => void;
+  const api = relayApp(
+    () =>
+      new Promise((res) => {
+        release = () => res(REQUEST);
+      }),
+  );
+  assert.equal((await api.request(post({ borrower: BORROWER, accessToken: TOKEN }))).status, 202);
+  assert.equal((await api.request(post({ borrower: BORROWER, accessToken: TOKEN }))).status, 409);
+  await new Promise((r) => setTimeout(r, 0));
+  release();
+});
+
+test("without a prover the relay is off: 503, and /config says so", async () => {
+  const api = relayApp();
+  assert.equal((await api.request(post({ borrower: BORROWER, accessToken: TOKEN }))).status, 503);
+  assert.equal(((await (await api.request("/config")).json()) as { relay: boolean }).relay, false);
+  assert.equal(((await (await relayApp(async () => REQUEST).request("/config")).json()) as { relay: boolean }).relay, true);
+});
+
+test("unknown proof jobs are 404", async () => {
+  assert.equal((await relayApp(async () => REQUEST).request("/proofs/00000000-0000-0000-0000-000000000000")).status, 404);
+});
+
+test("CORS preflight allows the front end to POST JSON, and nobody else", async () => {
+  const preflight = (origin: string) =>
+    relayApp(async () => REQUEST).request("/proofs", {
+      method: "OPTIONS",
+      headers: { Origin: origin, "Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "content-type" },
+    });
+  const ok = await preflight(FRONT_END);
+  assert.equal(ok.headers.get("access-control-allow-origin"), FRONT_END);
+  assert.match(ok.headers.get("access-control-allow-methods") ?? "", /POST/);
+  assert.match((ok.headers.get("access-control-allow-headers") ?? "").toLowerCase(), /content-type/);
+  assert.equal((await preflight("https://evil.example")).headers.get("access-control-allow-origin"), null);
 });
