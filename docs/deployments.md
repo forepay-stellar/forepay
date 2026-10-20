@@ -834,3 +834,45 @@ tests would have kept passing against bytes that described nothing. It is now pr
 The real attestor vector, `tools/fixtures/real-reclaim-proof.json`, is untouched. That one is signed
 by Reclaim's production attestor and proves the digest chain itself; this one proves the contract
 rebuilds the Forepay-specific bytes.
+
+---
+
+## #16 / #17 — the API and the proof relay, public (2026-10-20)
+
+`https://api-forepay.jameshub.fun` runs `pnpm -C be start`: the read routes (#16) and the proof relay
+(#17), as documented in `docs/api.md`.
+
+| | |
+| --- | --- |
+| Deployed tree | `feat/17-proof-relay` (`62d2cff`, which carries #16) merged with `feat/4-adsense-provider` (`eb6e078`, #74) |
+| Host | Node 24, one LXC (2 cores, 2 GB), behind a Cloudflare Tunnel; a systemd unit restarts it on failure |
+| `/config` | the recorded addresses, `"recorded": true`, `"relay": true` |
+| `/ready` | `{"status":"ok"}` against `https://soroban-testnet.stellar.org` |
+| CORS | `http://localhost:3000` only, until the front end's deployed origin is known (#22) |
+| Secrets | the Reclaim app id and secret, in `be/.env`, `chmod 600`, owned by the service user. No Stellar secret key is on the host: the relay never signs. |
+
+Checked from outside:
+
+```
+GET /health                                   200 {"status":"ok"}
+GET /config                                   recorded: true, relay: true, advance CCQFL2…I2HS
+GET /transactions?borrower=GA2CD6…WWH2        the USDC trustline (17a0d45d…); its advances went to the dev contract
+GET /ready                                    {"status":"ok","latestLedger":5288882}
+```
+
+The proving path works on this host. `prove:smoke` (#5's smoke request, Horizon's root, bound to
+`GA2CD6…WWH2`) produced a claim in **54 s**, signed by the production attestor
+`0x244897572368eadf65bfbc5aec98d8e5443a9072`. `verify:proof` simulated against Reclaim's verifier
+`CA3EMXR6…H54DU5`: genuine digest **Ok**, one byte flipped `Error(Contract, #5) SignatureMismatch`.
+The node process stayed under 500 MB.
+
+### What is not claimed yet
+
+- No AdSense proof has gone through it: there is no `READY` AdSense account (#5, #77).
+- The tree is not `main`. Redeploy from `main` once #66, #73 and #74 merge.
+
+> **Updated while merging this (2026-10-20).** The second half of the first bullet — *"the contract
+> cannot rebuild a real AdSense claim until the contract side of #6 lands"* — was true when written
+> and is not now: #76 landed in #79, and #74 landed too. What is left is only the account. The
+> deployed wasm carrying the new encoding is still behind its 24-hour timelock; `execute_upgrade`
+> is not before 2026-10-21 08:50 UTC.
