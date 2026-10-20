@@ -4,7 +4,8 @@
  *
  * Why the proof is made here and not in the creator's browser: zkFetch with the
  * snarkjs engine (the one Reclaim's attestor accepts, see #5) needs ~330 MB of circuit
- * files and takes about ten minutes of CPU. Neither belongs in a browser tab.
+ * files and minutes of CPU (about one on the relay host, ten on a laptop). Neither
+ * belongs in a browser tab.
  *
  * Where the binding comes from (#9, #17): the borrower's `G…` goes into
  * `context.contextAddress` before zkFetch runs, so it is inside the bytes the attestor

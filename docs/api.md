@@ -104,7 +104,7 @@ end submits every call.
    authorization (`docs/interface.md`).
 
 Why the proof is made on the relay and not in the browser: the proving engine Reclaim's attestor accepts
-(`snarkjs`, see #5) needs about 330 MB of circuit files and takes about ten minutes of CPU. Reclaim's
+(`snarkjs`, see #5) needs about 330 MB of circuit files and minutes of CPU (about one on the relay host, ten on a laptop). Reclaim's
 browser SDKs (popup, QR, redirect) need a provider published in Reclaim's portal and a login inside
 Reclaim's app; the AdSense provider (#4) is a zkFetch request to the AdSense Management API, which takes
 an OAuth token instead.

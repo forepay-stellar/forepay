@@ -1,5 +1,5 @@
 /**
- * Proof jobs (#17): a proof takes about ten minutes, longer than any HTTP request
+ * Proof jobs (#17): a proof takes one to ten minutes, longer than any HTTP request
  * should stay open, so the relay takes the request, answers with a job id at once,
  * and the front end polls.
  *
