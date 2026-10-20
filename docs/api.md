@@ -146,9 +146,9 @@ anything, and the contract reads the borrower from that context, never from an a
 | Status | When |
 | --- | --- |
 | `400` | Not JSON, a borrower that is not a `G…`, no token, or a malformed `publisherId` |
-| `409` | A proof for this borrower is already in progress |
+| `409` | A proof for this borrower is already in progress (`code: "running"`). The running job's id is not returned: a borrower's address is public, and the id reads their revenue. Keep the id from the `202` |
 | `413` | Body over 8 KB |
-| `503` | The relay is busy (`Retry-After: 120`), or not configured on this server (`/config` says `"relay": false`) |
+| `503` | The relay is busy (`code: "busy"`, `Retry-After: 120`), or not configured on this server (`code: "unconfigured"`; `/config` says `"relay": false`) |
 
 ### `GET /proofs/:id`
 

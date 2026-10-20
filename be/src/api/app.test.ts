@@ -256,13 +256,13 @@ const REQUEST: AdvanceRequestJson = {
 };
 const TOKEN = "ya29.a0-test-token";
 
-function relayApp(prover?: Prover) {
+function relayApp(prover?: Prover, maxQueued?: number) {
   return createApp({
     loaded: loadConfig({ CORS_ORIGINS: FRONT_END }),
     rpc: healthy,
     chain: fixtureChain,
     prover,
-    jobs: new ProofJobs({ log: () => {} }),
+    jobs: new ProofJobs({ log: () => {}, maxQueued }),
   });
 }
 
@@ -330,7 +330,7 @@ test("POST /proofs refuses what is not a proof request", async () => {
   }
 });
 
-test("a second proof for the same borrower while one runs is 409", async () => {
+test("a second proof for the same borrower while one runs is 409 running, without the running job's id", async () => {
   let release!: () => void;
   const api = relayApp(
     () =>
@@ -339,14 +339,39 @@ test("a second proof for the same borrower while one runs is 409", async () => {
       }),
   );
   assert.equal((await api.request(post({ borrower: BORROWER, accessToken: TOKEN }))).status, 202);
-  assert.equal((await api.request(post({ borrower: BORROWER, accessToken: TOKEN }))).status, 409);
+  const res = await api.request(post({ borrower: BORROWER, accessToken: TOKEN }));
+  assert.equal(res.status, 409);
+  const body = (await res.json()) as { code: string; id?: string };
+  assert.equal(body.code, "running");
+  assert.equal(body.id, undefined);
   await new Promise((r) => setTimeout(r, 0));
   release();
 });
 
-test("without a prover the relay is off: 503, and /config says so", async () => {
+test("a full queue is 503 busy, with Retry-After", async () => {
+  let release!: () => void;
+  const api = relayApp(
+    () =>
+      new Promise((res) => {
+        release = () => res(REQUEST);
+      }),
+    1,
+  );
+  const [SECOND, THIRD] = ["GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H", "GB4L3CM64YHTTOKQDLQHFM4G6L5V6H3TNFZZW44SYRHJUIFOOE4RGWQS"];
+  assert.equal((await api.request(post({ borrower: BORROWER, accessToken: TOKEN }))).status, 202);
+  assert.equal((await api.request(post({ borrower: SECOND, accessToken: TOKEN }))).status, 202);
+  const res = await api.request(post({ borrower: THIRD, accessToken: TOKEN }));
+  assert.equal(res.status, 503);
+  assert.equal(res.headers.get("Retry-After"), "120");
+  assert.equal(((await res.json()) as { code: string }).code, "busy");
+  release();
+});
+
+test("without a prover the relay is off: 503 unconfigured, and /config says so", async () => {
   const api = relayApp();
-  assert.equal((await api.request(post({ borrower: BORROWER, accessToken: TOKEN }))).status, 503);
+  const res = await api.request(post({ borrower: BORROWER, accessToken: TOKEN }));
+  assert.equal(res.status, 503);
+  assert.equal(((await res.json()) as { code: string }).code, "unconfigured");
   assert.equal(((await (await api.request("/config")).json()) as { relay: boolean }).relay, false);
   assert.equal(((await (await relayApp(async () => REQUEST).request("/config")).json()) as { relay: boolean }).relay, true);
 });

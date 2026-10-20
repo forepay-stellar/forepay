@@ -166,7 +166,7 @@ export function createApp({ loaded, rpc, chain, prover, jobs = new ProofJobs(), 
     bodyLimit({ maxSize: 8 * 1024, onError: (c) => c.json({ error: "request body too large" }, 413) }),
     async (c) => {
       c.header("Cache-Control", "no-store");
-      if (!prover) return c.json({ error: "the proof relay is not configured on this server" }, 503);
+      if (!prover) return c.json({ error: "the proof relay is not configured on this server", code: "unconfigured" }, 503);
       let body: { borrower?: unknown; accessToken?: unknown; publisherId?: unknown };
       try {
         body = await c.req.json();
@@ -193,8 +193,11 @@ export function createApp({ loaded, rpc, chain, prover, jobs = new ProofJobs(), 
         );
         return c.json(job, 202, { Location: `/proofs/${job.id}` });
       } catch (e) {
-        if (e instanceof BorrowerBusyError) return c.json({ error: "a proof for this borrower is already in progress" }, 409);
-        if (e instanceof QueueFullError) return c.json({ error: "the relay is busy; try again in a few minutes" }, 503, { "Retry-After": "120" });
+        // No job id here: a borrower's address is public, and the id is what reads their revenue.
+        if (e instanceof BorrowerBusyError) return c.json({ error: "a proof for this borrower is already in progress", code: "running" }, 409);
+        if (e instanceof QueueFullError) {
+          return c.json({ error: "the relay is busy; try again in a few minutes", code: "busy" }, 503, { "Retry-After": "120" });
+        }
         throw e;
       }
     },
