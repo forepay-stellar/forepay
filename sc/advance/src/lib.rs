@@ -466,15 +466,23 @@ impl AdvanceContract {
     /// proof must match.
     ///
     /// `parts` are the literal segments of the request, interleaved at verification time
-    /// with the publisher id, window start and window end — so it must hold exactly four
-    /// entries for the three values this contract supplies.
+    /// with the **seven** values this contract supplies, in this order:
+    ///
+    /// ```text
+    /// pub_id, start_year, start_month, start_day, end_year, end_month, end_day
+    /// ```
+    ///
+    /// So it must hold exactly eight entries. Seven rather than three because AdSense has
+    /// no string form for a date: `reports:generate` takes `startDate.year=2026&
+    /// startDate.month=7&startDate.day=1`, unpadded, and one `"2026-07-01"` cannot fill
+    /// three query parameters (#76).
     pub fn set_claim_template(
         env: Env,
         parts: Vec<Bytes>,
         provider_hash: Bytes,
     ) -> Result<(), Error> {
         let admin = Self::require_admin(&env)?;
-        if parts.len() != 4 {
+        if parts.len() != 8 {
             return Err(Error::ClaimMismatch);
         }
         let n = parts.len();
@@ -551,17 +559,17 @@ impl AdvanceContract {
         let start_b = claim::string_bytes(&env, &window_start).ok_or(Error::ClaimMismatch)?;
         let end_b = claim::string_bytes(&env, &window_end).ok_or(Error::ClaimMismatch)?;
 
+        // The window reaches the signed URL as six unpadded numbers, because that is the
+        // only form AdSense accepts (#76). `window_start` and `window_end` stay
+        // `YYYY-MM-DD` in the interface and in the nullifier — this is a re-encoding on
+        // the way into the template, not a change to what is being borrowed against.
+        let (sy, sm, sd) = claim::split_date(&env, &start_b).ok_or(Error::ClaimMismatch)?;
+        let (ey, em, ed) = claim::split_date(&env, &end_b).ok_or(Error::ClaimMismatch)?;
+
         let parameters =
-            claim::rebuild_parameters(&parts, &[pub_id_b.clone(), start_b.clone(), end_b.clone()])
+            claim::rebuild_parameters(&parts, &[pub_id_b.clone(), sy, sm, sd, ey, em, ed])
                 .ok_or(Error::ClaimMismatch)?;
-        let context = claim::rebuild_context(
-            &env,
-            &borrower_b,
-            &revenue_b,
-            &start_b,
-            &end_b,
-            &provider_hash,
-        );
+        let context = claim::rebuild_context(&env, &borrower_b, &revenue_b, &provider_hash);
 
         let identifier = claim::identifier(&env, &parameters, &context);
         let identifier_hex = claim::hex_prefixed(&identifier);

@@ -18,7 +18,7 @@
 
 # triple                     stellar-cli  sha256
 # --- verified by CI on every push ---
-x86_64-unknown-linux-gnu     28.1.0       5d9ed165cafcdd45235dbacfdf4c00667b0f123781ee9c6890d7cd4465419914
+x86_64-unknown-linux-gnu     28.1.0       ea868981fa1cb4dae52f6237956056a913c8a7baff3ebdef65df0fc5ef32dd0b
 
 # @@UNVERIFIED@@ rows below this marker are reference only and are not checked
-aarch64-apple-darwin         27.0.0       d8a55ce21baab9af8259ccdedd8ddb29421e1ee01c2b938a7c336a2a36c55e89
+aarch64-apple-darwin         27.0.0       5ccdbdb774d76ab28322fe7b991da7b0a412968ffffec45b03fe73a8c2902c36

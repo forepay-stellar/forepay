@@ -54,11 +54,20 @@ WITNESS_KEY = 0x1111111111111111111111111111111111111111111111111111111111111111
 IMPOSTOR_KEY = 0x3333333333333333333333333333333333333333333333333333333333333333
 PROVIDER_HASH = "0x569b93233185c054ed9fda68b5aef8fda180b6d291180450bf757b11bb52f7df"
 CONTEXT_MESSAGE = "Forepay advance request"
+# Eight literal segments with seven values between them: pub_id, then each date as an
+# unpadded year, month and day. AdSense takes `startDate` as an `object (Date)`, which the
+# REST transport flattens into three integer query parameters — there is no string date
+# form, so a single "2026-07-01" cannot fill them (#76). Same bytes as
+# tools/make_claim_fixture.py and be/src/adsense/request.ts.
 TEMPLATE = [
     b'{"method":"GET","url":"https://adsense.googleapis.com/v2/accounts/',
-    b"/reports:generate?startDate=",
-    b"&endDate=",
-    b'&metrics=ESTIMATED_EARNINGS"}',
+    b"/reports:generate?dateRange=CUSTOM&startDate.year=",
+    b"&startDate.month=",
+    b"&startDate.day=",
+    b"&endDate.year=",
+    b"&endDate.month=",
+    b"&endDate.day=",
+    b'&metrics=ESTIMATED_EARNINGS&currencyCode=USD&reportingTimeZone=ACCOUNT_TIME_ZONE"}',
 ]
 
 STEPS = {
@@ -159,14 +168,23 @@ def contract_error(out: str) -> str | None:
     return f"#{m.group(1)}" if m else None
 
 
+def date_values(date):
+    """`"2026-07-01"` as the three unpadded numbers AdSense takes: `2026`, `7`, `1`."""
+    return [str(int(part)).encode() for part in date.split("-")]
+
+
 def build_claim(pub_id, start, end, revenue, timestamp_s, key, *, borrower=BORROWER, epoch=0):
-    params = TEMPLATE[0] + pub_id.encode() + TEMPLATE[1] + start.encode() + TEMPLATE[2] + end.encode() + TEMPLATE[3]
+    values = [pub_id.encode()] + date_values(start) + date_values(end)
+    assert len(TEMPLATE) == len(values) + 1, "a template of N parts takes N-1 values"
+    params = TEMPLATE[0]
+    for i, value in enumerate(values):
+        params += value + TEMPLATE[i + 1]
+    # Only the figure. The currency is held by the signed `"currencyCode": "USD"` match and
+    # the window by the signed URL, so neither left the signature when they left here (#76).
     ctx = (
         b'{"contextAddress":"' + borrower.encode()
         + b'","contextMessage":"' + CONTEXT_MESSAGE.encode()
-        + b'","extractedParameters":{"currency":"USD","endDate":"' + end.encode()
-        + b'","revenueUsd":"' + revenue.encode()
-        + b'","startDate":"' + start.encode()
+        + b'","extractedParameters":{"revenueUsd":"' + revenue.encode()
         + b'"},"providerHash":"' + PROVIDER_HASH.encode() + b'"}'
     )
     identifier = "0x" + secp.keccak256(b"http\n" + params + b"\n" + ctx).hex()

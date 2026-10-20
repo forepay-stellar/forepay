@@ -60,6 +60,36 @@ proof must match.
 **Until the template is set, `request_advance` refuses with `TemplateNotSet` (10).** The contract
 deploys in a safe state rather than one that accepts anything.
 
+### The template holds eight parts and takes seven values (#76)
+
+```
+pub_id, start_year, start_month, start_day, end_year, end_month, end_day
+```
+
+Seven, not three, because **AdSense has no string form for a date.** `startDate` and `endDate` on
+`accounts.reports.generate` are `object (Date)` — `{year, month, day}` as *integers* — which the
+REST transport flattens into `startDate.year=2026&startDate.month=7&startDate.day=1`. Unpadded:
+`7`, never `07`. Verified against Google's own reference, not inferred.
+
+So the rebuilt URL is the one `be/src/adsense/request.ts` actually sends:
+
+```
+https://adsense.googleapis.com/v2/accounts/<pub_id>/reports:generate
+  ?dateRange=CUSTOM
+  &startDate.year=<y>&startDate.month=<m>&startDate.day=<d>
+  &endDate.year=<y>&endDate.month=<m>&endDate.day=<d>
+  &metrics=ESTIMATED_EARNINGS&currencyCode=USD&reportingTimeZone=ACCOUNT_TIME_ZONE
+```
+
+**The interface does not change.** `request_advance` still takes `window_start` and `window_end` as
+`YYYY-MM-DD`, and the nullifier is still computed over those strings. `claim::split_date` converts
+them on the way into the template — ten bytes of fixed-width parsing, every byte checked, no JSON.
+A window that is not exactly `dddd-dd-dd` is refused with `ClaimMismatch` rather than guessed at.
+
+A four-part template is now refused by `set_claim_template` itself. It described
+`?startDate=2026-07-01`, a request the AdSense API cannot serve, so every real proof built against
+it was refused with a bare `ClaimMismatch` and no clue why.
+
 ## 3. The claim's context, rebuilt rather than parsed
 
 Canonical context is sorted-key JSON with no whitespace. A JSON parser in `no_std` wasm would be
@@ -67,11 +97,29 @@ large, slow, and its bugs indistinguishable from a bad proof, so the contract **
 string from the values it was handed and compares byte for byte:
 
 ```
-{"contextAddress":"<borrower G…>","contextMessage":"<constant>","extractedParameters":{"currency":"USD","endDate":"<end>","revenueUsd":"<figure>","startDate":"<start>"},"providerHash":"<hash>"}
+{"contextAddress":"<borrower G…>","contextMessage":"<constant>","extractedParameters":{"revenueUsd":"<figure>"},"providerHash":"<hash>"}
 ```
 
 Key order above is alphabetical because that is what canonicalisation produces — it is not a
 stylistic choice and must not be "tidied".
+
+### `extractedParameters` holds the figure and nothing else (#76)
+
+It used to carry `currency`, `startDate` and `endDate` as well. Those cannot be there. A Reclaim
+`responseMatches` regex captures **one contiguous substring**, and AdSense echoes the window back as
+`"startDate":{"year":2026,"month":7,"day":1}` — there is no `"2026-07-01"` anywhere in the response
+to capture. A context asking for one describes a proof the provider cannot produce.
+
+Neither field left the signature; both moved to where the provider actually puts them, and both are
+in `parameters`, which this contract pins:
+
+| Was asserted by | Now asserted by |
+| --- | --- |
+| `extractedParameters.currency` | the `"currencyCode": "USD"` response match |
+| `extractedParameters.startDate` / `.endDate` | the URL — Google computes the totals **for the window in the URL** |
+
+So the window and the currency are held exactly as strongly as before. What changed is which signed
+field holds them.
 
 `canonical_context_matches` in `sc/reclaim-claim` does this comparison. Any difference at all —
 ordering, whitespace, a trailing byte — is a refusal.
@@ -204,9 +252,8 @@ request_advance(
     borrower: Address,        // must equal contextAddress inside the signed claim
     revenue_usd: String,      // decimal string from extractedParameters
     pub_id: String,           // AdSense publisher id
-    window_start: String,     // YYYY-MM-DD, must match the template
+    window_start: String,     // YYYY-MM-DD; split into year/month/day for the URL (§2)
     window_end: String,
-    context_message: String,
     timestamp_s: u64,
     epoch: u64,
     signature: BytesN<64>,
@@ -217,7 +264,8 @@ request_advance(
 Order is the security property, and it does not change:
 
 1. template is set, else `TemplateNotSet`
-2. rebuild `context` and `parameters`; rebuild `identifier`; build the digest
+2. split each window date into unpadded year/month/day, else `ClaimMismatch`; rebuild `context` and
+   `parameters`; rebuild `identifier`; build the digest
 3. freshness
 4. **cross-contract `verify_proof`** — everything after this point is attested
 5. nullifier not spent → **write the nullifier**
@@ -234,3 +282,21 @@ transfer in between is the classic race.
 (#5) and are set by `set_claim_template` — no code change, one admin call.
 
 Everything else here is frozen. @Lin1er @AncungAulia — build against it.
+
+### What this freeze got wrong, and how (#76)
+
+The freeze happened before any real AdSense response existed — deliberately, because waiting would
+have cost all of M2 to a problem about a Google account. The gamble was that the *shape* of a
+claim could be pinned ahead of seeing one. It mostly held; in two places it did not:
+
+- `?startDate=2026-07-01` is not a request AdSense can serve.
+- `extractedParameters` asked for fields a single-capture regex cannot extract.
+
+Every real proof would have been refused, with `ClaimMismatch` and no indication of which byte was
+wrong — the hardest failure in this pipeline to read. Found by @Lin1er on #6 while building the
+provider, by comparing this document against the API rather than against the contract, which is the
+only way it could have been found before the first proof arrived.
+
+The lesson worth keeping is narrow: **the part of a freeze that describes someone else's API is a
+guess until it is checked against that API.** Checking it did not need a live account — the
+reference page was enough, and nobody read it.

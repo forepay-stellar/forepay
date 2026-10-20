@@ -69,31 +69,88 @@ pub fn rebuild_parameters(parts: &Vec<Bytes>, values: &[Bytes]) -> Option<Bytes>
     Some(out)
 }
 
+/// Split `"YYYY-MM-DD"` into the three unpadded ASCII numbers AdSense takes (#76).
+///
+/// The AdSense Management API has **no string form for a date**. `startDate` and `endDate`
+/// on `accounts.reports.generate` are `object (Date)` — `{year, month, day}` as *integers*
+/// — which the REST transport flattens into `startDate.year=2026&startDate.month=7&
+/// startDate.day=1`. Integers, so `7`, never `07`.
+///
+/// So the contract takes the window in the one form a human and a nullifier can both read,
+/// `YYYY-MM-DD`, and produces the six values the signed URL actually carries. The interface
+/// and the nullifier are unchanged; only what gets interleaved into the template changes.
+///
+/// Fixed-width parsing of exactly ten bytes. No JSON, no allocation beyond the three
+/// outputs, and every byte is checked: a caller cannot smuggle a `&` or a digit-shaped
+/// surprise into the URL this helps rebuild.
+///
+/// Returns `None` for anything that is not exactly `dddd-dd-dd`.
+pub fn split_date(env: &Env, date: &Bytes) -> Option<(Bytes, Bytes, Bytes)> {
+    if date.len() != 10 {
+        return None;
+    }
+    let mut b = [0u8; 10];
+    date.copy_into_slice(&mut b);
+    if b[4] != b'-' || b[7] != b'-' {
+        return None;
+    }
+    for (i, c) in b.iter().enumerate() {
+        if i != 4 && i != 7 && !c.is_ascii_digit() {
+            return None;
+        }
+    }
+    Some((
+        unpadded(env, &b[0..4]),
+        unpadded(env, &b[5..7]),
+        unpadded(env, &b[8..10]),
+    ))
+}
+
+/// ASCII digits with leading zeros removed, as an integer is serialised. `"07"` → `"7"`,
+/// `"00"` → `"0"`. Never empty, so the rebuilt URL always has a value where one belongs.
+fn unpadded(env: &Env, digits: &[u8]) -> Bytes {
+    let mut i = 0;
+    while i + 1 < digits.len() && digits[i] == b'0' {
+        i += 1;
+    }
+    Bytes::from_slice(env, &digits[i..])
+}
+
 /// Rebuild the canonical context, byte for byte.
 ///
 /// Canonical context is sorted-key JSON with no whitespace, so the key order below is
 /// alphabetical because that is what canonicalisation produces — it is not style and must
 /// not be tidied. Building it rather than parsing it keeps a JSON parser out of the wasm,
 /// where its bugs would be indistinguishable from a bad proof.
-#[allow(clippy::too_many_arguments)]
+///
+/// # Why `extractedParameters` holds only the figure (#76)
+///
+/// It used to carry `currency`, `startDate` and `endDate` too. Those cannot be there: a
+/// Reclaim `responseMatches` regex captures one contiguous substring, and AdSense echoes
+/// the window back as `"startDate":{"year":2026,"month":7,"day":1}` — there is no
+/// `"2026-07-01"` anywhere in the response to capture. A context asking for one describes
+/// a proof the provider cannot produce, which is why every real AdSense proof was refused.
+///
+/// Neither field is lost, only moved to where it is actually signed:
+///
+/// * **the currency** by the `"currencyCode": "USD"` match, which lives in `parameters`;
+/// * **the window** by the URL, which lives in `parameters` too — Google computes the
+///   totals *for the window in the URL*, so the URL alone fixes the period.
+///
+/// `parameters` is pinned in this contract and rebuilt here, so both are as strongly held
+/// as they were in the context. Nothing moved outside the signature.
 pub fn rebuild_context(
     env: &Env,
     borrower: &Bytes,
     revenue_usd: &Bytes,
-    window_start: &Bytes,
-    window_end: &Bytes,
     provider_hash: &Bytes,
 ) -> Bytes {
     let mut out = Bytes::from_slice(env, br#"{"contextAddress":""#);
     out.append(borrower);
     out.extend_from_slice(br#"","contextMessage":""#);
     out.extend_from_slice(CONTEXT_MESSAGE);
-    out.extend_from_slice(br#"","extractedParameters":{"currency":"USD","endDate":""#);
-    out.append(window_end);
-    out.extend_from_slice(br#"","revenueUsd":""#);
+    out.extend_from_slice(br#"","extractedParameters":{"revenueUsd":""#);
     out.append(revenue_usd);
-    out.extend_from_slice(br#"","startDate":""#);
-    out.append(window_start);
     out.extend_from_slice(br#""},"providerHash":""#);
     out.append(provider_hash);
     out.extend_from_slice(br#""}"#);
