@@ -11,6 +11,11 @@ describe("proveFailure", () => {
     expect(proveFailure(new RelayNotReadyError())).toEqual({ kind: "relayNotReady" });
     expect(proveFailure(new RelayError("token", "x"))).toEqual({ kind: "googleSignIn" });
     expect(proveFailure(new RelayError("account", "x"))).toEqual({ kind: "noAdsense" });
+    expect(proveFailure(new RelayError("running", "x"))).toEqual({ kind: "proofRunning" });
+    expect(proveFailure(new RelayError("unconfigured", "x"))).toEqual({ kind: "relayNotReady" });
+    expect(proveFailure(new RelayError("unreachable", "x"))).toEqual({ kind: "relayUnreachable" });
+    expect(proveFailure(new RelayError("googleUnavailable", "x"))).toEqual({ kind: "googleUnavailable" });
+    expect(proveFailure(new RelayError("popupBlocked", "x"))).toEqual({ kind: "popupBlocked" });
     for (const code of ["busy", "provider", "prove", "audit", "internal"] as const) {
       expect(proveFailure(new RelayError(code, "x"))).toEqual({ kind: "relayFailed" });
     }

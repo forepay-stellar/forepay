@@ -8,7 +8,7 @@
  * returns fixed values. Everything after this seam (quote, request_advance, signing, errors) is real.
  */
 import { mockProveRevenue } from "./mock";
-import { googleSignIn, relayProveRevenue } from "./relay";
+import { googleSignIn, preloadGoogleSignIn, relayProveRevenue, sessionJobs } from "./relay";
 import { RelayNotReadyError, type ProveSession, type ProveStage } from "./session";
 
 export {
@@ -27,4 +27,14 @@ export function proveRevenue(borrower: string, onStage: (stage: ProveStage) => v
   if (!RELAY_URL) return mockProveRevenue(borrower, onStage);
   if (!GOOGLE_CLIENT_ID) return { result: Promise.reject(new RelayNotReadyError()), reopen: () => {}, abandon: () => {} };
   return relayProveRevenue(borrower, onStage, { relayUrl: RELAY_URL, signIn: googleSignIn(GOOGLE_CLIENT_ID) });
+}
+
+/** A proof the relay is still making for this wallet, started from this tab before the creator left. */
+export function proofRunning(borrower: string): boolean {
+  return !!RELAY_URL && !!GOOGLE_CLIENT_ID && sessionJobs.load(borrower) !== null;
+}
+
+/** Load Google's sign-in ahead of "Prove my revenue", so the popup opens inside the press. */
+export function preloadSignIn(): void {
+  if (RELAY_URL && GOOGLE_CLIENT_ID) preloadGoogleSignIn();
 }

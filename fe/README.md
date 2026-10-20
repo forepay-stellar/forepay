@@ -63,8 +63,10 @@ browser. Never put a secret in one.
 ## Proving revenue: the relay, or a mock
 
 With `NEXT_PUBLIC_RELAY_URL` and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` set, the creator signs in with Google's
-own popup (`adsense.readonly` only) and the #17 relay makes the proof, which takes about ten minutes
-(`src/lib/reclaim/relay.ts`, `docs/api.md`). No Reclaim SDK runs in the browser.
+own popup (`adsense.readonly` only) and the #17 relay makes the proof, which takes about a minute, more
+behind a queue (`src/lib/reclaim/relay.ts`, `docs/api.md`). No Reclaim SDK runs in the browser. The job
+id is kept in `sessionStorage`, so leaving /advance or reloading while it proves comes back to the same
+job without a second sign-in.
 
 `src/lib/reclaim/` answers from a mock while `NEXT_PUBLIC_RELAY_URL` is empty. It walks through the session (window open, reading) and
 returns fixed values. Everything after it, the offer from `quote`, the proof check, `request_advance`

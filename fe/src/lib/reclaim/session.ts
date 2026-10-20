@@ -36,10 +36,27 @@ export class RelayNotReadyError extends Error {
  * Why the relay could not make the proof, by whose move it is (docs/api.md):
  * - `token`: Google refused the sign-in, for example an expired one. Signing in again fixes it.
  * - `account`: no approved AdSense account behind that Google account.
- * - `busy`: the relay is proving for someone else, or already for this wallet.
+ * - `running`: a proof for this wallet is already running, started from a tab that no longer has it.
+ * - `busy`: the relay is proving for others and its queue is full.
+ * - `unconfigured`: the relay answers, but proving is not set up on it.
+ * - `unreachable`: the relay did not answer at all.
+ * - `googleUnavailable`: Google's sign-in script did not load.
+ * - `popupBlocked`: the browser blocked Google's sign-in window. The creator closed nothing.
  * - `provider`, `prove`, `audit`, `internal`: the relay's side. Trying again may work.
  */
-export type RelayErrorCode = "token" | "account" | "busy" | "provider" | "prove" | "audit" | "internal";
+export type RelayErrorCode =
+  | "token"
+  | "account"
+  | "running"
+  | "busy"
+  | "unconfigured"
+  | "unreachable"
+  | "googleUnavailable"
+  | "popupBlocked"
+  | "provider"
+  | "prove"
+  | "audit"
+  | "internal";
 
 export class RelayError extends Error {
   constructor(

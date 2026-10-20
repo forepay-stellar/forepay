@@ -4,11 +4,15 @@
  * docs/api.md, "The proof relay".
  *
  * No Reclaim SDK runs here. The proof is made on the relay because the engine Reclaim's attestor accepts
- * needs ~330 MB of circuit files and about ten minutes of CPU. The browser's part is the sign-in, and
+ * needs ~330 MB of circuit files and a minute or more of a whole CPU. The browser's part is the sign-in, and
  * the token goes once to the relay, which binds the borrower's G… inside the signed claim.
  *
  * Stages: `waiting` while Google's popup is open, `reading` from the moment the relay has the job until
  * it ends.
+ *
+ * The job id is kept for the length of the tab (`sessionJobs`). A creator who leaves /advance or reloads
+ * while the relay proves comes back to the same job, without a second sign-in, instead of starting a
+ * second proof the relay would refuse as already running (409).
  */
 import type { AdvanceRequest } from "@/lib/stellar/contract";
 import { ReclaimCancelledError, RelayError, type ProveSession, type ProveStage, type RelayErrorCode } from "./session";
@@ -47,15 +51,25 @@ function loadGis(): Promise<Gis> {
     s.onload = () => {
       const gis = ready();
       if (gis) resolve(gis);
-      else reject(new TypeError("Google sign-in failed to load"));
+      else reject(new RelayError("googleUnavailable", "Google sign-in failed to load"));
     };
     s.onerror = () => {
       gisLoading = undefined;
-      reject(new TypeError("Google sign-in failed to load (network)"));
+      reject(new RelayError("googleUnavailable", "Google sign-in failed to load (network)"));
     };
     document.head.appendChild(s);
   });
   return gisLoading;
+}
+
+/**
+ * Load Google's script ahead of the press, so "Prove my revenue" opens the popup inside the click.
+ * Loaded only then, the popup opens after an await, outside the click, and browsers may block it.
+ */
+export function preloadGoogleSignIn(): void {
+  loadGis().catch(() => {
+    // The press will try again and report it.
+  });
 }
 
 /** Opens the popup each time it is called; resolves with the token, or rejects when the popup closes. */
@@ -73,7 +87,12 @@ export function googleSignIn(clientId: string): SignIn {
           // Denied, or allowed without the AdSense box ticked: the creator stopped, nothing was read.
           else reject(new ReclaimCancelledError());
         },
-        error_callback: () => reject(new ReclaimCancelledError()),
+        error_callback: (e) =>
+          reject(
+            e.type === "popup_failed_to_open"
+              ? new RelayError("popupBlocked", "the browser blocked Google's sign-in window")
+              : new ReclaimCancelledError(),
+          ),
       });
       client.requestAccessToken();
     });
@@ -88,23 +107,68 @@ type Job = {
   error?: { code: RelayErrorCode; message: string };
 };
 
+/** Where the running job's id waits while the creator is away from /advance. */
+export type JobStore = {
+  load: (borrower: string) => string | null;
+  save: (borrower: string, id: string) => void;
+  clear: () => void;
+};
+
+const JOB_KEY = "forepay.proof.job";
+
+/**
+ * The job id, for the length of the tab. Only the id: the token never leaves the sign-in, and the id
+ * reads nothing the relay would not show this tab anyway. One for another wallet is not this one's.
+ */
+export const sessionJobs: JobStore = {
+  load: (borrower) => {
+    try {
+      const s = JSON.parse(window.sessionStorage.getItem(JOB_KEY) ?? "null") as { borrower: string; id: string } | null;
+      return s?.borrower === borrower ? s.id : null;
+    } catch {
+      return null;
+    }
+  },
+  save: (borrower, id) => {
+    try {
+      window.sessionStorage.setItem(JOB_KEY, JSON.stringify({ borrower, id }));
+    } catch {
+      // Storage unavailable: leaving the page while proving loses the job, as before.
+    }
+  },
+  clear: () => {
+    try {
+      window.sessionStorage.removeItem(JOB_KEY);
+    } catch {
+      // nothing to clear
+    }
+  },
+};
+
 export type RelayOptions = {
   relayUrl: string;
   signIn: SignIn;
   fetch?: typeof fetch;
+  jobs?: JobStore;
   pollMs?: number;
-  /** Give up on a job after this long. Proofs take about ten minutes; the queue adds to that. */
+  /**
+   * Give up on a job after this long. A proof takes about a minute on the relay, more behind a queue;
+   * past an hour the claim is too old for the contract anyway, and the relay has forgotten the job.
+   */
   timeoutMs?: number;
   sleep?: (ms: number) => Promise<void>;
 };
+
+const CODES: readonly RelayErrorCode[] = ["token", "account", "running", "busy", "unconfigured", "provider", "prove", "audit", "internal"];
 
 class Abandoned extends Error {}
 
 export function relayProveRevenue(borrower: string, onStage: (stage: ProveStage) => void, o: RelayOptions): ProveSession {
   const base = o.relayUrl.replace(/\/+$/, "");
-  const get = o.fetch ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
+  const send = o.fetch ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
+  const jobs = o.jobs ?? sessionJobs;
   const pollMs = o.pollMs ?? 5000;
-  const timeoutMs = o.timeoutMs ?? 30 * 60_000;
+  const timeoutMs = o.timeoutMs ?? 60 * 60_000;
   const sleep = o.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   let abandoned = false;
   let reading = false;
@@ -130,37 +194,76 @@ export function relayProveRevenue(borrower: string, onStage: (stage: ProveStage)
     });
   }
 
+  /** A relay that does not answer is the relay's, not Stellar's (review on #75). */
+  async function call(url: string, init?: RequestInit): Promise<Response> {
+    try {
+      return await send(url, init);
+    } catch (e) {
+      throw new RelayError("unreachable", `the relay did not answer: ${(e as Error)?.message ?? e}`);
+    }
+  }
+
   async function json<T>(res: Response): Promise<T> {
-    const body = (await res.json().catch(() => ({}))) as T & { error?: unknown };
+    const body = (await res.json().catch(() => ({}))) as T & { error?: unknown; code?: unknown };
     if (!res.ok) {
       const message = typeof body.error === "string" ? body.error : `the relay answered ${res.status}`;
-      throw new RelayError(res.status === 409 || res.status === 503 ? "busy" : "internal", message);
+      // The relay names the refusal in `code` (docs/api.md); the status is the fallback.
+      const code = CODES.find((c) => c === body.code) ?? (res.status === 409 ? "running" : res.status === 503 ? "busy" : "internal");
+      throw new RelayError(code, message);
     }
     return body;
   }
 
-  async function run(): Promise<AdvanceRequest> {
+  /** Poll a job until it ends. Null when the relay no longer has it (it restarted, or an hour passed). */
+  async function follow(id: string, first?: Job): Promise<Job | null> {
+    const deadline = Date.now() + timeoutMs;
+    let job = first;
+    while (!job || (job.stage !== "done" && job.stage !== "failed")) {
+      if (Date.now() > deadline) throw new RelayError("prove", "the proof took too long");
+      if (job) await sleep(pollMs);
+      alive();
+      const res = await call(`${base}/proofs/${encodeURIComponent(id)}`, { cache: "no-store" });
+      if (res.status === 404) return null;
+      job = await json<Job>(res);
+    }
+    return job;
+  }
+
+  async function prove(): Promise<Job> {
+    // A job this tab started before the creator left: wait on it rather than sign in again.
+    const kept = jobs.load(borrower);
+    if (kept) {
+      reading = true;
+      onStage("reading");
+      const job = await follow(kept);
+      if (job) return job;
+      jobs.clear();
+      reading = false;
+    }
     signIn();
     const accessToken = await token;
     alive();
     reading = true;
     onStage("reading");
     const started = await json<Job>(
-      await get(`${base}/proofs`, {
+      await call(`${base}/proofs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ borrower, accessToken }),
       }),
     );
-    const deadline = Date.now() + timeoutMs;
-    let job = started;
-    while (job.stage !== "done" && job.stage !== "failed") {
-      if (Date.now() > deadline) throw new RelayError("prove", "the proof took too long");
-      await sleep(pollMs);
-      alive();
-      job = await json<Job>(await get(`${base}/proofs/${encodeURIComponent(started.id)}`, { cache: "no-store" }));
-    }
+    jobs.save(borrower, started.id);
+    const job = await follow(started.id, started);
+    if (!job) throw new RelayError("internal", "the relay lost the proof job");
+    return job;
+  }
+
+  async function run(): Promise<AdvanceRequest> {
+    const job = await prove();
     alive();
+    // Ended either way: the next press starts a new proof. Left alone while abandoned, so coming back
+    // finds the result.
+    jobs.clear();
     if (job.stage === "failed" || !job.request) {
       throw new RelayError(job.error?.code ?? "internal", job.error?.message ?? "the proof failed");
     }

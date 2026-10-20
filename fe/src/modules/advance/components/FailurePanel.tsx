@@ -127,6 +127,10 @@ export function FailurePanel({
       case "googleSignIn":
       case "noAdsense":
       case "relayFailed":
+      case "proofRunning":
+      case "relayUnreachable":
+      case "googleUnavailable":
+      case "popupBlocked":
         illustration = <IlloSessionCancelled data-illo="session-cancelled" />;
         actions = (
           <>

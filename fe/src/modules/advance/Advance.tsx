@@ -7,7 +7,7 @@ import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { notify } from "@/components/ui/Toaster";
 import { isSignatureDeclined } from "@/lib/errors";
 import { formatUsd, formatWindow } from "@/lib/format";
-import { proveRevenue, type ProveSession, type ProveStage } from "@/lib/reclaim";
+import { proofRunning, proveRevenue, type ProveSession, type ProveStage } from "@/lib/reclaim";
 import {
   TransactionFailedError,
   awaitAdvance,
@@ -87,13 +87,15 @@ export function Advance() {
     [],
   );
 
-  // Back on /advance with a `request_advance` still out from an earlier visit: wait on that one. Each
+  // Back on /advance with a `request_advance` still out from an earlier visit: wait on that one. Or with
+  // a proof the relay is still making for this wallet: wait on that, without signing in again. Each
   // mount waits afresh; the unmount above drops the answer of the one before.
   useEffect(() => {
     if (!address) return;
     const pending = loadPending(address);
     if (pending) void pickUp(pending);
-    // `pickUp` only reads refs and setters; it runs per mount and per wallet.
+    else if (proofRunning(address)) void prove();
+    // `pickUp` and `prove` only read refs and setters; they run per mount and per wallet.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address]);
 
