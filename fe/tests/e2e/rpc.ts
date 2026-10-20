@@ -26,11 +26,45 @@ export type Chain = {
   trustline: boolean;
   /** Answer every call with a server error instead. */
   down?: boolean;
+  /**
+   * How far the ledger's clock is ahead of now, in seconds, as NOT_FOUND answers report it
+   * (`latestLedgerCloseTime`). Set it past a transaction's time limit to say "that one can never land".
+   */
+  ledgerAheadS?: number;
   /** How a submitted changeTrust ends: lands (default), refused before the ledger, or failed on it. */
   send?: "ok" | "refused" | "failed";
   /** How the advance contract answers (#20). Leave it out and it accepts every proof. */
   advance?: AdvanceChain;
+  /** The USDC the wallet holds, in stroops, once it has a trustline. Defaults to none (#21). */
+  usdc?: bigint;
+  /**
+   * How every other call to the advance contract goes, `repay` above all (#21). Without it, such a call
+   * is refused as unexpected.
+   */
+  contract?: ContractStub;
 };
+
+export type ContractStub = {
+  /** Refuse the simulation with this contract code (`docs/interface.md` §7), e.g. 51. */
+  refuse?: number;
+  /** How a submitted call ends: lands (default), refused before the ledger, or failed on it. */
+  send?: "ok" | "refused" | "failed";
+  /** Holds the ledger's answer back until it resolves, so a spec can see the pending state. */
+  hold?: Promise<void>;
+  /** While true, a sent call is not on the ledger yet (NOT_FOUND); set it false to let it land. */
+  holdLedger?: boolean;
+  /** The send never reaches the node: no answer to it (503), and the call is never taken. */
+  dropSend?: boolean;
+  /** The node stops answering polls for the sent call (503), whatever happened to it. */
+  dropPolls?: boolean;
+  /** Called once a `repay` lands, with its amount in stroops and its hash. */
+  onRepaid?: (amount: bigint, hash: string) => void;
+  /** The method and arguments of every call that reached the ledger, for assertions. */
+  sent?: { method: string; args: unknown[] }[];
+};
+
+/** The calls 02 Prove and accept makes; the `advance` stub above answers these. */
+const ADVANCE_CALLS = new Set(["quote", "request_advance", "nullifier_for", "advance", "sizing"]);
 
 /** The advance contract, as far as 02 Prove and accept can see it. */
 export type AdvanceChain = {
@@ -80,12 +114,12 @@ function accountEntry(accountId: xdr.AccountId) {
   );
 }
 
-function trustlineEntry(accountId: xdr.AccountId) {
+function trustlineEntry(accountId: xdr.AccountId, balance: bigint) {
   return xdr.LedgerEntryData.trustline(
     new xdr.TrustLineEntry({
       accountId,
       asset: USDC.toTrustLineXDRObject(),
-      balance: xdr.Int64.fromString("0"),
+      balance: xdr.Int64.fromString(balance.toString()),
       limit: xdr.Int64.fromString("9223372036854775807"),
       flags: 1,
       ext: new xdr.TrustLineEntryExt(0),
@@ -185,6 +219,20 @@ export async function mockRpc(page: Page, chain: Chain) {
   let checks = 0;
   let sentAdvance: { revenueUsd: string; source: string } | null = null;
   let envelope = "";
+  // The last other contract call sent (#21), its hash, and whether it has landed. A transaction lands
+  // once, however often the app polls for it.
+  let other: { method: string; args: unknown[] } | null = null;
+  let otherHash = "";
+  let applied = false;
+  // Hashes the network has taken, so an unknown or refused one is NOT_FOUND, as on a real node.
+  const taken = new Set<string>();
+  const notFound = () => ({
+    status: "NOT_FOUND",
+    latestLedger: 101,
+    latestLedgerCloseTime: String(Math.floor(Date.now() / 1000) + (chain.ledgerAheadS ?? 0)),
+    oldestLedger: 1,
+    oldestLedgerCloseTime: "0",
+  });
   // Friendbot funds the account, as the real one does.
   await page.route("https://friendbot.stellar.org/**", (route) => {
     chain.account = true;
@@ -207,7 +255,7 @@ export async function mockRpc(page: Page, chain: Chain) {
             entries.push({ key: key.toXDR("base64"), xdr: data.toXDR("base64"), lastModifiedLedgerSeq: 1 });
           }
           if (type === xdr.LedgerEntryType.trustline() && chain.account && chain.trustline) {
-            const data = trustlineEntry(key.trustLine().accountId());
+            const data = trustlineEntry(key.trustLine().accountId(), chain.usdc ?? 0n);
             entries.push({ key: key.toXDR("base64"), xdr: data.toXDR("base64"), lastModifiedLedgerSeq: 1 });
           }
         }
@@ -217,6 +265,11 @@ export async function mockRpc(page: Page, chain: Chain) {
         const call = contractCall(body.params.transaction as string);
         const adv = chain.advance ?? {};
         if (!call) return route.fulfill({ status: 400, body: "not a contract call" });
+        if (!ADVANCE_CALLS.has(call.fn)) {
+          if (!chain.contract) return route.fulfill({ status: 400, body: `unexpected contract call ${call.fn}` });
+          if (chain.contract.refuse !== undefined) return reply(contractError(chain.contract.refuse));
+          return reply(simulated(i128(0n)));
+        }
         switch (call.fn) {
           case "quote": {
             const stroops = size(scValToNative(call.args[0]) as string);
@@ -282,6 +335,17 @@ export async function mockRpc(page: Page, chain: Chain) {
           }
           return reply({ status: "PENDING", hash: adv.hash, latestLedger: 100, latestLedgerCloseTime: "0" });
         }
+        if (call && chain.contract) {
+          other = { method: call.fn, args: call.args.map((a) => scValToNative(a)) };
+          otherHash = TransactionBuilder.fromXDR(envelope, Networks.TESTNET).hash().toString("hex");
+          applied = false;
+          if (chain.contract.dropSend) return route.fulfill({ status: 503, body: "unavailable" });
+          if ((chain.contract.send ?? "ok") === "refused") {
+            return reply({ status: "ERROR", hash: otherHash, latestLedger: 100, latestLedgerCloseTime: "0" });
+          }
+          taken.add(otherHash);
+          return reply({ status: "PENDING", hash: otherHash, latestLedger: 100, latestLedgerCloseTime: "0" });
+        }
         if (chain.send === "refused") {
           return reply({ status: "ERROR", hash: "e2e".padEnd(64, "0"), latestLedger: 100, latestLedgerCloseTime: "0" });
         }
@@ -319,8 +383,28 @@ export async function mockRpc(page: Page, chain: Chain) {
             resultMetaXdr: metaWithReturn(i128(size(sentAdvance?.revenueUsd ?? "0"))),
           });
         }
+        let failed = chain.send === "failed";
+        if (other && chain.contract?.dropPolls) return route.fulfill({ status: 503, body: "unavailable" });
+        // A contract call the network never took (refused, or not sent yet) is not on any ledger.
+        if (other && chain.contract && !taken.has(body.params.hash as string)) return reply(notFound());
+        if (other && chain.contract && body.params.hash === otherHash) {
+          const contract = chain.contract;
+          if (contract.holdLedger) return reply(notFound());
+          await contract.hold;
+          failed = contract.send === "failed";
+          if (!failed && !applied) {
+            // The ledger moves the USDC, and the indexer behind the API sees it.
+            applied = true;
+            contract.sent = [...(contract.sent ?? []), other];
+            if (other.method === "repay") {
+              const amount = other.args[2] as bigint;
+              chain.usdc = (chain.usdc ?? 0n) - amount;
+              contract.onRepaid?.(amount, otherHash);
+            }
+          }
+        }
         return reply({
-          status: chain.send === "failed" ? "FAILED" : "SUCCESS",
+          status: failed ? "FAILED" : "SUCCESS",
           latestLedger: 101,
           latestLedgerCloseTime: "0",
           oldestLedger: 1,

@@ -8,20 +8,21 @@ export function shortAddress(address: string): string {
 const STROOPS_PER_USDC = 10_000_000n;
 
 /**
- * A stroop amount split the way the design shows money: whole part solid, two decimals faded
- * (`300` + `.00`). Rounds down to the cent, so the screen never shows more than the ledger holds.
- * Thousands are grouped: `1,240`.
+ * A stroop amount split the way the design shows money: whole part solid, decimals faded (`300` +
+ * `.00`). Two decimals at least, and every further one the amount has (USDC has 7): a figure is never a
+ * rounded version of what the ledger holds or what a creator signs, so `12.509` stays `12.509`
+ * (#21 review S4). Thousands are grouped: `1,240`.
  */
 export function usdcParts(stroops: bigint): { whole: string; decimals: string } {
   const negative = stroops < 0n;
   const abs = negative ? -stroops : stroops;
-  const cents = abs / 100_000n;
-  const whole = (cents / 100n).toLocaleString("en-US");
-  const decimals = `.${(cents % 100n).toString().padStart(2, "0")}`;
-  return { whole: negative ? `-${whole}` : whole, decimals };
+  const whole = (abs / STROOPS_PER_USDC).toLocaleString("en-US");
+  let decimals = (abs % STROOPS_PER_USDC).toString().padStart(7, "0").replace(/0+$/, "");
+  if (decimals.length < 2) decimals = decimals.padEnd(2, "0");
+  return { whole: negative ? `-${whole}` : whole, decimals: `.${decimals}` };
 }
 
-/** `300.00 USDC`, for places that show the figure as one string. */
+/** `300.00 USDC`, `12.509 USDC`: for places that show the figure as one string. */
 export function formatUsdc(stroops: bigint): string {
   const { whole, decimals } = usdcParts(stroops);
   return `${whole}${decimals} USDC`;
@@ -57,7 +58,13 @@ export function formatUsd(revenueUsd: string): string {
   return `$${whole}.${(m[2] ?? "").padEnd(2, "0")}`;
 }
 
-const MONTH_NAMES = [
+/** `$360.00` from cents, as the API gives proven revenue, with thousands grouped. */
+export function formatUsdCents(cents: bigint): string {
+  return `$${(cents / 100n).toLocaleString("en-US")}.${(cents % 100n).toString().padStart(2, "0")}`;
+}
+
+/** January to December, for a month written out (the offer sentence, the History month headings). */
+export const MONTH_NAMES = [
   "January",
   "February",
   "March",

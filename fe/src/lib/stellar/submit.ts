@@ -1,4 +1,4 @@
-import { TransactionBuilder, rpc } from "@stellar/stellar-sdk";
+import { FeeBumpTransaction, TransactionBuilder, rpc } from "@stellar/stellar-sdk";
 import { NETWORK_PASSPHRASE } from "./network";
 
 /**
@@ -17,11 +17,17 @@ export class SubmitError extends Error {
   outcome: SubmitOutcome;
   /** No answer at all, as opposed to a ledger that answered "not yet": the network may be the trouble. */
   noAnswer: boolean;
-  constructor(message: string, outcome: SubmitOutcome, noAnswer = false) {
+  /**
+   * For "not yet": the close time (s) of the latest ledger the node had when it answered. Compared with
+   * a transaction's time limit, it tells "not yet" from "never": only the ledger's own clock can.
+   */
+  ledgerTime?: number;
+  constructor(message: string, outcome: SubmitOutcome, noAnswer = false, ledgerTime?: number) {
     super(message);
     this.name = "SubmitError";
     this.outcome = outcome;
     this.noAnswer = noAnswer;
+    this.ledgerTime = ledgerTime;
   }
 }
 
@@ -36,7 +42,7 @@ export type Landed = { hash: string; result: rpc.Api.GetSuccessfulTransactionRes
 export async function submitSigned(
   server: rpc.Server,
   signedXdr: string,
-  { attempts, onSent }: { attempts: number; onSent?: (hash: string) => void },
+  { attempts, onSent }: { attempts: number; onSent?: (hash: string, validUntil?: number) => void },
 ): Promise<Landed> {
   // A wallet answer that is not a transaction never left the page.
   let signed: ReturnType<typeof TransactionBuilder.fromXDR>;
@@ -45,8 +51,11 @@ export async function submitSigned(
   } catch {
     throw new SubmitError("The wallet did not return a transaction", "refused");
   }
-  // The hash is the signed transaction's own, known before it leaves.
-  onSent?.(signed.hash().toString("hex"));
+  // The hash is the signed transaction's own, known before it leaves. So is the last moment a ledger
+  // may take it (its time bounds, in seconds): past that, one never seen will never land.
+  const inner = signed instanceof FeeBumpTransaction ? signed.innerTransaction : signed;
+  const maxTime = Number(inner.timeBounds?.maxTime ?? 0);
+  onSent?.(signed.hash().toString("hex"), maxTime > 0 ? maxTime : undefined);
   let sent: rpc.Api.SendTransactionResponse;
   try {
     sent = await server.sendTransaction(signed);
@@ -71,5 +80,11 @@ export async function waitFor(server: rpc.Server, hash: string, attempts: number
   if (result.status === rpc.Api.GetTransactionStatus.FAILED) {
     throw new SubmitError("The transaction failed on the ledger", "failed");
   }
-  throw new SubmitError(`The transaction was not confirmed (${result.status})`, "unconfirmed");
+  const closed = Number(result.latestLedgerCloseTime);
+  throw new SubmitError(
+    `The transaction was not confirmed (${result.status})`,
+    "unconfirmed",
+    false,
+    closed > 0 ? closed : undefined,
+  );
 }

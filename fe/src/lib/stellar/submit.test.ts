@@ -11,6 +11,8 @@ const tx = new TransactionBuilder(new Account(ADDRESS, "1"), { fee: BASE_FEE, ne
 const signed = tx.toXDR();
 /** The signed transaction's own hash, which the network answers with too. */
 const HASH = tx.hash().toString("hex");
+/** Its time limit, `setTimeout(30)` above: past it, a ledger can no longer take it. */
+const VALID_UNTIL = Number(tx.timeBounds?.maxTime);
 
 function server(send: string | Error, final?: rpc.Api.GetTransactionStatus) {
   return {
@@ -27,7 +29,7 @@ describe("submitSigned", () => {
     const onSent = vi.fn();
     const s = server("PENDING", rpc.Api.GetTransactionStatus.SUCCESS);
     await expect(submitSigned(s, signed, { attempts: 5, onSent })).resolves.toMatchObject({ hash: HASH });
-    expect(onSent).toHaveBeenCalledWith(HASH);
+    expect(onSent).toHaveBeenCalledWith(HASH, VALID_UNTIL);
     expect(s.pollTransaction).toHaveBeenCalledWith(HASH, { attempts: 5 });
   });
 
@@ -36,7 +38,7 @@ describe("submitSigned", () => {
     await expect(
       submitSigned(server(new TypeError("fetch failed")), signed, { attempts: 5, onSent }),
     ).rejects.toMatchObject({ outcome: "unconfirmed", noAnswer: true });
-    expect(onSent).toHaveBeenCalledWith(HASH);
+    expect(onSent).toHaveBeenCalledWith(HASH, VALID_UNTIL);
   });
 
   it("reports a send the network refused as refused, so the caller forgets the hash it was given", async () => {
@@ -74,6 +76,16 @@ describe("waitFor", () => {
     await expect(waitFor(server("PENDING", rpc.Api.GetTransactionStatus.NOT_FOUND), HASH, 5)).rejects.toMatchObject({
       outcome: "unconfirmed",
       noAnswer: false,
+    });
+  });
+
+  it("carries the ledger's close time with a not found, so a time limit is judged on its clock", async () => {
+    const answer = { status: rpc.Api.GetTransactionStatus.NOT_FOUND, latestLedgerCloseTime: "1792000000" };
+    const node = { pollTransaction: vi.fn(async () => answer) } as unknown as rpc.Server;
+    await expect(waitFor(node, HASH, 5)).rejects.toMatchObject({
+      outcome: "unconfirmed",
+      noAnswer: false,
+      ledgerTime: 1_792_000_000,
     });
   });
 

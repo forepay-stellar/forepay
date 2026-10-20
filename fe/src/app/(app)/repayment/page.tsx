@@ -1,1 +1,5 @@
-export default function RepaymentPage() { return null; } // #21 renders modules/repayment here
+import { Repayment } from "@/modules/repayment/Repayment";
+
+export default function RepaymentPage() {
+  return <Repayment />;
+}

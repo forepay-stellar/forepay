@@ -19,14 +19,24 @@ export const USDC = (() => {
   return { code: code ?? "", issuer: issuer ?? "" };
 })();
 
+/** The advance contract (`docs/deployments.md`). */
+export const ADVANCE_CONTRACT_ID = process.env.NEXT_PUBLIC_ADVANCE_CONTRACT_ID ?? "";
+
+const EXPLORER = "https://stellar.expert/explorer/testnet";
+
 /** stellar.expert, the "View on Stellar Expert" link in the wallet menu. */
 export function explorerAccountUrl(address: string): string {
-  return `https://stellar.expert/explorer/testnet/account/${address}`;
+  return `${EXPLORER}/account/${address}`;
 }
 
-/** A transaction on stellar.expert, the "View receipt" link (brief §3, rule 4). */
+/** A transaction on stellar.expert: every "Receipt" and "View receipt" (brief §3, term table). */
 export function explorerTxUrl(hash: string): string {
-  return `https://stellar.expert/explorer/testnet/tx/${hash}`;
+  return `${EXPLORER}/tx/${hash}`;
+}
+
+/** The advance contract on stellar.expert ("View contract" on 3a). */
+export function explorerContractUrl(): string {
+  return `${EXPLORER}/contract/${ADVANCE_CONTRACT_ID}`;
 }
 
 /** Testnet's faucet for XLM. A new account needs a little XLM before it can hold any trustline. */

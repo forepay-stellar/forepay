@@ -8,8 +8,8 @@ import {
   scValToNative,
   xdr,
 } from "@stellar/stellar-sdk";
-import { NETWORK_PASSPHRASE, RPC_URL } from "./network";
 import { sourceAccount } from "./account";
+import { ADVANCE_CONTRACT_ID as CONTRACT_ID, NETWORK_PASSPHRASE, RPC_URL } from "./network";
 import { SubmitError, submitSigned, waitFor } from "./submit";
 
 /**
@@ -22,7 +22,6 @@ import { SubmitError, submitSigned, waitFor } from "./submit";
  * Amounts are i128 stroops on chain (7 decimals for USDC) and `bigint` here. Convert only in
  * `lib/format.ts`.
  */
-const CONTRACT_ID = process.env.NEXT_PUBLIC_ADVANCE_CONTRACT_ID ?? "";
 
 /** A refusal by the advance contract. `code` is the number in `docs/interface.md` §7. */
 export class ContractError extends Error {
@@ -42,12 +41,15 @@ export class TransactionFailedError extends Error {
   unconfirmed: boolean;
   /** Unconfirmed because the network gave no answer at all, not because the ledger said "not yet". */
   noAnswer: boolean;
-  constructor(message: string, charged: boolean, unconfirmed = false, noAnswer = false) {
+  /** For a ledger's "not yet": that ledger's close time, in seconds (see `SubmitError.ledgerTime`). */
+  ledgerTime?: number;
+  constructor(message: string, charged: boolean, unconfirmed = false, noAnswer = false, ledgerTime?: number) {
     super(message);
     this.name = "TransactionFailedError";
     this.charged = charged;
     this.unconfirmed = unconfirmed;
     this.noAnswer = noAnswer;
+    this.ledgerTime = ledgerTime;
   }
 }
 
@@ -130,7 +132,13 @@ const WRITE_ATTEMPTS = 120;
 /** `submit.ts`'s outcome in the words the contract's callers use. */
 function asTransactionFailed(e: unknown): unknown {
   if (!(e instanceof SubmitError)) return e;
-  return new TransactionFailedError(e.message, e.outcome === "failed", e.outcome === "unconfirmed", e.noAnswer);
+  return new TransactionFailedError(
+    e.message,
+    e.outcome === "failed",
+    e.outcome === "unconfirmed",
+    e.noAnswer,
+    e.ledgerTime,
+  );
 }
 
 /** A write, signed in the wallet. Resolves with the transaction hash and the returned value. */
@@ -139,7 +147,7 @@ async function write<T>(
   method: string,
   args: xdr.ScVal[],
   signTransaction: (xdr: string) => Promise<string>,
-  onSent?: (hash: string) => void,
+  onSent?: (hash: string, validUntil?: number) => void,
 ): Promise<{ hash: string; value: T }> {
   const { tx, sim } = await simulate(source, method, args);
   const prepared = rpc.assembleTransaction(tx, sim).build();
@@ -276,7 +284,7 @@ export async function requestAdvance(
   borrower: string,
   req: AdvanceRequest,
   signTransaction: (xdr: string) => Promise<string>,
-  onSent?: (hash: string) => void,
+  onSent?: (hash: string, validUntil?: number) => void,
 ): Promise<{ hash: string; value: bigint }> {
   const args = advanceArgs(borrower, req);
   const { hash, value } = await write<unknown>(borrower, "request_advance", args, signTransaction, onSent);
@@ -301,11 +309,23 @@ export function repay(
   nullifier: string,
   amount: bigint,
   signTransaction: (xdr: string) => Promise<string>,
+  onSent?: (hash: string, validUntil?: number) => void,
 ): Promise<{ hash: string; value: bigint }> {
   return write<bigint>(
     from,
     "repay",
     [new Address(from).toScVal(), bytes32(nullifier), nativeToScVal(amount, { type: "i128" })],
     signTransaction,
+    onSent,
   );
+}
+
+/** Wait again for a `repay` already sent (#21), by its hash. Resolves once the ledger confirms it. */
+export async function awaitRepay(hash: string): Promise<{ hash: string }> {
+  try {
+    await waitFor(server(), hash, WRITE_ATTEMPTS);
+    return { hash };
+  } catch (e) {
+    throw asTransactionFailed(e);
+  }
 }

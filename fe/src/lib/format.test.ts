@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { formatLedgerTime, formatUsd, formatUsdc, formatWindow, formatXlmFee, parseUsdc, shortAddress, usdcParts } from "./format";
+import {
+  formatLedgerTime,
+  formatUsd,
+  formatUsdCents,
+  formatUsdc,
+  formatWindow,
+  formatXlmFee,
+  parseUsdc,
+  shortAddress,
+  usdcParts,
+} from "./format";
 
 describe("shortAddress", () => {
   it("keeps the first and last four characters, as the wallet chip shows them", () => {
@@ -14,8 +24,9 @@ describe("usdcParts and formatUsdc", () => {
     expect(formatUsdc(1_000_000_000n)).toBe("100.00 USDC");
   });
 
-  it("rounds down to the cent", () => {
-    expect(usdcParts(1_999_999n)).toEqual({ whole: "0", decimals: ".19" });
+  it("never rounds: every decimal the amount has, two at least", () => {
+    expect(usdcParts(1_999_999n)).toEqual({ whole: "0", decimals: ".1999999" });
+    expect(usdcParts(125_090_000n)).toEqual({ whole: "12", decimals: ".509" });
   });
 });
 
@@ -71,5 +82,21 @@ describe("formatXlmFee", () => {
     expect(formatXlmFee(100_000n)).toBe("Up to 0.01 XLM");
     expect(formatXlmFee(312_345n)).toBe("Up to 0.04 XLM");
     expect(formatXlmFee(12_000_001n)).toBe("Up to 1.21 XLM");
+  });
+});
+
+describe("formatUsdc", () => {
+  it("shows every decimal an amount has, and at least two", () => {
+    expect(formatUsdc(125_090_000n)).toBe("12.509 USDC");
+    expect(formatUsdc(300_000_000n)).toBe("30.00 USDC");
+    expect(formatUsdc(1n)).toBe("0.0000001 USDC");
+    expect(formatUsdc(12_345_678_900_000n)).toBe("1,234,567.89 USDC");
+  });
+});
+
+describe("formatUsdCents", () => {
+  it("reads the API's cents as dollars, grouped", () => {
+    expect(formatUsdCents(36_000n)).toBe("$360.00");
+    expect(formatUsdCents(124_000_05n)).toBe("$124,000.05");
   });
 });

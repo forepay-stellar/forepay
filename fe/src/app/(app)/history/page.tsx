@@ -1,1 +1,5 @@
-export default function HistoryPage() { return null; } // #21 renders modules/history here
+import { History } from "@/modules/history/History";
+
+export default function HistoryPage() {
+  return <History />;
+}

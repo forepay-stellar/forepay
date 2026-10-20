@@ -1,23 +1,14 @@
-import { classifyConnectError, type ProveFailure } from "@/lib/errors";
+import { classifySignError, type ProveFailure } from "@/lib/errors";
 import { formatUsd } from "@/lib/format";
 import { ReclaimCancelledError, RelayNotReadyError } from "@/lib/reclaim";
 import { ContractError, MissingConfigError, SimulationError, TransactionFailedError } from "@/lib/stellar/contract";
+import { WalletSignError } from "@/lib/stellar/wallet-error";
 
 /**
  * Why 02 Prove and accept stopped: a contract refusal (its code from `docs/interface.md` §7), one of
  * the failures around it, or an offer too small to send.
  */
 export type AdvanceFailure = { code: number } | { kind: ProveFailure } | { kind: "tooSmall"; revenue: string };
-
-/** The wallet threw while it was asked to sign. Keeps wallet trouble apart from network trouble. */
-export class WalletSignError extends Error {
-  cause: unknown;
-  constructor(cause: unknown) {
-    super(cause instanceof Error ? cause.message : String(cause));
-    this.name = "WalletSignError";
-    this.cause = cause;
-  }
-}
 
 /** A failure that is not about the wallet: the Reclaim session, the contract, the network, the build. */
 function sorted(e: unknown): AdvanceFailure {
@@ -55,20 +46,8 @@ export function proveFailure(e: unknown, revenueUsd?: string): AdvanceFailure {
 /** Accepting. `signed` is true once the wallet handed back a signature, so the transaction may be out. */
 export function acceptFailure(e: unknown, signed: boolean): AdvanceFailure {
   if (e instanceof WalletSignError) {
-    // Wallets share no error codes. A network mismatch is named in the message when it is named at all.
-    if (/passphrase|wrong network|network mismatch|mainnet|public global/i.test(e.message)) {
-      return { kind: "walletWrongNetwork" };
-    }
-    switch (classifyConnectError(e.cause)) {
-      case "declined":
-        return { kind: "declined" };
-      case "locked":
-        return { kind: "walletLocked" };
-      case "wrongNetwork":
-        return { kind: "walletWrongNetwork" };
-      default:
-        return { kind: "walletNoAnswer" };
-    }
+    const kinds = { declined: "declined", locked: "walletLocked", wrongNetwork: "walletWrongNetwork", noAnswer: "walletNoAnswer" } as const;
+    return { kind: kinds[classifySignError(e)] };
   }
   if (e instanceof TransactionFailedError) {
     return { kind: e.unconfirmed ? "unconfirmed" : e.charged ? "charged" : "refused" };
