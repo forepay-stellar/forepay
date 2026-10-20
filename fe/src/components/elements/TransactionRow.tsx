@@ -17,8 +17,11 @@ import { cn } from "@/lib/cn";
 export type RowIcon = "advance" | "repayment" | "failed" | "pending" | "proof" | "trustline";
 export type RowTone = "success" | "danger" | "pending" | "fg" | "subtle" | "muted";
 
-/** A label that a phone says shorter ("Failed, no USDC moved" → "Failed"). */
-export type Label = { text: string; short?: string };
+/**
+ * A label that a phone says shorter ("Failed, no USDC moved" → "Failed"). An amount carries its unit
+ * apart, so every row can put it under the figure at once on a narrow phone.
+ */
+export type Label = { text: string; short?: string; unit?: string };
 
 const tile: Record<RowIcon, { className: string; icon: ReactNode }> = {
   advance: { className: "bg-brand text-fg-on-brand", icon: <ArrowDownToLine aria-hidden /> },
@@ -91,8 +94,16 @@ export function TransactionRow({
         </span>
       </span>
       <span className="flex flex-col items-end gap-1 text-right">
+        {/* Under 360 the longest amount no longer fits beside the title, so every row puts the unit
+            under its figure, and the column stays even (section 08). */}
         <span className={cn("text-[15px] font-semibold", tone[amountTone])}>
           <Text label={amount} />
+          {amount.unit && (
+            <>
+              {" "}
+              <span className="block min-[22.5rem]:inline">{amount.unit}</span>
+            </>
+          )}
         </span>
         {receiptHref && (
           <span className="flex items-center gap-1 whitespace-nowrap text-[13px] text-fg-muted group-hover:text-brand-strong">

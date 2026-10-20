@@ -1,11 +1,17 @@
 import { TransactionRow } from "@/components/elements/TransactionRow";
-import { formatUsdCents, formatUsdc } from "@/lib/format";
+import { formatUsdCents, usdcParts } from "@/lib/format";
 import { rowDate, type Row } from "@/lib/ledger";
 import { explorerTxUrl } from "@/lib/stellar/network";
 
 // One line of 3a "Transactions" and 3b "All transactions", in the frames' words. Money leaving the
 // wallet is written with a real minus sign (U+2212), money arriving with a plus, in emerald.
 const MINUS = "−";
+
+/** A signed USDC amount, its unit apart (see `Label`). */
+function usdc(sign: string, stroops: bigint) {
+  const { whole, decimals } = usdcParts(stroops);
+  return { text: `${sign}${whole}${decimals}`, unit: "USDC" };
+}
 
 const completed = { status: { text: "Completed" }, statusTone: "success" as const };
 // A failed row reached the ledger and failed there (#16): the network fee was spent and no USDC moved.
@@ -25,7 +31,7 @@ export function LedgerRow({ row }: { row: Row }) {
           status={{ text: "Pending" }}
           statusTone="pending"
           date="Just now"
-          amount={{ text: `${MINUS}${formatUsdc(row.amount)}` }}
+          amount={usdc(MINUS, row.amount)}
           amountTone="fg"
           receiptHref={row.hash ? explorerTxUrl(row.hash) : undefined}
         />
@@ -33,7 +39,7 @@ export function LedgerRow({ row }: { row: Row }) {
     case "advance":
     case "repayment": {
       const advance = row.kind === "advance";
-      const amount = { text: `${advance ? "+" : MINUS}${formatUsdc(row.amount)}` };
+      const amount = usdc(advance ? "+" : MINUS, row.amount);
       const title = { text: advance ? "Advance received" : "Repayment" };
       if (row.failed) {
         return <TransactionRow icon="failed" title={title} date={rowDate(row.at)} amount={amount} amountTone="subtle" receiptHref={explorerTxUrl(row.hash)} {...failed} />;

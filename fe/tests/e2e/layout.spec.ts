@@ -363,3 +363,26 @@ test("a fully repaid advance shows not-allowed over its turned-off buttons", asy
     expect(await cursorOver(button), name).toBe("not-allowed");
   }
 });
+
+test("under 360 every amount puts its unit under the figure, so the column stays even", async ({ page }) => {
+  await mockApi(page, frameLedger());
+  await mockRpc(page, { account: true, trustline: true, usdc: 8_200_000_000n, contract: {} });
+  await connected(page);
+  await page.goto("/history");
+  await expect(page.getByText("October 2026").first()).toBeVisible();
+  for (const [width, under] of [[320, true], [359, true], [360, false], [390, false], [1440, false]] as const) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.waitForTimeout(150);
+    // Each amount with a unit: is the unit on a line of its own?
+    const lines = await page.getByRole("listitem").evaluateAll((rows) =>
+      rows.flatMap((row) =>
+        [...row.querySelectorAll<HTMLElement>("span")]
+          .filter((s) => s.textContent === "USDC")
+          .map((unit) => unit.getBoundingClientRect().top > (unit.parentElement as HTMLElement).getBoundingClientRect().top + 2),
+      ),
+    );
+    expect(lines.length, `amounts at ${width}`).toBe(4);
+    expect(new Set(lines), `units under figures at ${width}: ${lines}`).toEqual(new Set([under]));
+  }
+  await expect(page.getByRole("listitem").first()).toContainText("−10.00 USDC");
+});
