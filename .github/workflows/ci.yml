@@ -159,6 +159,13 @@ jobs:
       - name: The claim fixture is what the generator produces
         run: python3 tools/make_claim_fixture.py --check
 
+      # The template-pinning tool runs exactly once, on the most consequential day of the
+      # project (#61), against the first real AdSense proof. A tool like that has to be
+      # known-good before that day, so its self-test derives the template from the signed
+      # fixture and checks that a window the proof was not signed for is refused.
+      - name: The template derivation works and refuses a wrong window
+        run: python3 tools/pin_template.py --self-test
+
       # The evidence pack (#27) is what a reviewer reads. A broken relative path or a
       # stale anchor in it is the cheapest possible way to lose credibility, so the
       # local half is checked on every push. The remote half — transactions on chain and
