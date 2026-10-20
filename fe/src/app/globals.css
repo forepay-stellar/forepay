@@ -1,0 +1,11 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* Light only for now: dark mode is not designed yet (#38). */
+body {
+  background: var(--color-canvas);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  /* The design's text layers use the font's own line height unless they set one. */
+  line-height: normal;
+}

@@ -1,9 +1,0 @@
-@import "tailwindcss";
-@import "./tokens.css";
-
-/* Light only for now: dark mode is not designed yet (#38). */
-body {
-  background: var(--color-canvas);
-  color: var(--color-fg);
-  font-family: var(--font-sans);
-}
