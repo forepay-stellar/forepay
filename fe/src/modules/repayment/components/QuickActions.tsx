@@ -5,7 +5,7 @@ import { cn } from "@/lib/cn";
 // Quick action tiles from "05 Product components", under the hero. A phone shows four narrow tiles with
 // shorter labels ("Pay all", "Stellar", "Proof").
 const tile =
-  "flex min-w-0 flex-1 flex-col items-center gap-2 rounded-tile bg-surface px-1.5 py-3.5 outline-none transition-colors hover:bg-subtle focus-visible:ring-2 focus-visible:ring-brand md:gap-3 md:px-4 md:py-[22px] disabled:pointer-events-none";
+  "flex min-w-0 flex-1 flex-col items-center gap-2 rounded-tile bg-surface px-1.5 py-3.5 outline-none transition-colors hover:bg-subtle focus-visible:ring-2 focus-visible:ring-brand md:gap-3 md:px-4 md:py-[22px]";
 
 function Face({ icon, label, short, disabled }: { icon: ReactNode; label: string; short: string; disabled?: boolean }) {
   return (

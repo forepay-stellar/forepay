@@ -322,3 +322,44 @@ test("repayment while the ledger loads", async ({ page }) => {
   await expect(page.getByRole("status", { name: "Reading your balance from Stellar" })).toBeVisible();
   await holdsAtEveryWidth(page, "3a loading");
 });
+
+/** The cursor the pointer shows over the middle of `locator`: what is really under it, not its own style. */
+async function cursorOver(locator: ReturnType<Page["locator"]>) {
+  return locator.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return hit && (hit === el || el.contains(hit)) ? getComputedStyle(hit).cursor : `not over it (${hit?.tagName})`;
+  });
+}
+
+test("everything clickable shows the pointer, and a disabled button shows it is not", async ({ page }) => {
+  await mockApi(page, frameLedger());
+  await mockRpc(page, { account: true, trustline: true, usdc: 8_200_000_000n, contract: {} });
+  await connected(page);
+  await page.goto("/repayment");
+  await expect(page.getByRole("region", { name: "What is left to repay" })).toContainText("60.00");
+  for (const name of ["25%", "Full amount", "Max", "Repay", "Pay in full"]) {
+    expect(await cursorOver(page.getByRole("button", { name, exact: true }).first()), name).toBe("pointer");
+  }
+  expect(await cursorOver(page.getByRole("link", { name: "See all" }))).toBe("pointer");
+  expect(await cursorOver(page.getByRole("button", { name: "Enter an amount" }))).toBe("not-allowed");
+  await page.getByRole("button", { name: /^Wallet / }).click();
+  const item = page.getByRole("menuitem").first();
+  await expect(item).toBeVisible();
+  expect(await cursorOver(item)).toBe("pointer");
+});
+
+test("a fully repaid advance shows not-allowed over its turned-off buttons", async ({ page }) => {
+  const ledger = frameLedger();
+  ledger.advances[0].repaid = ledger.advances[0].principal;
+  await mockApi(page, ledger);
+  await mockRpc(page, { account: true, trustline: true, usdc: 8_200_000_000n, contract: {} });
+  await connected(page);
+  await page.goto("/repayment");
+  await expect(page.getByRole("region", { name: "What is left to repay" })).toContainText("Nothing left to repay");
+  for (const name of ["Repay", "Pay in full", "Nothing left to repay"]) {
+    const button = page.getByRole("button", { name, exact: true }).first();
+    await expect(button).toBeDisabled();
+    expect(await cursorOver(button), name).toBe("not-allowed");
+  }
+});

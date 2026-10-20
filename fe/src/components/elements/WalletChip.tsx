@@ -28,7 +28,7 @@ export function WalletChip({
   }
 
   const item =
-    "flex w-full cursor-default items-center gap-2.5 rounded-[12px] px-3 py-[11px] text-[14px] font-medium outline-none data-[highlighted]:bg-subtle";
+    "flex w-full items-center gap-2.5 rounded-[12px] px-3 py-[11px] text-[14px] font-medium outline-none data-[highlighted]:bg-subtle";
 
   return (
     <Menu.Root>

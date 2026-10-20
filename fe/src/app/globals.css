@@ -9,3 +9,24 @@ body {
   /* The design's text layers use the font's own line height unless they set one. */
   line-height: normal;
 }
+
+/*
+ * Tailwind 4's preflight gives <button> the default cursor (Tailwind 3 gave it the pointer), so every
+ * button showed the arrow while links showed the pointer. One rule for everything clickable (#70).
+ */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="menuitem"],
+  [role="tab"],
+  label[for],
+  summary,
+  select {
+    cursor: pointer;
+  }
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
+
