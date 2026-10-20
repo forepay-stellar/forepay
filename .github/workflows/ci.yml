@@ -151,3 +151,10 @@ jobs:
       # vectors before printing anything, so a broken primitive exits non-zero.
       - name: secp256k1 probe self-test
         run: python3 -I tools/secp256k1_probe.py
+
+      # The claim fixture is the cross-language vector the contract's digest tests run
+      # against. Before #76 it was a hand-pasted blob nobody could re-derive, so when the
+      # encoding changed there was no way to tell the fixture had gone stale. Now the
+      # script is the derivation and this step fails if the committed file disagrees.
+      - name: The claim fixture is what the generator produces
+        run: python3 tools/make_claim_fixture.py --check
