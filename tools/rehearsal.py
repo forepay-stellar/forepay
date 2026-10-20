@@ -77,7 +77,7 @@ STEPS = {
     "N.1": "An invalid proof is rejected (#24)",
     "N.2": "A replayed proof is rejected (#25)",
     "N.3": "A stale proof is rejected (#26)",
-    "B.1": "A proof bound to one borrower cannot be spent by another (#18)",
+    "B.1": "Another borrower's proof cannot be spent as your own (#18)",
 }
 
 
@@ -441,9 +441,14 @@ def main() -> int:
                   advance_args(BORROWER, "19.00", f"pub-n3{suffix}", *window, stale, s3, r3), "#12")
 
     tsb = int(time.time())
-    sb, rb = build_claim(f"pub-b{suffix}", *window, "19.00", tsb, WITNESS_KEY)
-    step_negative(ev, "B.1", a.contract, "a proof bound to one borrower, submitted for another",
-                  advance_args(OTHER, "19.00", f"pub-b{suffix}", *window, tsb, sb, rb), "#14")
+    # Bound to OTHER, submitted by us. This direction is the real attack — stealing
+    # someone else's proof into your own account — and it is the only one still reachable
+    # now that #81 requires the borrower's own authorisation: submitting a proof *for*
+    # someone else is refused as Unauthorized before the digest is ever rebuilt, which
+    # would have told us nothing about the binding.
+    sb, rb = build_claim(f"pub-b{suffix}", *window, "19.00", tsb, WITNESS_KEY, borrower=OTHER)
+    step_negative(ev, "B.1", a.contract, "another borrower's proof, submitted as our own",
+                  advance_args(BORROWER, "19.00", f"pub-b{suffix}", *window, tsb, sb, rb), "#14")
 
     green, total = render(ev, run_dir, a.contract)
     print(f"RESULT {green} / {total} GREEN")

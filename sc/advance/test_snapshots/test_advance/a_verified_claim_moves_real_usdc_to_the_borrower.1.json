@@ -98,7 +98,49 @@
     ],
     [],
     [],
-    [],
+    [
+      [
+        "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4",
+        {
+          "function": {
+            "contract_fn": {
+              "contract_address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK3IM",
+              "function_name": "request_advance",
+              "args": [
+                {
+                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4"
+                },
+                {
+                  "string": "1234.56"
+                },
+                {
+                  "string": "pub-1234567890123456"
+                },
+                {
+                  "string": "2026-07-01"
+                },
+                {
+                  "string": "2026-09-30"
+                },
+                {
+                  "u64": "1760000000"
+                },
+                {
+                  "u64": "1"
+                },
+                {
+                  "bytes": "0a1607562845069dcd91874ae32ffc55d2ce799078af623b8300c1765137ca0f577ba3ed8dc8895867e717734d9535536384718e77126229ed28327c54cf202f"
+                },
+                {
+                  "u32": 1
+                }
+              ]
+            }
+          },
+          "sub_invocations": []
+        }
+      ]
+    ],
     []
   ],
   "ledger": {
@@ -442,6 +484,26 @@
           "ext": "v0"
         },
         "live_until": 3110400
+      },
+      {
+        "entry": {
+          "last_modified_ledger_seq": 0,
+          "data": {
+            "contract_data": {
+              "ext": "v0",
+              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4",
+              "key": {
+                "ledger_key_nonce": {
+                  "nonce": "4837995959683129791"
+                }
+              },
+              "durability": "temporary",
+              "val": "void"
+            }
+          },
+          "ext": "v0"
+        },
+        "live_until": 6311999
       },
       {
         "entry": {

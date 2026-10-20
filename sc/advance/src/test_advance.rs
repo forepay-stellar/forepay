@@ -247,6 +247,54 @@ fn a_verified_claim_moves_real_usdc_to_the_borrower() {
 }
 
 #[test]
+#[should_panic(expected = "Unauthorized")]
+fn nobody_can_take_an_advance_in_someone_elses_name() {
+    // #81. This shipped unauthenticated, and "the money goes to the borrower anyway" is
+    // why it looked harmless. It is not: whoever submits the proof chooses when the
+    // advance is taken and at what figure, saddles the creator with a repayment they
+    // never asked for, and burns their nullifier for that whole reporting period — once,
+    // permanently. A forwarded proof is accepted inside the freshness hour by design, so
+    // the proof does not have to be stolen in any interesting way.
+    //
+    // `set_auths(&[])` rather than the usual `mock_all_auths`: an empty auth set is what
+    // a third party submitting someone else's proof actually looks like.
+    let f = fx(ADVANCE_CAP_STROOPS * 2);
+    f.env.set_auths(&[]);
+    f.client.request_advance(
+        &f.borrower,
+        &String::from_str(&f.env, REVENUE),
+        &String::from_str(&f.env, PUB_ID),
+        &String::from_str(&f.env, WINDOW_START),
+        &String::from_str(&f.env, WINDOW_END),
+        &TIMESTAMP_S,
+        &EPOCH,
+        &signature(&f.env),
+        &RECOVERY_ID,
+    );
+}
+
+#[test]
+#[should_panic(expected = "Unauthorized")]
+fn nobody_can_burn_someone_elses_nullifier_for_free() {
+    // The same hole in `verify_and_reserve`, which is worse: it writes the nullifier and
+    // pays nothing at all, so the creator loses the period and receives no advance to
+    // show for it. Not part of the creator flow, but it was on the live contract's ABI.
+    let f = fx(ADVANCE_CAP_STROOPS * 2);
+    f.env.set_auths(&[]);
+    f.client.verify_and_reserve(
+        &f.borrower,
+        &String::from_str(&f.env, REVENUE),
+        &String::from_str(&f.env, PUB_ID),
+        &String::from_str(&f.env, WINDOW_START),
+        &String::from_str(&f.env, WINDOW_END),
+        &TIMESTAMP_S,
+        &EPOCH,
+        &signature(&f.env),
+        &RECOVERY_ID,
+    );
+}
+
+#[test]
 fn an_underfunded_contract_refuses_before_spending_the_nullifier() {
     let f = fx(1); // one stroop: nowhere near the advance
     assert_eq!(request(&f), Err(Error::InsufficientLiquidity));

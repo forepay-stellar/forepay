@@ -631,17 +631,27 @@ impl AdvanceContract {
             .has(&DataKey::Nullifier(nullifier))
     }
 
-    /// Verify a claim and reserve its nullifier, atomically.
+    /// Verify a claim and reserve its nullifier, **without paying anything**.
     ///
-    /// **Transitional.** #11 adds sizing, #12 the disbursement and #13 the ledger, at
-    /// which point this becomes `request_advance` as frozen in `docs/interface.md` §8.
-    /// It is a separate name today because a function called `request_advance` that
-    /// reserves without paying would be a lie on a live network.
+    /// # Not part of the creator flow. `request_advance` is.
+    ///
+    /// This was written in #10, before sizing and disbursement existed, so that the
+    /// nullifier registry could be proven on chain on its own. #12 superseded it. It is
+    /// kept because the nullifier tests run against a stub token that cannot transfer, and
+    /// because the rehearsal's negative cases use it to show a refusal without needing
+    /// liquidity.
+    ///
+    /// **It requires the borrower's own authorisation**, and that is not decoration. A
+    /// nullifier is spent once and never unspent, so an unauthenticated version of this
+    /// function lets anyone holding a valid proof — including a forwarded one, which
+    /// `docs/interface.md` §6 deliberately accepts inside the freshness hour — burn that
+    /// creator's whole reporting period and hand them nothing for it. No funds move, and
+    /// the damage is permanent. It shipped that way and #81 closed it.
     ///
     /// The order is the security property: verify, **then** check the nullifier, **then**
-    /// write it — all before any money moves in #12. Check-then-act with a transfer in
-    /// between is the classic race, and the write has to be on the same invocation that
-    /// later pays, or two transactions in the same ledger could both pass the check.
+    /// write it, before any money moves. Check-then-act with a transfer in between is the
+    /// classic race, and the write has to be on the same invocation that later pays, or two
+    /// transactions in the same ledger could both pass the check.
     pub fn verify_and_reserve(
         env: Env,
         borrower: Address,
@@ -654,6 +664,10 @@ impl AdvanceContract {
         signature: BytesN<64>,
         recovery_id: u32,
     ) -> Result<VerifiedClaim, Error> {
+        // Before any hashing: the cheapest possible refusal, and the only thing standing
+        // between a leaked proof and a permanently burned reporting period.
+        borrower.require_auth();
+
         let verified = Self::verify_claim(
             env.clone(),
             borrower,
@@ -746,11 +760,27 @@ impl AdvanceContract {
     ///
     /// The order is the security property and does not change:
     ///
-    /// 1. verify the claim — nothing before this is trusted
+    /// 0. **the borrower authorises it** — nobody takes on a debt they did not ask for
+    /// 1. verify the claim — nothing after this came from an untrusted source
     /// 2. size it, so a figure too small to be worth borrowing against fails **before**
     ///    the nullifier is consumed
     /// 3. check and **write** the nullifier
     /// 4. disburse
+    ///
+    /// # Why step 0 exists
+    ///
+    /// It did not, until #81. The money moves *to* the borrower, so an unauthenticated
+    /// version looks harmless — a stranger paying a fee to give someone USDC. It is not.
+    /// Whoever submits the proof chooses **when** the advance is taken, at **what** figure,
+    /// and burns the creator's nullifier for that whole reporting period. The creator ends
+    /// up owing a repayment they never asked for, and cannot borrow against that quarter
+    /// again. A forwarded proof is accepted inside the freshness hour by design
+    /// (`docs/interface.md` §6), so the proof does not even have to be stolen in any
+    /// interesting way.
+    ///
+    /// `docs/interface.md` §8 and the relay's own PR both said this call "needs the
+    /// borrower's own auth". The contract did not check it. The document was right and the
+    /// code was wrong; this is the code catching up.
     ///
     /// Sizing sits before the nullifier deliberately: a creator whose quarter is below the
     /// floor should be able to come back when it is not, rather than having burned the
@@ -769,6 +799,8 @@ impl AdvanceContract {
         signature: BytesN<64>,
         recovery_id: u32,
     ) -> Result<i128, Error> {
+        borrower.require_auth();
+
         let verified = Self::verify_claim(
             env.clone(),
             borrower,
