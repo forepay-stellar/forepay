@@ -56,7 +56,49 @@
     ],
     [],
     [],
-    [],
+    [
+      [
+        "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+        {
+          "function": {
+            "contract_fn": {
+              "contract_address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4",
+              "function_name": "verify_and_reserve",
+              "args": [
+                {
+                  "address": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2"
+                },
+                {
+                  "string": "1234.56"
+                },
+                {
+                  "string": "pub-1234567890123456"
+                },
+                {
+                  "string": "2026-07-01"
+                },
+                {
+                  "string": "2026-09-30"
+                },
+                {
+                  "u64": "1760000000"
+                },
+                {
+                  "u64": "1"
+                },
+                {
+                  "bytes": "0a1607562845069dcd91874ae32ffc55d2ce799078af623b8300c1765137ca0f577ba3ed8dc8895867e717734d9535536384718e77126229ed28327c54cf202f"
+                },
+                {
+                  "u32": 1
+                }
+              ]
+            }
+          },
+          "sub_invocations": []
+        }
+      ]
+    ],
     []
   ],
   "ledger": {
@@ -69,6 +111,26 @@
     "min_temp_entry_ttl": 16,
     "max_entry_ttl": 6312000,
     "ledger_entries": [
+      {
+        "entry": {
+          "last_modified_ledger_seq": 0,
+          "data": {
+            "contract_data": {
+              "ext": "v0",
+              "contract": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+              "key": {
+                "ledger_key_nonce": {
+                  "nonce": "5541220902715666415"
+                }
+              },
+              "durability": "temporary",
+              "val": "void"
+            }
+          },
+          "ext": "v0"
+        },
+        "live_until": 6311999
+      },
       {
         "entry": {
           "last_modified_ledger_seq": 0,

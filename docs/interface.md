@@ -263,6 +263,7 @@ request_advance(
 
 Order is the security property, and it does not change:
 
+0. **`borrower.require_auth()`** — before anything else, including the hashing
 1. template is set, else `TemplateNotSet`
 2. split each window date into unpadded year/month/day, else `ClaimMismatch`; rebuild `context` and
    `parameters`; rebuild `identifier`; build the digest
@@ -275,6 +276,24 @@ Order is the security property, and it does not change:
 
 Verify before trusting any field, and write the nullifier before moving money. Check-then-act with a
 transfer in between is the classic race.
+
+### Step 0 was missing from the contract until #81
+
+This document said the call needed the borrower's own auth from the day it was frozen. The contract
+never checked it, and nothing noticed, because the front end signs as the borrower — as the **source
+account** — so every caller in every test happened to satisfy a rule that was not enforced.
+
+What that allowed, with any valid proof and §6's deliberately accepted *forwarded* proof:
+
+- `verify_and_reserve` — burn a creator's nullifier for the whole period and pay them nothing;
+- `request_advance` — force the advance: the money reaches the creator, but the submitter chooses
+  when and at what figure, and the creator owes a repayment they never asked for.
+
+No funds could be stolen; both effects are permanent. A nullifier is spent once and never unspent.
+
+The lesson is not about `require_auth`. It is that **a security property asserted in a document,
+believed by everyone, and exercised only by callers who happen to satisfy it is indistinguishable
+from an enforced one** — right up until somebody greps for the check.
 
 ## 9. Still open
 
