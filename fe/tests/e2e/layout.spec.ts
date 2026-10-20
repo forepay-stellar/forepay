@@ -357,11 +357,28 @@ test("a fully repaid advance shows not-allowed over its turned-off buttons", asy
   await connected(page);
   await page.goto("/repayment");
   await expect(page.getByRole("region", { name: "What is left to repay" })).toContainText("Nothing left to repay");
-  for (const name of ["Repay", "Pay in full", "Nothing left to repay"]) {
+  // Colours change at once, so a reading right after the hover is the hovered one.
+  await page.addStyleTag({ content: "*, *::before, *::after { transition: none !important; }" });
+  const background = (button: ReturnType<Page["locator"]>) => button.evaluate((el) => getComputedStyle(el).backgroundColor);
+  for (const name of ["Repay", "Pay in full", "Nothing left to repay", "25%", "Full amount"]) {
     const button = page.getByRole("button", { name, exact: true }).first();
     await expect(button).toBeDisabled();
     expect(await cursorOver(button), name).toBe("not-allowed");
+    // Nor does it answer a hover or a press: it keeps its look.
+    await page.mouse.move(0, 0);
+    const resting = await background(button);
+    await button.hover({ force: true });
+    expect(await background(button), `${name} on hover`).toBe(resting);
+    await page.mouse.down();
+    expect(await background(button), `${name} pressed`).toBe(resting);
+    await page.mouse.up();
   }
+  // A control that can be used still answers a hover, a link drawn as a tile included.
+  await page.mouse.move(0, 0);
+  const stellar = page.getByRole("link", { name: "View on Stellar" });
+  const before = await background(stellar);
+  await stellar.hover();
+  await expect.poll(() => background(stellar)).not.toBe(before);
 });
 
 test("under 360 every amount puts its unit under the figure, so the column stays even", async ({ page }) => {

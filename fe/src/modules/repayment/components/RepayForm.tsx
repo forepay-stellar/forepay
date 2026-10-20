@@ -140,7 +140,7 @@ export function RepayForm({
               type="button"
               onClick={onMax}
               disabled={settled || busy}
-              className="rounded-pill bg-action px-2.5 py-1.5 text-small font-medium text-fg-on-brand outline-none hover:bg-action-hover focus-visible:ring-2 focus-visible:ring-brand disabled:bg-line disabled:text-fg-subtle"
+              className="rounded-pill bg-action px-2.5 py-1.5 text-small font-medium text-fg-on-brand outline-none not-disabled:hover:bg-action-hover focus-visible:ring-2 focus-visible:ring-brand disabled:bg-line disabled:text-fg-subtle"
             >
               Max
             </button>
@@ -163,7 +163,7 @@ export function RepayForm({
                 onClick={() => onChip(c)}
                 className={cn(
                   "flex justify-center whitespace-nowrap rounded-pill px-2.5 py-2.5 text-small font-medium outline outline-1 -outline-offset-[0.5px] transition-colors focus-visible:ring-2 focus-visible:ring-brand disabled:text-fg-subtle",
-                  on ? "bg-brand-subtle text-brand-strong outline-brand" : "bg-surface text-fg outline-line-strong hover:bg-subtle",
+                  on ? "bg-brand-subtle text-brand-strong outline-brand" : "bg-surface text-fg outline-line-strong not-disabled:hover:bg-subtle",
                 )}
               >
                 {label}
