@@ -13081,6 +13081,114 @@
                 },
                 {
                   "type": "frame",
+                  "id": "EpQxR",
+                  "name": "Input amount",
+                  "width": "fill_container",
+                  "stroke": "$line",
+                  "strokeWidth": {
+                    "bottom": 1
+                  },
+                  "gap": 16,
+                  "padding": [
+                    14,
+                    0
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "jBGVB",
+                      "name": "Cell",
+                      "width": "fill_container",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "odpgx",
+                          "name": "Value",
+                          "fill": "$fg",
+                          "content": "Input amount",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 15,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "WJH4J",
+                      "name": "Cell",
+                      "width": 96,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "mtQqS",
+                          "name": "Value",
+                          "fill": "$fg",
+                          "content": "32",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "aNeNt",
+                      "name": "Cell",
+                      "width": 96,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "wiKyq",
+                          "name": "Value",
+                          "fill": "$fg",
+                          "content": "36",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Fb6yh",
+                      "name": "Cell",
+                      "width": 96,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "bZD0a",
+                          "name": "Value",
+                          "fill": "$fg",
+                          "content": "36",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "GfHHL",
+                      "name": "Cell",
+                      "width": 260,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "PZ3Vr",
+                          "name": "Value",
+                          "fill": "$fg-muted",
+                          "content": "The amount typed in a field",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
                   "id": "f52Pe8",
                   "name": "Page title",
                   "width": "fill_container",
