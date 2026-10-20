@@ -157,6 +157,14 @@
   @media (width >= 48rem) { font-size: 1.375rem; }
   @media (width >= 64rem) { font-size: 1.5rem; }
 }
+/* The amount typed in a field (the 3a repay input): added by @AncungAulia on #71 (#84). */
+@utility text-input-amount {
+  font-size: 2rem;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  @media (width >= 48rem) { font-size: 2.25rem; }
+}
 /* Figures in tiles and breakdowns (History, "Your advance"): added by @AncungAulia on #71. */
 @utility text-figure {
   font-size: 1.25rem;

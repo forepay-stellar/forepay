@@ -5,7 +5,7 @@ import { extendTailwindMerge } from "tailwind-merge";
 // as a colour and drops it next to `text-fg`.
 const twMerge = extendTailwindMerge({
   extend: {
-    classGroups: { "font-size": [{ text: ["hero", "amount", "page-title", "card-title", "figure", "body", "small"] }] },
+    classGroups: { "font-size": [{ text: ["hero", "amount", "page-title", "card-title", "input-amount", "figure", "body", "small"] }] },
   },
 });
 

@@ -403,3 +403,19 @@ test("under 360 every amount puts its unit under the figure, so the column stays
   }
   await expect(page.getByRole("listitem").first()).toContainText("−10.00 USDC");
 });
+
+test("the repay amount takes the Input amount role: 32 on a phone, 36 from a tablet", async ({ page }) => {
+  await mockApi(page, frameLedger());
+  await mockRpc(page, { account: true, trustline: true, usdc: 8_200_000_000n, contract: {} });
+  await connected(page);
+  await page.goto("/repayment");
+  await expect(page.getByRole("region", { name: "What is left to repay" })).toContainText("60.00");
+  const amount = page.locator("#repay-amount");
+  await amount.fill("60.00");
+  for (const [width, size] of [[320, "32px"], [390, "32px"], [834, "36px"], [1024, "36px"], [1440, "36px"]] as const) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.waitForTimeout(150);
+    expect(await amount.evaluate((el) => getComputedStyle(el.parentElement as HTMLElement).fontSize), `at ${width}`).toBe(size);
+  }
+  await holdsAtEveryWidth(page, "3a with 60.00 typed");
+});

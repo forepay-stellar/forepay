@@ -113,7 +113,7 @@ export function RepayForm({
           )}
         </div>
         <div className="flex w-full items-center justify-between gap-3">
-          <div className="relative min-w-0 flex-1 text-figure">
+          <div className="relative min-w-0 flex-1 text-input-amount">
             <p aria-hidden className="truncate whitespace-pre">
               <span className="text-fg">{shown.whole}</span>
               <span className="text-fg-subtle">{shown.decimals}</span>

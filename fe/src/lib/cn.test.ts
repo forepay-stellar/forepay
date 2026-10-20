@@ -5,6 +5,7 @@ describe("cn", () => {
   it("keeps a type role next to a text colour", () => {
     expect(cn("text-card-title text-fg")).toBe("text-card-title text-fg");
     expect(cn("text-figure text-success")).toBe("text-figure text-success");
+    expect(cn("text-input-amount text-fg")).toBe("text-input-amount text-fg");
   });
 
   it("lets a later type role or pixel size win, as with any font size", () => {
