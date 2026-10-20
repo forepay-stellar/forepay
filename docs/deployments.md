@@ -770,3 +770,66 @@ once on a live ledger rather than reasoned about.
 
 The production contract continues to answer `10 TemplateNotSet`. `sizing()` being live changes what
 the front end can read; it does not unblock the creator flow, which is #5 and #61.
+
+---
+
+## #76 — the claim encoding was wrong, and only the provider could have shown it (2026-10-20)
+
+`docs/interface.md` froze a claim shape before any real AdSense response existed. In two places the
+shape it froze was one the AdSense API cannot produce, so **every real proof would have been
+refused** — with a bare `ClaimMismatch` and no indication of which byte was wrong.
+
+Found by @Lin1er on #6 while building the provider, by comparing the frozen document against
+Google's API rather than against our own contract. Verified here against Google's reference before
+anything was changed:
+
+- [`accounts.reports.generate`](https://developers.google.com/adsense/management/reference/rest/v2/accounts.reports/generate):
+  `startDate` and `endDate` are **`object (Date)`**, not strings.
+- [`Date`](https://developers.google.com/adsense/management/reference/rest/v2/Date):
+  `{year, month, day}` as **integers**, flattened by the REST transport into
+  `startDate.year=2026&startDate.month=7&startDate.day=1`. Unpadded — `7`, never `07`.
+
+There is no string date form in that API, so `?startDate=2026-07-01` describes a request Google
+cannot serve.
+
+### Three hashes again, one commit
+
+| Where built | stellar-cli | sha256 |
+| --- | --- | --- |
+| laptop, `aarch64-apple-darwin` | 27.0.0 | `5ccdbdb774d76ab28322fe7b991da7b0a412968ffffec45b03fe73a8c2902c36` |
+| CI, `x86_64-unknown-linux-gnu` | 28.1.0 | `ea868981fa1cb4dae52f6237956056a913c8a7baff3ebdef65df0fc5ef32dd0b` |
+| **release artifact** (`v0.3.0`) | 28.1.0 | **`ade4687f35f05f7366cb10284f593b578199106f82f23e61cd5d583bec227641`** |
+
+### Transactions
+
+| Step | What | Transaction |
+| --- | --- | --- |
+| 1 | Tag `v0.3.0` → release + StellarExpert attestation | [release](https://github.com/forepay-stellar/forepay/releases/tag/v0.3.0_sc_advance_forepay-advance_pkg0.1.0_cli28.1.0) |
+| 2 | Upload the release wasm | [`5323fbf0ef71…`](https://stellar.expert/explorer/testnet/tx/5323fbf0ef71133529788fbb6b297134f607b9962e50ee1cdb7b829d517db378) |
+| 3 | `propose_upgrade`, production `CCQFL2Q6…I2HS` | [`33d30715d56f…`](https://stellar.expert/explorer/testnet/tx/33d30715d56f4baa4c5ebbf7dca9ae171b88ea9a11167dbece920539cd08d03f) |
+| 4 | `propose_upgrade`, dev `CD25Q4TD…HQN4` | [`593d91a7fa0a…`](https://stellar.expert/explorer/testnet/tx/593d91a7fa0aa6421f70895c50644cee1b75309e1894ed8e2a5183f8078ecbeb) |
+| 5 | `execute_upgrade` on both | **pending — not before 2026-10-21 08:50 UTC** |
+| 6 | Re-pin the dev template with the eight new parts | after step 5 |
+| 7 | Re-run the rehearsal end to end | after step 6 |
+
+`executable_at` is `1792572617` and `1792572637`: 86,400 seconds out, as `UPGRADE_DELAY_SECONDS`
+sets. This is the second real use of the upgrade path, and the first one driven by a defect rather
+than an addition.
+
+### The dev contract's pinned template is now invalid, on purpose
+
+`set_claim_template` refuses a four-part template after the upgrade. The dev contract currently has
+one pinned, so between step 5 and step 6 its `verify_claim` will refuse everything. That window is
+deliberate: accepting the old shape and failing per proof would hide the cause behind the least
+readable error in the pipeline.
+
+### The fixture was the actual failure
+
+`tools/fixtures/forepay-claim.json` was a hand-pasted blob. Nobody could re-derive it, so when the
+encoding changed there was no mechanism by which anyone would notice it had gone stale — the digest
+tests would have kept passing against bytes that described nothing. It is now produced by
+`tools/make_claim_fixture.py`, and CI runs that script with `--check`.
+
+The real attestor vector, `tools/fixtures/real-reclaim-proof.json`, is untouched. That one is signed
+by Reclaim's production attestor and proves the digest chain itself; this one proves the contract
+rebuilds the Forepay-specific bytes.
