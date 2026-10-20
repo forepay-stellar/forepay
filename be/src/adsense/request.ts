@@ -12,11 +12,14 @@
  *
  *  - `parameters.url`: host, account and window. Signed, so the contract can check
  *    the figure came from `adsense.googleapis.com` for one account over one window.
+ *    Google computes the total for the window in this URL, so the URL alone fixes
+ *    the window; the response's echo of the dates is not matched (#6).
  *    A claim whose URL is not exactly `buildRevenueUrl(...)` proves nothing: anyone
  *    can point zkFetch at their own server and have the attestor sign whatever it
  *    returns. That check belongs to the consumer of the claim (see #6, #9).
- *  - `parameters.responseMatches`: the response must say USD, cover exactly this
- *    window, and carry a total. The figure is captured from the total.
+ *  - `parameters.responseMatches`: the response must say USD and carry a total. The
+ *    figure is captured from the total. Nothing in them varies per proof, so the
+ *    contract's pinned template (#61) only has to fill in the URL's values.
  *  - `context.contextAddress`: the borrower's Stellar address, inside the signed
  *    bytes, so a proof bound to A cannot be spent by B (#17, #18).
  *  - `context.extractedParameters.revenueUsd`: the figure, as a decimal string.
@@ -35,10 +38,12 @@ export const ADSENSE_API = "https://adsense.googleapis.com/v2";
 export const ADSENSE_SCOPE = "https://www.googleapis.com/auth/adsense.readonly";
 
 /**
- * Fixed, versioned purpose string. Signed with the claim, so a consumer can refuse a
- * proof that was produced for something else, even one carrying the same address.
+ * Fixed purpose string. Signed with the claim, so a consumer can refuse a proof that
+ * was produced for something else, even one carrying the same address. Byte for byte
+ * the contract's `claim::CONTEXT_MESSAGE` (sc/advance/src/claim.rs), which rebuilds
+ * the context with it (#6).
  */
-export const CONTEXT_MESSAGE = "forepay:adsense-trailing-revenue:v1";
+export const CONTEXT_MESSAGE = "Forepay advance request";
 
 /** Complete calendar months the figure covers. Proposed for the #6 freeze. */
 export const DEFAULT_TRAILING_MONTHS = 3;
@@ -146,11 +151,6 @@ export function buildRevenueUrl(publisherId: string, window: RevenueWindow): str
   return `${ADSENSE_API}/accounts/${publisherId}/reports:generate?${q}`;
 }
 
-/** `"startDate": { "year": 2026, "month": 7, "day": 1 }`, any whitespace. */
-function dateRegex(field: "startDate" | "endDate", d: CivilDate): string {
-  return `"${field}":\\s*\\{\\s*"year":\\s*${d.year},\\s*"month":\\s*${d.month},\\s*"day":\\s*${d.day}\\s*\\}`;
-}
-
 /** The header of the single metric column must be USD. */
 export const CURRENCY_REGEX = `"currencyCode":\\s*"USD"`;
 
@@ -165,14 +165,9 @@ export function buildRevenueRequest(input: RevenueRequestInput): RevenueRequest 
   const url = buildRevenueUrl(input.publisherId, input.window);
 
   // Each match asserts one property of the response. Each redaction reveals exactly
-  // the span its match needs, so the attestor sees these four fragments and nothing
-  // else: not the account name, not the rows, not the averages.
-  const reveal = [
-    CURRENCY_REGEX,
-    dateRegex("startDate", input.window.start),
-    dateRegex("endDate", input.window.end),
-    TOTAL_REGEX,
-  ];
+  // the span its match needs, so the attestor sees these two fragments and nothing
+  // else: not the account name, not the rows, not the averages, not the dates.
+  const reveal = [CURRENCY_REGEX, TOTAL_REGEX];
   return {
     url,
     options: {

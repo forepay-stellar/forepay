@@ -3,6 +3,8 @@
  * AdSense response, and the OAuth token can only end up in the secret headers.
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { test } from "node:test";
 
 import {
@@ -120,9 +122,23 @@ test("a response in another currency does not match", () => {
   assert.equal(matchesAll(adsenseResponse({ currency: "IDR" })).ok, false);
 });
 
-test("a response for a different window does not match", () => {
+test("the window lives only in the signed URL; the matches are the same for every window (#6)", () => {
+  // Google computes the total for the URL's window, and the URL is signed, so the
+  // response's echo of the dates proves nothing more. Keeping the matches constant is
+  // what lets the contract's pinned template fill in only the URL's values (#61).
   const other = { start: { year: 2026, month: 6, day: 1 }, end: { year: 2026, month: 8, day: 31 } };
-  assert.equal(matchesAll(adsenseResponse({ window: other })).ok, false);
+  const q3 = buildRevenueRequest({ publisherId: PUB, stellarAddress: ALICE, window: Q3 });
+  const q2 = buildRevenueRequest({ publisherId: PUB, stellarAddress: ALICE, window: other });
+  assert.deepEqual(q2.secretOptions, q3.secretOptions);
+  assert.notEqual(q2.url, q3.url);
+  assert.ok(!JSON.stringify(q3.secretOptions).includes("2026"));
+});
+
+test("the context message is the contract's constant, byte for byte", () => {
+  const claimRs = readFileSync(join(import.meta.dirname, "../../../sc/advance/src/claim.rs"), "utf8");
+  const m = /pub const CONTEXT_MESSAGE: &\[u8\] = b"([^"]*)";/.exec(claimRs);
+  assert.ok(m, "CONTEXT_MESSAGE not found in claim.rs");
+  assert.equal(CONTEXT_MESSAGE, m[1]);
 });
 
 test("a response without a numeric total does not match", () => {
