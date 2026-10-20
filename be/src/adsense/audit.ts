@@ -237,7 +237,7 @@ export function auditRevenueProof(proof: RevenueProof, expect: AuditExpectations
     ok(
       "parameters.responseMatches",
       `${matches.length} regexes`,
-      "What the response had to contain: USD, this exact window, a total. Patterns only, no response data.",
+      "What the response had to contain: USD and a total; the window is fixed by the URL. Patterns only, no response data.",
     );
   } else fail("parameters.responseMatches differ from the provider's");
 
@@ -254,7 +254,7 @@ export function auditRevenueProof(proof: RevenueProof, expect: AuditExpectations
     ok(
       "parameters.responseRedactions",
       `${redactions.length} regexes`,
-      "Which response spans were revealed to the attestor: the same four fragments the matches need. Patterns only.",
+      "Which response spans were revealed to the attestor: the same two fragments the matches need. Patterns only.",
     );
   } else fail("parameters.responseRedactions differ from the provider's");
 
