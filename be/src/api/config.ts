@@ -15,6 +15,7 @@ export interface ApiConfig {
   network: "testnet";
   networkPassphrase: string;
   rpcUrl: string;
+  horizonUrl: string;
   contracts: Record<ContractName, string | null>;
   /** Exact origins allowed by CORS. Never a wildcard. */
   corsOrigins: string[];
@@ -25,7 +26,7 @@ export type Source = "recorded" | "env";
 
 export interface LoadedConfig {
   config: ApiConfig;
-  sources: Record<"rpcUrl" | ContractName, Source>;
+  sources: Record<"rpcUrl" | "horizonUrl" | ContractName, Source>;
   /** True when every contract in use equals docs/deployments.md. */
   recorded: boolean;
 }
@@ -63,8 +64,14 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
   const rpcUrl = get("STELLAR_RPC_URL") ?? RECORDED.rpcUrl;
   if (!/^https:\/\//.test(rpcUrl)) throw new Error(`STELLAR_RPC_URL must be https: ${rpcUrl}`);
 
+  const horizonUrl = get("HORIZON_URL") ?? RECORDED.horizonUrl;
+  if (!/^https:\/\//.test(horizonUrl)) throw new Error(`HORIZON_URL must be https: ${horizonUrl}`);
+
   const contracts = {} as Record<ContractName, string | null>;
-  const sources = { rpcUrl: get("STELLAR_RPC_URL") ? "env" : "recorded" } as LoadedConfig["sources"];
+  const sources = {
+    rpcUrl: get("STELLAR_RPC_URL") ? "env" : "recorded",
+    horizonUrl: get("HORIZON_URL") ? "env" : "recorded",
+  } as LoadedConfig["sources"];
   for (const name of Object.keys(CONTRACT_ENV) as ContractName[]) {
     const fromEnv = get(CONTRACT_ENV[name]);
     if (fromEnv !== undefined && !StrKey.isValidContract(fromEnv)) {
@@ -90,6 +97,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
       network: "testnet",
       networkPassphrase: RECORDED.networkPassphrase,
       rpcUrl,
+      horizonUrl,
       contracts,
       corsOrigins,
       port,

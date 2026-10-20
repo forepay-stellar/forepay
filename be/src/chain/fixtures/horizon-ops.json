@@ -1,0 +1,1351 @@
+{
+ "_source": "horizon-testnet /accounts/GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2/operations?include_failed=true&join=transactions, fetched 2026-10-19, trimmed to the fields be/src/chain/history.ts reads. The advance calls go to the dev contract CD25Q4TDGDY6CI3LUIWUOH6SXCH6ETIUCI6FUOBI322GCJL5G3EIHQN4 (#10, #23 rehearsals).",
+ "records": [
+  {
+   "id": "22538652634640385",
+   "paging_token": "22538652634640385",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-17T18:33:52Z",
+   "transaction_hash": "886194f0c74f16719dd096f2b3cda8f6c78af265392a473b5d55aea0d951ed66",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAH12HJjMPHhI2uiLUcf0riP4k0UEjxaOCjetGElfTbIgw==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAAAVyZXBheQAAAA==",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAAEgAAAAAAAAAANCH57DsDMRQQG7cdaDLLe5lWYFVa5V16k5uQrNEGEOs=",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADQAAACAdEkgX81HEqI7S/pKi95gS8r+kHgYQpbu4T3peiS5o9Q==",
+     "type": "Bytes"
+    },
+    {
+     "value": "AAAACgAAAAAAAAAAAAAAAABycOA=",
+     "type": "I128"
+    }
+   ],
+   "asset_balance_changes": [
+    {
+     "asset_type": "credit_alphanum4",
+     "asset_code": "USDC",
+     "asset_issuer": "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5",
+     "type": "transfer",
+     "from": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+     "to": "CD25Q4TDGDY6CI3LUIWUOH6SXCH6ETIUCI6FUOBI322GCJL5G3EIHQN4",
+     "amount": "0.7500000"
+    }
+   ]
+  },
+  {
+   "id": "22538648339652609",
+   "paging_token": "22538648339652609",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-17T18:33:47Z",
+   "transaction_hash": "7db87bbfba3fd8f8956a25041a4ae13077504f5c86a29c298c527ecb4cebf8fa",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAH12HJjMPHhI2uiLUcf0riP4k0UEjxaOCjetGElfTbIgw==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAAAVyZXBheQAAAA==",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAAEgAAAAAAAAAANCH57DsDMRQQG7cdaDLLe5lWYFVa5V16k5uQrNEGEOs=",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADQAAACAdEkgX81HEqI7S/pKi95gS8r+kHgYQpbu4T3peiS5o9Q==",
+     "type": "Bytes"
+    },
+    {
+     "value": "AAAACgAAAAAAAAAAAAAAAAAmJaA=",
+     "type": "I128"
+    }
+   ],
+   "asset_balance_changes": [
+    {
+     "asset_type": "credit_alphanum4",
+     "asset_code": "USDC",
+     "asset_issuer": "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5",
+     "type": "transfer",
+     "from": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+     "to": "CD25Q4TDGDY6CI3LUIWUOH6SXCH6ETIUCI6FUOBI322GCJL5G3EIHQN4",
+     "amount": "0.2500000"
+    }
+   ]
+  },
+  {
+   "id": "22538631159787521",
+   "paging_token": "22538631159787521",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-17T18:33:27Z",
+   "transaction_hash": "1e066220909da8dfdfc92d1926a377a4dc2a08b12adaca2c88cef8f394a60f25",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAH12HJjMPHhI2uiLUcf0riP4k0UEjxaOCjetGElfTbIgw==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAAA9yZXF1ZXN0X2FkdmFuY2UA",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAAEgAAAAAAAAAANCH57DsDMRQQG7cdaDLLe5lWYFVa5V16k5uQrNEGEOs=",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADgAAAAQ0LjAw",
+     "type": "Str"
+    },
+    {
+     "value": "AAAADgAAAA9wdWItaDE3OTIyNjE5OTcA",
+     "type": "Str"
+    },
+    {
+     "value": "AAAADgAAAAoyMDI2LTA3LTAxAAA=",
+     "type": "Str"
+    },
+    {
+     "value": "AAAADgAAAAoyMDI2LTA5LTMwAAA=",
+     "type": "Str"
+    },
+    {
+     "value": "AAAABQAAAABq079t",
+     "type": "U64"
+    },
+    {
+     "value": "AAAABQAAAAAAAAAA",
+     "type": "U64"
+    },
+    {
+     "value": "AAAADQAAAEBOIJS/ZlmsmwF0voOAx1jUNDR5ERAcwQqSiix5iKlIgRnYbz3F3sDYwKUV7ck31hK8F2pCDGq62AH5Iapd5KJ1",
+     "type": "Bytes"
+    },
+    {
+     "value": "AAAAAwAAAAE=",
+     "type": "U32"
+    }
+   ],
+   "asset_balance_changes": [
+    {
+     "asset_type": "credit_alphanum4",
+     "asset_code": "USDC",
+     "asset_issuer": "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5",
+     "type": "transfer",
+     "from": "CD25Q4TDGDY6CI3LUIWUOH6SXCH6ETIUCI6FUOBI322GCJL5G3EIHQN4",
+     "to": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+     "amount": "1.0000000"
+    }
+   ]
+  },
+  {
+   "id": "22538429296312321",
+   "paging_token": "22538429296312321",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-17T18:29:32Z",
+   "transaction_hash": "4db68f04c2670af7089fd962721c08d45b0361fbf9701a420be1e53a23401b2b",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAH12HJjMPHhI2uiLUcf0riP4k0UEjxaOCjetGElfTbIgw==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAAA9leGVjdXRlX3VwZ3JhZGUA",
+     "type": "Sym"
+    }
+   ],
+   "asset_balance_changes": null
+  },
+  {
+   "id": "22538412116455425",
+   "paging_token": "22538412116455425",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-17T18:29:12Z",
+   "transaction_hash": "443a902a9db5b10c67a001e385690fe62c2efbe7c60e5b48e6d05ab309b7ef69",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAGgVeoe8M5QZppT42aenCzym3+t7dbbkEUpmW2+LkXS9A==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAAA9leGVjdXRlX3VwZ3JhZGUA",
+     "type": "Sym"
+    }
+   ],
+   "asset_balance_changes": null
+  },
+  {
+   "id": "22438824709787649",
+   "paging_token": "22438824709787649",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-16T10:16:57Z",
+   "transaction_hash": "761b394c4349e37ea726f4f26b42f95caeb4b07cb34bf1eeea2575168a068830",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAH12HJjMPHhI2uiLUcf0riP4k0UEjxaOCjetGElfTbIgw==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAAA9wcm9wb3NlX3VwZ3JhZGUA",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAADQAAACDlYmiQZZ+irUTwLzdSo3I1do7njiQtY2yCDSsVgXJd1g==",
+     "type": "Bytes"
+    }
+   ],
+   "asset_balance_changes": null
+  },
+  {
+   "id": "22438807529918465",
+   "paging_token": "22438807529918465",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-16T10:16:37Z",
+   "transaction_hash": "937a655a9aac7dc40cc9c328c176ca13d0823909f764aa3c739444da35f4ef29",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAGgVeoe8M5QZppT42aenCzym3+t7dbbkEUpmW2+LkXS9A==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAAA9wcm9wb3NlX3VwZ3JhZGUA",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAADQAAACDlYmiQZZ+irUTwLzdSo3I1do7njiQtY2yCDSsVgXJd1g==",
+     "type": "Bytes"
+    }
+   ],
+   "asset_balance_changes": null
+  },
+  {
+   "id": "22438790350106625",
+   "paging_token": "22438790350106625",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-16T10:16:17Z",
+   "transaction_hash": "1399a4106df9fffb2d1d2fb1733f0a00d913bade3e21688dcfdb16879d77f6e5",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeUploadContractWasm",
+   "parameters": null,
+   "asset_balance_changes": null
+  },
+  {
+   "id": "22386121166065665",
+   "paging_token": "22386121166065665",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-15T17:14:22Z",
+   "transaction_hash": "fed918178c238a2f27dd65eaf371976336b5eed226130058394b52074cd58a9d",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAH12HJjMPHhI2uiLUcf0riP4k0UEjxaOCjetGElfTbIgw==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAAAVyZXBheQAAAA==",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAAEgAAAAAAAAAANCH57DsDMRQQG7cdaDLLe5lWYFVa5V16k5uQrNEGEOs=",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADQAAACDQzQHfMwNisjUI7ffjhpUFSdpjS3VtHCmqJCz8nIjIOQ==",
+     "type": "Bytes"
+    },
+    {
+     "value": "AAAACgAAAAAAAAAAAAAAAABycOA=",
+     "type": "I128"
+    }
+   ],
+   "asset_balance_changes": [
+    {
+     "asset_type": "credit_alphanum4",
+     "asset_code": "USDC",
+     "asset_issuer": "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5",
+     "type": "transfer",
+     "from": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+     "to": "CD25Q4TDGDY6CI3LUIWUOH6SXCH6ETIUCI6FUOBI322GCJL5G3EIHQN4",
+     "amount": "0.7500000"
+    }
+   ]
+  },
+  {
+   "id": "22386112576139265",
+   "paging_token": "22386112576139265",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-15T17:14:12Z",
+   "transaction_hash": "8308c95ac0c357ae92766a412685aa7161fb2a21ff26d3f92e45cb4502a2032d",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAH12HJjMPHhI2uiLUcf0riP4k0UEjxaOCjetGElfTbIgw==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAAAVyZXBheQAAAA==",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAAEgAAAAAAAAAANCH57DsDMRQQG7cdaDLLe5lWYFVa5V16k5uQrNEGEOs=",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADQAAACDQzQHfMwNisjUI7ffjhpUFSdpjS3VtHCmqJCz8nIjIOQ==",
+     "type": "Bytes"
+    },
+    {
+     "value": "AAAACgAAAAAAAAAAAAAAAAAmJaA=",
+     "type": "I128"
+    }
+   ],
+   "asset_balance_changes": [
+    {
+     "asset_type": "credit_alphanum4",
+     "asset_code": "USDC",
+     "asset_issuer": "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5",
+     "type": "transfer",
+     "from": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+     "to": "CD25Q4TDGDY6CI3LUIWUOH6SXCH6ETIUCI6FUOBI322GCJL5G3EIHQN4",
+     "amount": "0.2500000"
+    }
+   ]
+  },
+  {
+   "id": "22386103986212865",
+   "paging_token": "22386103986212865",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-15T17:14:02Z",
+   "transaction_hash": "9a94cf083543b58d79b60431de305f3912099ca9337ada4793ef1e38546f8ad0",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAH12HJjMPHhI2uiLUcf0riP4k0UEjxaOCjetGElfTbIgw==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAAA9yZXF1ZXN0X2FkdmFuY2UA",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAAEgAAAAAAAAAANCH57DsDMRQQG7cdaDLLe5lWYFVa5V16k5uQrNEGEOs=",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADgAAAAQ0LjAw",
+     "type": "Str"
+    },
+    {
+     "value": "AAAADgAAAA9wdWItaDE3OTIwODQ0MzQA",
+     "type": "Str"
+    },
+    {
+     "value": "AAAADgAAAAoyMDI2LTA3LTAxAAA=",
+     "type": "Str"
+    },
+    {
+     "value": "AAAADgAAAAoyMDI2LTA5LTMwAAA=",
+     "type": "Str"
+    },
+    {
+     "value": "AAAABQAAAABq0QnS",
+     "type": "U64"
+    },
+    {
+     "value": "AAAABQAAAAAAAAAA",
+     "type": "U64"
+    },
+    {
+     "value": "AAAADQAAAEB/3FczsCdWqoTffr1IhSMySu32/OZfiG78kfMm/GnOmhvYees1zYpjQMbeqaBoksT5jkO11FSiTarbdaSblRMp",
+     "type": "Bytes"
+    },
+    {
+     "value": "AAAAAwAAAAA=",
+     "type": "U32"
+    }
+   ],
+   "asset_balance_changes": [
+    {
+     "asset_type": "credit_alphanum4",
+     "asset_code": "USDC",
+     "asset_issuer": "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5",
+     "type": "transfer",
+     "from": "CD25Q4TDGDY6CI3LUIWUOH6SXCH6ETIUCI6FUOBI322GCJL5G3EIHQN4",
+     "to": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+     "amount": "1.0000000"
+    }
+   ]
+  },
+  {
+   "id": "22384583567765505",
+   "paging_token": "22384583567765505",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-15T16:44:32Z",
+   "transaction_hash": "5107662eeafe2a9c137465c66b2abbff8bb015c57fe28f76923364010c35b31d",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAH12HJjMPHhI2uiLUcf0riP4k0UEjxaOCjetGElfTbIgw==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAAAVyZXBheQAAAA==",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAAEgAAAAAAAAAANCH57DsDMRQQG7cdaDLLe5lWYFVa5V16k5uQrNEGEOs=",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADQAAACAPvsW+U1iIse6y4wLB4EbwA4lR3LgJ9U8zJ86h97M37Q==",
+     "type": "Bytes"
+    },
+    {
+     "value": "AAAACgAAAAAAAAAAAAAAAABycOA=",
+     "type": "I128"
+    }
+   ],
+   "asset_balance_changes": [
+    {
+     "asset_type": "credit_alphanum4",
+     "asset_code": "USDC",
+     "asset_issuer": "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5",
+     "type": "transfer",
+     "from": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+     "to": "CD25Q4TDGDY6CI3LUIWUOH6SXCH6ETIUCI6FUOBI322GCJL5G3EIHQN4",
+     "amount": "0.7500000"
+    }
+   ]
+  },
+  {
+   "id": "22384574977826817",
+   "paging_token": "22384574977826817",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-15T16:44:22Z",
+   "transaction_hash": "f8068c2208f8c54c4b030ff956c312100ec2c930b8c2eb94511460b1cb7e7366",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAH12HJjMPHhI2uiLUcf0riP4k0UEjxaOCjetGElfTbIgw==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAAAVyZXBheQAAAA==",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAAEgAAAAAAAAAANCH57DsDMRQQG7cdaDLLe5lWYFVa5V16k5uQrNEGEOs=",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADQAAACAPvsW+U1iIse6y4wLB4EbwA4lR3LgJ9U8zJ86h97M37Q==",
+     "type": "Bytes"
+    },
+    {
+     "value": "AAAACgAAAAAAAAAAAAAAAAAmJaA=",
+     "type": "I128"
+    }
+   ],
+   "asset_balance_changes": [
+    {
+     "asset_type": "credit_alphanum4",
+     "asset_code": "USDC",
+     "asset_issuer": "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5",
+     "type": "transfer",
+     "from": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+     "to": "CD25Q4TDGDY6CI3LUIWUOH6SXCH6ETIUCI6FUOBI322GCJL5G3EIHQN4",
+     "amount": "0.2500000"
+    }
+   ]
+  },
+  {
+   "id": "22384562092929025",
+   "paging_token": "22384562092929025",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-15T16:44:07Z",
+   "transaction_hash": "0f14ff628b2d0fe5c088161caf8c824c4a002852db346ae58683b4030a369b66",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAH12HJjMPHhI2uiLUcf0riP4k0UEjxaOCjetGElfTbIgw==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAAA9yZXF1ZXN0X2FkdmFuY2UA",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAAEgAAAAAAAAAANCH57DsDMRQQG7cdaDLLe5lWYFVa5V16k5uQrNEGEOs=",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADgAAAAQ0LjAw",
+     "type": "Str"
+    },
+    {
+     "value": "AAAADgAAAA9wdWItaDE3OTIwODI2MzYA",
+     "type": "Str"
+    },
+    {
+     "value": "AAAADgAAAAoyMDI2LTA3LTAxAAA=",
+     "type": "Str"
+    },
+    {
+     "value": "AAAADgAAAAoyMDI2LTA5LTMwAAA=",
+     "type": "Str"
+    },
+    {
+     "value": "AAAABQAAAABq0QLM",
+     "type": "U64"
+    },
+    {
+     "value": "AAAABQAAAAAAAAAA",
+     "type": "U64"
+    },
+    {
+     "value": "AAAADQAAAEBQRXH3NYUqT6c4bxP+J8PtBy+qIEi1QR5j+vJUzrwgBSWQHMaYXZ9aTQylR2kJfqmasb6XZ06NMhpWa7AFiGua",
+     "type": "Bytes"
+    },
+    {
+     "value": "AAAAAwAAAAE=",
+     "type": "U32"
+    }
+   ],
+   "asset_balance_changes": [
+    {
+     "asset_type": "credit_alphanum4",
+     "asset_code": "USDC",
+     "asset_issuer": "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5",
+     "type": "transfer",
+     "from": "CD25Q4TDGDY6CI3LUIWUOH6SXCH6ETIUCI6FUOBI322GCJL5G3EIHQN4",
+     "to": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+     "amount": "1.0000000"
+    }
+   ]
+  },
+  {
+   "id": "22384532028162049",
+   "paging_token": "22384532028162049",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-15T16:43:32Z",
+   "transaction_hash": "9cc2222892bb383f54de9132dbab35cbdabeeed0f75a6b97ca8bd2115a215dcd",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAH12HJjMPHhI2uiLUcf0riP4k0UEjxaOCjetGElfTbIgw==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAAAVyZXBheQAAAA==",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAAEgAAAAAAAAAANCH57DsDMRQQG7cdaDLLe5lWYFVa5V16k5uQrNEGEOs=",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADQAAACB9liJQWK11RSLnikscarlDuGRCspd+18b9AYKCHbs92A==",
+     "type": "Bytes"
+    },
+    {
+     "value": "AAAACgAAAAAAAAAAAAAAAABycOA=",
+     "type": "I128"
+    }
+   ],
+   "asset_balance_changes": [
+    {
+     "asset_type": "credit_alphanum4",
+     "asset_code": "USDC",
+     "asset_issuer": "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5",
+     "type": "transfer",
+     "from": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+     "to": "CD25Q4TDGDY6CI3LUIWUOH6SXCH6ETIUCI6FUOBI322GCJL5G3EIHQN4",
+     "amount": "0.7500000"
+    }
+   ]
+  },
+  {
+   "id": "22384523438223361",
+   "paging_token": "22384523438223361",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-15T16:43:22Z",
+   "transaction_hash": "0e24b08b2e41d948d6f0fd966c076187633603fd56bf80eeebcc1306fdb240cf",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAH12HJjMPHhI2uiLUcf0riP4k0UEjxaOCjetGElfTbIgw==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAAAVyZXBheQAAAA==",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAAEgAAAAAAAAAANCH57DsDMRQQG7cdaDLLe5lWYFVa5V16k5uQrNEGEOs=",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADQAAACB9liJQWK11RSLnikscarlDuGRCspd+18b9AYKCHbs92A==",
+     "type": "Bytes"
+    },
+    {
+     "value": "AAAACgAAAAAAAAAAAAAAAAAmJaA=",
+     "type": "I128"
+    }
+   ],
+   "asset_balance_changes": [
+    {
+     "asset_type": "credit_alphanum4",
+     "asset_code": "USDC",
+     "asset_issuer": "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5",
+     "type": "transfer",
+     "from": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+     "to": "CD25Q4TDGDY6CI3LUIWUOH6SXCH6ETIUCI6FUOBI322GCJL5G3EIHQN4",
+     "amount": "0.2500000"
+    }
+   ]
+  },
+  {
+   "id": "22384514848301057",
+   "paging_token": "22384514848301057",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-15T16:43:12Z",
+   "transaction_hash": "7f40d753301a1166862d2f0c08c4adf38854127b2103ae39db37300ad03747b4",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAH12HJjMPHhI2uiLUcf0riP4k0UEjxaOCjetGElfTbIgw==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAAA9yZXF1ZXN0X2FkdmFuY2UA",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAAEgAAAAAAAAAANCH57DsDMRQQG7cdaDLLe5lWYFVa5V16k5uQrNEGEOs=",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADgAAAAQ0LjAw",
+     "type": "Str"
+    },
+    {
+     "value": "AAAADgAAAA9wdWItaDE3OTIwODI1ODQA",
+     "type": "Str"
+    },
+    {
+     "value": "AAAADgAAAAoyMDI2LTA3LTAxAAA=",
+     "type": "Str"
+    },
+    {
+     "value": "AAAADgAAAAoyMDI2LTA5LTMwAAA=",
+     "type": "Str"
+    },
+    {
+     "value": "AAAABQAAAABq0QKY",
+     "type": "U64"
+    },
+    {
+     "value": "AAAABQAAAAAAAAAA",
+     "type": "U64"
+    },
+    {
+     "value": "AAAADQAAAEB0BmnUMLnDMiUgFYGg5bImLME+8yAuEjvAhr8OjttP0hL3GAb6WFd8qBNIcP1hldQX5ECDUj7sUhbYX0msCjQX",
+     "type": "Bytes"
+    },
+    {
+     "value": "AAAAAwAAAAE=",
+     "type": "U32"
+    }
+   ],
+   "asset_balance_changes": [
+    {
+     "asset_type": "credit_alphanum4",
+     "asset_code": "USDC",
+     "asset_issuer": "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5",
+     "type": "transfer",
+     "from": "CD25Q4TDGDY6CI3LUIWUOH6SXCH6ETIUCI6FUOBI322GCJL5G3EIHQN4",
+     "to": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+     "amount": "1.0000000"
+    }
+   ]
+  },
+  {
+   "id": "22384441833832449",
+   "paging_token": "22384441833832449",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-15T16:41:47Z",
+   "transaction_hash": "71995c4607734070517c0496e36e2abe80addc9d12fca919279f84efbbf9d17a",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAH12HJjMPHhI2uiLUcf0riP4k0UEjxaOCjetGElfTbIgw==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAABJzZXRfY2xhaW1fdGVtcGxhdGUAAA==",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAAEAAAAAEAAAAEAAAADQAAAEJ7Im1ldGhvZCI6IkdFVCIsInVybCI6Imh0dHBzOi8vYWRzZW5zZS5nb29nbGVhcGlzLmNvbS92Mi9hY2NvdW50cy8AAAAAAA0AAAAcL3JlcG9ydHM6Z2VuZXJhdGU/c3RhcnREYXRlPQAAAA0AAAAJJmVuZERhdGU9AAAAAAAADQAAAB0mbWV0cmljcz1FU1RJTUFURURfRUFSTklOR1MifQAAAA==",
+     "type": "Vec"
+    },
+    {
+     "value": "AAAADQAAAEIweDU2OWI5MzIzMzE4NWMwNTRlZDlmZGE2OGI1YWVmOGZkYTE4MGI2ZDI5MTE4MDQ1MGJmNzU3YjExYmI1MmY3ZGYAAA==",
+     "type": "Bytes"
+    }
+   ],
+   "asset_balance_changes": null
+  },
+  {
+   "id": "22384433243906049",
+   "paging_token": "22384433243906049",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-15T16:41:37Z",
+   "transaction_hash": "2bb17e05ac59b1a11a7a87037f04a7f60084fbb4fd212d1e01780247fc78bed8",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeCreateContractV2",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAAAAAAANCH57DsDMRQQG7cdaDLLe5lWYFVa5V16k5uQrNEGEOs=",
+     "type": "Address"
+    },
+    {
+     "value": "AAAAEgAAAAEkBCrfI6wtxoGW+IBbxJ3DdHFOg1l3e8NX1xC3rLgtbA==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAAEgAAAAFQRc1ewHKado/VrQJQWFLfTwKNzoMOWsUiCbpISDsvAQ==",
+     "type": "Address"
+    }
+   ],
+   "asset_balance_changes": null
+  },
+  {
+   "id": "22384407474118657",
+   "paging_token": "22384407474118657",
+   "type": "change_trust",
+   "created_at": "2026-10-15T16:41:07Z",
+   "transaction_hash": "17a0d45dd934ad4831e8b8e5d9338a30601a357c3230799a053eaaf9660701f1",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "asset_code": "USDC",
+   "asset_issuer": "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5",
+   "limit": "922337203685.4775807"
+  },
+  {
+   "id": "22384377409343489",
+   "paging_token": "22384377409343489",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-15T16:40:32Z",
+   "transaction_hash": "2b0400569f8bea47ee6522b92640b8f96a600dfef4210670161903030c7358a2",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAE3g0D05oi9TA432p6Mc+lWpUGjsihS08qv4JOIplgNiw==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAABJ2ZXJpZnlfYW5kX3Jlc2VydmUAAA==",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAAEgAAAAAAAAAANCH57DsDMRQQG7cdaDLLe5lWYFVa5V16k5uQrNEGEOs=",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADgAAAAUxOC4wMAAAAA==",
+     "type": "Str"
+    },
+    {
+     "value": "AAAADgAAAA9wdWItaDE3OTIwODI0MjIA",
+     "type": "Str"
+    },
+    {
+     "value": "AAAADgAAAAoyMDI2LTA3LTAxAAA=",
+     "type": "Str"
+    },
+    {
+     "value": "AAAADgAAAAoyMDI2LTA5LTMwAAA=",
+     "type": "Str"
+    },
+    {
+     "value": "AAAABQAAAABq0QH2",
+     "type": "U64"
+    },
+    {
+     "value": "AAAABQAAAAAAAAAA",
+     "type": "U64"
+    },
+    {
+     "value": "AAAADQAAAEAANwuMMLiEB2NhScz6fkjqYTyZLzvQDHcixOI789nyrggkjUVBQFviamS2GxWU8b9rV+FhHy6fEyHeeRK4gSgX",
+     "type": "Bytes"
+    },
+    {
+     "value": "AAAAAwAAAAA=",
+     "type": "U32"
+    }
+   ],
+   "asset_balance_changes": null
+  },
+  {
+   "id": "22383380976914433",
+   "paging_token": "22383380976914433",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-15T16:21:12Z",
+   "transaction_hash": "d00cc83ec5836adf2d013d33bbc6579d8b641fa8118fc5d39c97a40ccf4289c1",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAE3g0D05oi9TA432p6Mc+lWpUGjsihS08qv4JOIplgNiw==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAABJ2ZXJpZnlfYW5kX3Jlc2VydmUAAA==",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAAEgAAAAAAAAAANCH57DsDMRQQG7cdaDLLe5lWYFVa5V16k5uQrNEGEOs=",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADgAAAAUxOS4wMAAAAA==",
+     "type": "Str"
+    },
+    {
+     "value": "AAAADgAAABRwdWItMjUyNTI1MjUyNTI1MjUyNQ==",
+     "type": "Str"
+    },
+    {
+     "value": "AAAADgAAAAoyMDI2LTAxLTAxAAA=",
+     "type": "Str"
+    },
+    {
+     "value": "AAAADgAAAAoyMDI2LTAzLTMxAAA=",
+     "type": "Str"
+    },
+    {
+     "value": "AAAABQAAAABq0P1l",
+     "type": "U64"
+    },
+    {
+     "value": "AAAABQAAAAAAAAAA",
+     "type": "U64"
+    },
+    {
+     "value": "AAAADQAAAEArtFmJGlvF3rlEl0oVOeLQ08fcNdap515E3RO0pggbYlvY8F6Url23UN2q2JoMIeXjj2LHuIx5YMGorbj5uTUg",
+     "type": "Bytes"
+    },
+    {
+     "value": "AAAAAwAAAAE=",
+     "type": "U32"
+    }
+   ],
+   "asset_balance_changes": null
+  },
+  {
+   "id": "22383174818500609",
+   "paging_token": "22383174818500609",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-15T16:17:12Z",
+   "transaction_hash": "162b534cd0c540fe8916acfaf6fdc6ba2f7de7cb34abbd1fa804ba8fbeecf263",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAE3g0D05oi9TA432p6Mc+lWpUGjsihS08qv4JOIplgNiw==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAABJ2ZXJpZnlfYW5kX3Jlc2VydmUAAA==",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAAEgAAAAAAAAAANCH57DsDMRQQG7cdaDLLe5lWYFVa5V16k5uQrNEGEOs=",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADgAAAAUxOC4wMAAAAA==",
+     "type": "Str"
+    },
+    {
+     "value": "AAAADgAAABRwdWItMTgxODE4MTgxODE4MTgxOA==",
+     "type": "Str"
+    },
+    {
+     "value": "AAAADgAAAAoyMDI2LTA0LTAxAAA=",
+     "type": "Str"
+    },
+    {
+     "value": "AAAADgAAAAoyMDI2LTA2LTMwAAA=",
+     "type": "Str"
+    },
+    {
+     "value": "AAAABQAAAABq0Pxz",
+     "type": "U64"
+    },
+    {
+     "value": "AAAABQAAAAAAAAAA",
+     "type": "U64"
+    },
+    {
+     "value": "AAAADQAAAEAvY5Nt+DmPWdQm9zdNHzutZ6ji9GQ/6Z9flS4lZvLDSDrYiVu7hqKyj/ErWPLrL/x8OZrlSHkkHHyyy5AM+9ec",
+     "type": "Bytes"
+    },
+    {
+     "value": "AAAAAwAAAAA=",
+     "type": "U32"
+    }
+   ],
+   "asset_balance_changes": null
+  },
+  {
+   "id": "22381813313916929",
+   "paging_token": "22381813313916929",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-15T15:50:47Z",
+   "transaction_hash": "e2a2ed3c1b2ee5ad8f5855bc989b91a812d805a12b3c8188c0c64c455f7d9f64",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAGgVeoe8M5QZppT42aenCzym3+t7dbbkEUpmW2+LkXS9A==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAAA5jYW5jZWxfdXBncmFkZQAA",
+     "type": "Sym"
+    }
+   ],
+   "asset_balance_changes": null
+  },
+  {
+   "id": "22381804723957761",
+   "paging_token": "22381804723957761",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-15T15:50:37Z",
+   "transaction_hash": "6a71c864042c7ccc39d49d333869bdc3979be5578145fdf692d2e460ec02ba13",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAGgVeoe8M5QZppT42aenCzym3+t7dbbkEUpmW2+LkXS9A==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAAA9wcm9wb3NlX3VwZ3JhZGUA",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAADQAAACChspO6i5BDs/iTuPygUBibXJgNVw230bLgOhL0xXXuNg==",
+     "type": "Bytes"
+    }
+   ],
+   "asset_balance_changes": null
+  },
+  {
+   "id": "22381757479288833",
+   "paging_token": "22381757479288833",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-15T15:49:42Z",
+   "transaction_hash": "722526e6c469813baad413c82ea84d3fcff13f13723320338e2fcc9db8ca3ae7",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeCreateContractV2",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAAAAAAANCH57DsDMRQQG7cdaDLLe5lWYFVa5V16k5uQrNEGEOs=",
+     "type": "Address"
+    },
+    {
+     "value": "AAAAEgAAAAE2Rl4+S502v5ye3ASVjGGVGJJjSoK8v1Gm5IxyQygP3g==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAAEgAAAAFQRc1ewHKado/VrQJQWFLfTwKNzoMOWsUiCbpISDsvAQ==",
+     "type": "Address"
+    }
+   ],
+   "asset_balance_changes": null
+  },
+  {
+   "id": "22381740299436033",
+   "paging_token": "22381740299436033",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-15T15:49:22Z",
+   "transaction_hash": "cafaeed6e693477a960a2183333961fafd026cf64b06758c7fc29f420c06cb36",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeUploadContractWasm",
+   "parameters": null,
+   "asset_balance_changes": null
+  },
+  {
+   "id": "22305040773439489",
+   "paging_token": "22305040773439489",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-14T15:01:12Z",
+   "transaction_hash": "0820e7eee08e3f1028534a1137dee83af7542aadfcd2bd27d71517800960c7d6",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAE3g0D05oi9TA432p6Mc+lWpUGjsihS08qv4JOIplgNiw==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAAA5jYW5jZWxfdXBncmFkZQAA",
+     "type": "Sym"
+    }
+   ],
+   "asset_balance_changes": null
+  },
+  {
+   "id": "22305023593603073",
+   "paging_token": "22305023593603073",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-14T15:00:52Z",
+   "transaction_hash": "5f2f59dd10228060f20b2cae5188a4fde04b1a7e907261a1459f42c13970c8da",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAE3g0D05oi9TA432p6Mc+lWpUGjsihS08qv4JOIplgNiw==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAAA9wcm9wb3NlX3VwZ3JhZGUA",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAADQAAACCvnuAu3EoSCX3MHJ6Ke+WEHg7siRZY29ddlqVVrgzcVQ==",
+     "type": "Bytes"
+    }
+   ],
+   "asset_balance_changes": null
+  },
+  {
+   "id": "22304753010708481",
+   "paging_token": "22304753010708481",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-14T14:55:37Z",
+   "transaction_hash": "c9ea01e40444ef41ee2557bab6b963db51d3d9e0f9dfa531d84511767ea847e8",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAE3g0D05oi9TA432p6Mc+lWpUGjsihS08qv4JOIplgNiw==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAABJ2ZXJpZnlfYW5kX3Jlc2VydmUAAA==",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAAEgAAAAAAAAAANCH57DsDMRQQG7cdaDLLe5lWYFVa5V16k5uQrNEGEOs=",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADgAAAAc0ODIxLjc1AA==",
+     "type": "Str"
+    },
+    {
+     "value": "AAAADgAAABRwdWItOTk4ODc3NjY1NTQ0MzMyMg==",
+     "type": "Str"
+    },
+    {
+     "value": "AAAADgAAAAoyMDI2LTA3LTAxAAA=",
+     "type": "Str"
+    },
+    {
+     "value": "AAAADgAAAAoyMDI2LTA5LTMwAAA=",
+     "type": "Str"
+    },
+    {
+     "value": "AAAABQAAAABqz5fX",
+     "type": "U64"
+    },
+    {
+     "value": "AAAABQAAAAAAAAAA",
+     "type": "U64"
+    },
+    {
+     "value": "AAAADQAAAEDeo2oFk3F6s3JVWAPYO4YRvIKD4zhPYmgjNLAHzhJZbGiRYdUUg76brYXIe4+JDBZ2QmC3PolsqEXm6xrGdyHF",
+     "type": "Bytes"
+    },
+    {
+     "value": "AAAAAwAAAAA=",
+     "type": "U32"
+    }
+   ],
+   "asset_balance_changes": null
+  },
+  {
+   "id": "22304727240826881",
+   "paging_token": "22304727240826881",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-14T14:55:07Z",
+   "transaction_hash": "36d6362ea16d4233a4f3002787389ea294b2eae94b9f159f4f59d90be1ae3527",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAE3g0D05oi9TA432p6Mc+lWpUGjsihS08qv4JOIplgNiw==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAABJzZXRfY2xhaW1fdGVtcGxhdGUAAA==",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAAEAAAAAEAAAAEAAAADQAAAEJ7Im1ldGhvZCI6IkdFVCIsInVybCI6Imh0dHBzOi8vYWRzZW5zZS5nb29nbGVhcGlzLmNvbS92Mi9hY2NvdW50cy8AAAAAAA0AAAAcL3JlcG9ydHM6Z2VuZXJhdGU/c3RhcnREYXRlPQAAAA0AAAAJJmVuZERhdGU9AAAAAAAADQAAAB0mbWV0cmljcz1FU1RJTUFURURfRUFSTklOR1MifQAAAA==",
+     "type": "Vec"
+    },
+    {
+     "value": "AAAADQAAAEIweDU2OWI5MzIzMzE4NWMwNTRlZDlmZGE2OGI1YWVmOGZkYTE4MGI2ZDI5MTE4MDQ1MGJmNzU3YjExYmI1MmY3ZGYAAA==",
+     "type": "Bytes"
+    }
+   ],
+   "asset_balance_changes": null
+  },
+  {
+   "id": "22304714355941377",
+   "paging_token": "22304714355941377",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-14T14:54:52Z",
+   "transaction_hash": "05cb75d1586c27dff901613d6556869104ada975fa75400264853fe774eb3fa0",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeCreateContractV2",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAAAAAAANCH57DsDMRQQG7cdaDLLe5lWYFVa5V16k5uQrNEGEOs=",
+     "type": "Address"
+    },
+    {
+     "value": "AAAAEgAAAAEkBCrfI6wtxoGW+IBbxJ3DdHFOg1l3e8NX1xC3rLgtbA==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAAEgAAAAFQRc1ewHKado/VrQJQWFLfTwKNzoMOWsUiCbpISDsvAQ==",
+     "type": "Address"
+    }
+   ],
+   "asset_balance_changes": null
+  },
+  {
+   "id": "22304701471010817",
+   "paging_token": "22304701471010817",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-14T14:54:37Z",
+   "transaction_hash": "959ad85651072af4636f7fac245ed09d052d4f6df4be6ed60d07d97efd010fc2",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeUploadContractWasm",
+   "parameters": null,
+   "asset_balance_changes": null
+  },
+  {
+   "id": "21927878220369921",
+   "paging_token": "21927878220369921",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-09T13:03:17Z",
+   "transaction_hash": "96a744d71ecada206fd46359fe7e895dd31919c9079f1c731d6b4ccdc8a41cda",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAE2Rl4+S502v5ye3ASVjGGVGJJjSoK8v1Gm5IxyQygP3g==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAAAx2ZXJpZnlfcHJvb2Y=",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAADQAAACBqZuEkZLbJpXf/ULZ1C89tHAOMdjjIIw5/Xe4yVbQYJw==",
+     "type": "Bytes"
+    },
+    {
+     "value": "AAAADQAAAEDdiAzFcVmYfdT+U+yfcY9hOg4C17wMIV75tUAZpxkQlX5TMKjIAizRHdrQEGB1hdY2HQXgRMHt0DXTt4qZdpoc",
+     "type": "Bytes"
+    },
+    {
+     "value": "AAAAAwAAAAE=",
+     "type": "U32"
+    }
+   ],
+   "asset_balance_changes": null
+  },
+  {
+   "id": "21927216795443201",
+   "paging_token": "21927216795443201",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-09T12:50:27Z",
+   "transaction_hash": "e212efd9eb6ea4db14c0d35701481468eacb645673c9d9427bbd257c862c1355",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAEkBCrfI6wtxoGW+IBbxJ3DdHFOg1l3e8NX1xC3rLgtbA==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAAAx2ZXJpZnlfcHJvb2Y=",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAADQAAACDlOetgqnPWOuzBrflzw6sBOukc4hKVuKKJG8bgaKPu6g==",
+     "type": "Bytes"
+    },
+    {
+     "value": "AAAADQAAAEBF03aNo222EG4J6s3VqBfmkfja/H2WJN1eOKn0Q8nrPRdUqQ4Zd64oUgt2VrWluhO0aukmaoMRip/7yHDaqlgD",
+     "type": "Bytes"
+    },
+    {
+     "value": "AAAAAwAAAAE=",
+     "type": "U32"
+    }
+   ],
+   "asset_balance_changes": null
+  },
+  {
+   "id": "21927191025659905",
+   "paging_token": "21927191025659905",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-09T12:49:57Z",
+   "transaction_hash": "500dc3e3954c0b9be76d7d1fbbbe92132ead5109936bb1fe1a4d893a7bbac690",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAEkBCrfI6wtxoGW+IBbxJ3DdHFOg1l3e8NX1xC3rLgtbA==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAAAlhZGRfZXBvY2gAAAA=",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAAEAAAAAEAAAABAAAAEQAAAAEAAAACAAAADwAAAAdhZGRyZXNzAAAAAA0AAAAUGefjdufCE7fn5+Rsxwpd0Iba/yoAAAAPAAAABGhvc3QAAAAOAAAAD2ZvcmVwYXktaXNzdWUtMgA=",
+     "type": "Vec"
+    },
+    {
+     "value": "AAAAAwAAAAE=",
+     "type": "U32"
+    }
+   ],
+   "asset_balance_changes": null
+  },
+  {
+   "id": "21927182435676161",
+   "paging_token": "21927182435676161",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-09T12:49:47Z",
+   "transaction_hash": "5a29cb8fbec47335a33885236c9ced9c002186ecb395741dd8e29699de1c153e",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeInvokeContract",
+   "parameters": [
+    {
+     "value": "AAAAEgAAAAEkBCrfI6wtxoGW+IBbxJ3DdHFOg1l3e8NX1xC3rLgtbA==",
+     "type": "Address"
+    },
+    {
+     "value": "AAAADwAAAAtpbnN0YW50aWF0ZQA=",
+     "type": "Sym"
+    },
+    {
+     "value": "AAAAEgAAAAAAAAAANCH57DsDMRQQG7cdaDLLe5lWYFVa5V16k5uQrNEGEOs=",
+     "type": "Address"
+    }
+   ],
+   "asset_balance_changes": null
+  },
+  {
+   "id": "21927165255798785",
+   "paging_token": "21927165255798785",
+   "type": "invoke_host_function",
+   "created_at": "2026-10-09T12:49:27Z",
+   "transaction_hash": "444b2a068842b27c43eda113d2d9a5352ddd3d026128ff86e6c1ba5fb280e26f",
+   "transaction_successful": true,
+   "source_account": "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+   "function": "HostFunctionTypeHostFunctionTypeCreateContract",
+   "parameters": null,
+   "asset_balance_changes": null
+  },
+  {
+   "id": "21926894672809985",
+   "paging_token": "21926894672809985",
+   "type": "create_account",
+   "created_at": "2026-10-09T12:44:12Z",
+   "transaction_hash": "43595e2f4500317b25502fd607b8ecad0c3604884410266ff5262b79305e551b",
+   "transaction_successful": true,
+   "source_account": "GAIH3ULLFQ4DGSECF2AR555KZ4KNDGEKN4AFI4SU2M7B43MGK3QJZNSR"
+  }
+ ]
+}
