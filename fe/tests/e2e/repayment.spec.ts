@@ -62,7 +62,8 @@ test("a partial repayment and then a full one, each read back from the API", asy
   await expect(card(page)).toContainText("60.00 of 90.00 USDC repaid");
   await expect(card(page)).toContainText("66%");
   await expect(transactions.getByText("Pending")).toHaveCount(0);
-  await expect(transactions.getByText("Today")).toBeVisible();
+  // The new row is dated today. Scoped to it: a fixture row can be dated today too (20 Oct 2026).
+  await expect(transactions.getByRole("listitem").filter({ hasText: "−30.00" })).toContainText("Today");
   await expect(amount(page)).toHaveValue("");
   await expect(form(page)).toContainText("790.00 USDC");
   expect(chain.contract?.sent?.map((c) => [c.method, c.args[2]])).toEqual([["repay", 30n * USDC]]);
