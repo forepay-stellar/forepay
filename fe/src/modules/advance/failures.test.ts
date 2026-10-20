@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ReclaimCancelledError, RelayNotReadyError } from "@/lib/reclaim";
+import { ReclaimCancelledError, RelayError, RelayNotReadyError } from "@/lib/reclaim";
 import { ContractError, MissingConfigError, SimulationError, TransactionFailedError } from "@/lib/stellar/contract";
 import { WalletError } from "@/lib/stellar/wallet-error";
 import { WalletSignError } from "@/lib/stellar/wallet-error";
@@ -9,6 +9,11 @@ describe("proveFailure", () => {
   it("names each cause on its own", () => {
     expect(proveFailure(new ReclaimCancelledError())).toEqual({ kind: "cancelled" });
     expect(proveFailure(new RelayNotReadyError())).toEqual({ kind: "relayNotReady" });
+    expect(proveFailure(new RelayError("token", "x"))).toEqual({ kind: "googleSignIn" });
+    expect(proveFailure(new RelayError("account", "x"))).toEqual({ kind: "noAdsense" });
+    for (const code of ["busy", "provider", "prove", "audit", "internal"] as const) {
+      expect(proveFailure(new RelayError(code, "x"))).toEqual({ kind: "relayFailed" });
+    }
     expect(proveFailure(new ContractError(14, "x"))).toEqual({ code: 14 });
     expect(proveFailure(new SimulationError("HostError: Error(Auth, InvalidAction)"))).toEqual({ kind: "simulationFailed" });
     expect(proveFailure(new MissingConfigError("NEXT_PUBLIC_ADVANCE_CONTRACT_ID"))).toEqual({ kind: "notConfigured" });

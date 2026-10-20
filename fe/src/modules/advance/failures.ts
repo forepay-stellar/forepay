@@ -1,6 +1,6 @@
 import { classifySignError, type ProveFailure } from "@/lib/errors";
 import { formatUsd } from "@/lib/format";
-import { ReclaimCancelledError, RelayNotReadyError } from "@/lib/reclaim";
+import { ReclaimCancelledError, RelayError, RelayNotReadyError } from "@/lib/reclaim";
 import { ContractError, MissingConfigError, SimulationError, TransactionFailedError } from "@/lib/stellar/contract";
 import { WalletSignError } from "@/lib/stellar/wallet-error";
 
@@ -14,6 +14,11 @@ export type AdvanceFailure = { code: number } | { kind: ProveFailure } | { kind:
 function sorted(e: unknown): AdvanceFailure {
   if (e instanceof ReclaimCancelledError) return { kind: "cancelled" };
   if (e instanceof RelayNotReadyError) return { kind: "relayNotReady" };
+  if (e instanceof RelayError) {
+    if (e.code === "token") return { kind: "googleSignIn" };
+    if (e.code === "account") return { kind: "noAdsense" };
+    return { kind: "relayFailed" };
+  }
   if (e instanceof ContractError) return { code: e.code };
   if (e instanceof SimulationError) return { kind: "simulationFailed" };
   if (e instanceof MissingConfigError) return { kind: "notConfigured" };

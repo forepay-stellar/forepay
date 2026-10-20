@@ -209,7 +209,10 @@ export function contractFailureCopy(code: number): FailureCopy {
  * - `simulationFailed`: Stellar answered, but could not run the request, with no contract code to say why.
  * - `notConfigured`: this build is missing an address it needs, so nothing reached the network.
  * - `walletLocked`, `walletWrongNetwork`, `walletNoAnswer`: the wallet could not sign, for that reason.
- * - `relayNotReady`: proofs are meant to come from the #17 relay, and its client is not built yet.
+ * - `relayNotReady`: proofs are meant to come from the #17 relay, and this build cannot reach it.
+ * - `googleSignIn`: Google refused the sign-in the relay was handed, for example an expired one.
+ * - `noAdsense`: the Google account has no approved AdSense account the relay can read.
+ * - `relayFailed`: the relay could not make the proof (busy, or failed on its side). Nothing was saved.
  */
 export type ProveFailure =
   | "cancelled"
@@ -225,7 +228,10 @@ export type ProveFailure =
   | "walletLocked"
   | "walletWrongNetwork"
   | "walletNoAnswer"
-  | "relayNotReady";
+  | "relayNotReady"
+  | "googleSignIn"
+  | "noAdsense"
+  | "relayFailed";
 
 export function proveFailureCopy(kind: ProveFailure, walletName = "Freighter"): FailureCopy {
   switch (kind) {
@@ -302,6 +308,21 @@ export function proveFailureCopy(kind: ProveFailure, walletName = "Freighter"): 
       return {
         title: "Proving revenue is not open yet",
         body: "Forepay cannot read AdSense revenue yet. Try again later.",
+      };
+    case "googleSignIn":
+      return {
+        title: "Google did not let us read AdSense",
+        body: "Sign in again and allow Forepay to see your AdSense reports. Nothing was saved.",
+      };
+    case "noAdsense":
+      return {
+        title: "We found no approved AdSense account",
+        body: "Sign in with the Google account that owns an approved AdSense account, then try again.",
+      };
+    case "relayFailed":
+      return {
+        title: "We could not finish your proof",
+        body: "Nothing was saved or charged. Try again in a few minutes.",
       };
   }
 }

@@ -2,9 +2,9 @@
 import type { AdvanceRequest } from "@/lib/stellar/contract";
 
 export type ProveStage =
-  /** A Reclaim window is open. The creator logs in to AdSense there, not on our page. */
+  /** Google's sign-in window is open. The creator signs in to AdSense there, not on our page. */
   | "waiting"
-  /** The login worked. The revenue figure is being turned into a proof. */
+  /** The sign-in worked. The relay is turning the revenue figure into a proof (#17). */
   | "reading";
 
 export type ProveSession = {
@@ -24,10 +24,29 @@ export class ReclaimCancelledError extends Error {
   }
 }
 
-/** The relay is configured, but its client is not written yet (#17). */
+/** The relay is configured without the Google OAuth client id the sign-in needs (#17). */
 export class RelayNotReadyError extends Error {
   constructor() {
-    super("NEXT_PUBLIC_RELAY_URL is set, but the #17 relay client is not built yet");
+    super("NEXT_PUBLIC_RELAY_URL is set, but NEXT_PUBLIC_GOOGLE_CLIENT_ID is not");
     this.name = "RelayNotReadyError";
+  }
+}
+
+/**
+ * Why the relay could not make the proof, by whose move it is (docs/api.md):
+ * - `token`: Google refused the sign-in, for example an expired one. Signing in again fixes it.
+ * - `account`: no approved AdSense account behind that Google account.
+ * - `busy`: the relay is proving for someone else, or already for this wallet.
+ * - `provider`, `prove`, `audit`, `internal`: the relay's side. Trying again may work.
+ */
+export type RelayErrorCode = "token" | "account" | "busy" | "provider" | "prove" | "audit" | "internal";
+
+export class RelayError extends Error {
+  constructor(
+    readonly code: RelayErrorCode,
+    message: string,
+  ) {
+    super(message);
+    this.name = "RelayError";
   }
 }
