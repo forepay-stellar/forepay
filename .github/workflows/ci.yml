@@ -158,3 +158,11 @@ jobs:
       # script is the derivation and this step fails if the committed file disagrees.
       - name: The claim fixture is what the generator produces
         run: python3 tools/make_claim_fixture.py --check
+
+      # The evidence pack (#27) is what a reviewer reads. A broken relative path or a
+      # stale anchor in it is the cheapest possible way to lose credibility, so the
+      # local half is checked on every push. The remote half — transactions on chain and
+      # the contract's verified badge — needs the network and is run by hand on
+      # submission day: `python3 tools/check_links.py`.
+      - name: Evidence pack links resolve (local paths and anchors)
+        run: python3 tools/check_links.py --no-network docs/evidence.md README.md

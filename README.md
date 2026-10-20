@@ -4,7 +4,18 @@
 
 Forepay lets a content creator prove their ad revenue privately and turn that proof into a stablecoin advance on Stellar, without sharing account credentials and without posting collateral.
 
-> Status: early development. This repository currently holds the project scaffold. The scope below is a 30-day technical demonstration on **Stellar testnet**, funded through Stellar Instawards (Ambassador Chapter Indonesia). It is not a lending product and uses no real funds.
+> **Reviewing this for Instawards? Start at [`docs/evidence.md`](docs/evidence.md)** — it answers the
+> SOW §6.2 checklist row by row, with a clickable link for every claim and a plain statement of what
+> each row does *not* show.
+
+> Status: the advance contract is **live and source-verified on Stellar testnet**
+> ([`CCQFL2Q6…I2HS`](https://stellar.expert/explorer/testnet/contract/CCQFL2Q66DHFAZU2KPRWNHU4FTZJW75N5XLNXECFFGMW3PROIXJPI2HS)),
+> funded with 105 testnet USDC, and has disbursed and been repaid against verified proofs. The
+> backend and proof relay are running, and the creator front end is merged. What is not done yet is
+> listed in the evidence pack rather than left for a reader to work out.
+>
+> The scope is a 30-day technical demonstration on **Stellar testnet**, funded through Stellar
+> Instawards (Ambassador Chapter Indonesia). It is not a lending product and uses no real funds.
 
 ---
 
