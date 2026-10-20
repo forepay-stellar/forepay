@@ -8,6 +8,9 @@ vi.mock("./network", async (importOriginal) => ({
   USDC: { code: "USDC", issuer: "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5" },
 }));
 
+// The account read itself is account.ts's, tested with the contract calls.
+vi.mock("./account", () => ({ sourceAccount: async () => new Account(ADDRESS, "1") }));
+
 const { TrustlineError, addUsdcTrustline } = await import("./trustline");
 
 const ADDRESS = "GA6HCMBLTZS5VYYBCATRBRZ3BZJMAFUDKYYF6AH6MVCMGWMRDNSWJPIH";
@@ -15,7 +18,6 @@ const HASH = "a".repeat(64);
 const sign = vi.fn(async (xdr: string) => xdr);
 
 function chain(send: string, final?: rpc.Api.GetTransactionStatus) {
-  vi.spyOn(rpc.Server.prototype, "getAccount").mockResolvedValue(new Account(ADDRESS, "1"));
   vi.spyOn(rpc.Server.prototype, "sendTransaction").mockResolvedValue({
     status: send,
     hash: HASH,
@@ -53,8 +55,7 @@ describe("addUsdcTrustline", () => {
   });
 
   it("reports a submission that gets no answer as unconfirmed, never as nothing charged", async () => {
-    vi.spyOn(rpc.Server.prototype, "getAccount").mockResolvedValue(new Account(ADDRESS, "1"));
-    vi.spyOn(rpc.Server.prototype, "sendTransaction").mockRejectedValue(new TypeError("fetch failed"));
+      vi.spyOn(rpc.Server.prototype, "sendTransaction").mockRejectedValue(new TypeError("fetch failed"));
     await expect(addUsdcTrustline(ADDRESS, sign)).rejects.toMatchObject({ outcome: "unconfirmed" });
   });
 

@@ -1,5 +1,7 @@
 import { Asset, BASE_FEE, Keypair, Operation, TransactionBuilder, rpc, xdr } from "@stellar/stellar-sdk";
 import { NETWORK_PASSPHRASE, RPC_URL, USDC } from "./network";
+import { sourceAccount } from "./account";
+import { SubmitError, submitSigned } from "./submit";
 
 /**
  * Can this wallet receive USDC? (#19)
@@ -20,9 +22,12 @@ export type UsdcStatus =
   /** The trustline exists. The advance can reach this wallet. */
   | "ready";
 
+let rpcServer: rpc.Server | null = null;
+
+/** One client for this module, built on first use (review M10). */
 function server() {
   if (!RPC_URL) throw new Error("NEXT_PUBLIC_STELLAR_RPC_URL is not set");
-  return new rpc.Server(RPC_URL);
+  return (rpcServer ??= new rpc.Server(RPC_URL));
 }
 
 function usdcAsset() {
@@ -70,44 +75,19 @@ export async function addUsdcTrustline(
   address: string,
   signTransaction: (xdr: string) => Promise<string>,
 ): Promise<string> {
-  const rpcServer = server();
-  const account = await rpcServer.getAccount(address);
+  const client = server();
+  const account = await sourceAccount(client, address);
   const tx = new TransactionBuilder(account, { fee: BASE_FEE, networkPassphrase: NETWORK_PASSPHRASE })
     .addOperation(Operation.changeTrust({ asset: usdcAsset() }))
     .setTimeout(180)
     .build();
 
   const signedXdr = await signTransaction(tx.toXDR());
-  // A wallet answer that is not a transaction never left the page, so nothing was charged.
-  let signed: ReturnType<typeof TransactionBuilder.fromXDR>;
   try {
-    signed = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE);
-  } catch {
-    throw new TrustlineError("The wallet did not return a transaction", "refused");
+    const { hash } = await submitSigned(client, signedXdr, { attempts: 30 });
+    return hash;
+  } catch (e) {
+    if (e instanceof SubmitError) throw new TrustlineError(e.message, e.outcome);
+    throw e;
   }
-  // From here on the signed transaction may be out. A request that gets no answer (a dropped
-  // connection, a node that times out) cannot say whether it landed, so it is "unconfirmed", never
-  // "nothing was charged".
-  let sent: rpc.Api.SendTransactionResponse;
-  try {
-    sent = await rpcServer.sendTransaction(signed);
-  } catch {
-    throw new TrustlineError("Sending got no answer", "unconfirmed");
-  }
-  if (sent.status === "ERROR" || sent.status === "TRY_AGAIN_LATER") {
-    throw new TrustlineError(`The network did not accept the transaction (${sent.status})`, "refused");
-  }
-  let result: rpc.Api.GetTransactionResponse;
-  try {
-    result = await rpcServer.pollTransaction(sent.hash, { attempts: 30 });
-  } catch {
-    throw new TrustlineError("Waiting for the ledger got no answer", "unconfirmed");
-  }
-  if (result.status === rpc.Api.GetTransactionStatus.FAILED) {
-    throw new TrustlineError("The transaction failed on the ledger", "failed");
-  }
-  if (result.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
-    throw new TrustlineError(`The transaction was not confirmed (${result.status})`, "unconfirmed");
-  }
-  return sent.hash;
 }

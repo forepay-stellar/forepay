@@ -35,13 +35,17 @@ pnpm build
 End to end, run locally (CI does not run it yet):
 
 ```bash
-pnpm test:e2e    # Playwright, tests/e2e
+npx playwright install chromium   # once
+pnpm test:e2e                     # Playwright, tests/e2e
 ```
 
-It drives Google Chrome (`channel: "chrome"`), so install Chrome rather than running
-`playwright install`. It starts its own `next dev` on port 3219 with its own environment
-(`playwright.config.ts`): the test wallet (`NEXT_PUBLIC_E2E=1`) and a fake RPC URL whose answers
-each spec decides, so a run never touches testnet and needs no browser extension.
+It uses Playwright's own Chromium. Google Chrome works too (`PW_CHANNEL=chrome`), but on a Mac with
+a Chrome update pending, Chrome's updater can keep a finished run from exiting. It starts its own
+`next dev` on port 3219 (or `PW_PORT`), built into `.next-e2e` (`NEXT_DIST_DIR`), so it runs
+alongside your own `next dev`. Any other `NEXT_DIST_DIR` makes Next add its type folder to
+`tsconfig.json`; do not commit that. It sets its own environment (`playwright.config.ts`): the test wallet
+(`NEXT_PUBLIC_E2E=1`) and a fake RPC URL whose answers each spec decides, so a run never touches
+testnet and needs no browser extension.
 
 ## Environment
 
@@ -54,6 +58,25 @@ browser. Never put a secret in one.
   uses. If they differ from yours, one of you is on an old deployment.
 - **`NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID`** is only needed for mobile wallets. Without it,
   desktop browser wallets still work.
+
+## Proving revenue is mocked until #17
+
+The Reclaim session and the proof relay (#17) do not exist yet, so `src/lib/reclaim/` answers from a
+mock while `NEXT_PUBLIC_RELAY_URL` is empty. It walks through the session (window open, reading) and
+returns fixed values. Everything after it, the offer from `quote`, the proof check, `request_advance`
+and the receipt, is the real contract client. On testnet the contract refuses the mock's proof, so the
+whole flow only completes in the e2e run, against the stubbed RPC.
+
+The mock reads two localStorage keys. Set them in the browser and reload:
+
+| Key | Value | What happens |
+| --- | --- | --- |
+| `forepay.mock.reclaim` | `cancel` | "You closed the AdSense window", anywhere |
+| `forepay.mock.revenue` | `3.20` | "Not enough revenue yet", on testnet and in e2e: the contract's `quote` refuses it before the proof check |
+| `forepay.mock.revenue` | `1240.00` | the offer capped at 100 USDC, **only in the e2e run**. Against testnet the proof check that follows `quote` refuses the mock's proof (today `10`, "Advances are not open yet", because the claim template is not set), and with the e2e RPC URL but no stub it shows "We could not reach Stellar" |
+
+Every other state on the board (each contract code, signing, pending, timed out) needs the stubbed
+RPC and is exercised in `tests/e2e/advance.spec.ts`.
 
 ## A wallet to test with
 
