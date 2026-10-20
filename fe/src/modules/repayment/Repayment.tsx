@@ -31,7 +31,7 @@ import { RepayForm } from "./components/RepayForm";
 import { repayFailureCopy } from "./failures";
 import { clearInflight, markLanded, releaseSender, setInflight, useInflight, type Inflight } from "./inflight";
 import { WalletSignError } from "@/lib/stellar/wallet-error";
-import { amountInputString, checkAmount, chipAmount, sanitizeAmountInput, type Chip } from "./model";
+import { amountInputString, checkAmount, chipAmount, maxWhole, sanitizeAmountInput, type Chip } from "./model";
 
 /**
  * 3a Repayment (issue #21): what is left to repay, what has been repaid, and the transactions behind
@@ -444,7 +444,7 @@ function Ledger({
           className="order-3"
           input={input}
           onInput={(raw) => {
-            const value = sanitizeAmountInput(raw);
+            const value = sanitizeAmountInput(raw, maxWhole(left));
             if (value === null) return;
             setInput(value);
             setChip(null);

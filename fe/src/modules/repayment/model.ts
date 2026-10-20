@@ -6,12 +6,36 @@ import { CENT } from "@/lib/ledger";
  * tested on its own. Chips round down to the cent so they never ask for a fraction of one.
  */
 
-/** What the creator typed, as a string the amount field accepts. Digits and up to 7 decimals. */
-export function sanitizeAmountInput(raw: string): string | null {
+/**
+ * What the creator typed, as a string the amount field accepts: digits and up to 7 decimals, no zero
+ * before another digit ("05", "000"), and a whole part no larger than `maxWhole` when given.
+ */
+export function sanitizeAmountInput(raw: string, maxWhole?: number): string | null {
   const v = raw.replace(",", ".");
   if (v === "") return "";
   if (!/^\d*\.?\d{0,7}$/.test(v)) return null;
+  const whole = v.split(".")[0];
+  if (/^0\d/.test(whole)) return null;
+  if (maxWhole !== undefined && Number(whole || "0") > maxWhole) return null;
+  // Three digits before the point take six decimals at most: "100.0000000" is a hair wider than the
+  // field at 320, and "100.000000" is the same amount.
+  if (whole.length >= 3 && (v.split(".")[1] ?? "").length > 6) return null;
   return v.startsWith(".") ? `0${v}` : v;
+}
+
+/**
+ * The largest whole part the amount field takes: 99, or what is left to repay when that is more. An
+ * uncut amount must never outgrow its field (section 08), and digits differ in width ("1" is Geist's
+ * narrowest, "0" its widest), so the limit is on the value, not the digit count:
+ * - any two-digit amount fits, the widest ("80.0000000"-like) measured at about 196 at 32px against
+ *   the 208 field at 320, and 221 at 36px against the 232 side column;
+ * - typing past what is left, up to 99, still shows "Only … left";
+ * - three digits only come with more than 99 left, which today's 100 USDC cap makes "100…" at most,
+ *   with six decimals (`sanitizeAmountInput`): "100.000000" fits, where "100.0000000" (208.8 at 32px,
+ *   234.9 at 36px) ran a hair past the field. If the contract's cap is ever raised, measure again.
+ */
+export function maxWhole(left: bigint): number {
+  return Math.max(99, Number(left / 10_000_000n));
 }
 
 /** Stroops back to a plain string for the amount field: `300000000` → `30.00`, never grouped. */

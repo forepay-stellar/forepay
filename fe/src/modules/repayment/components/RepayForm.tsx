@@ -112,9 +112,11 @@ export function RepayForm({
             </p>
           )}
         </div>
-        <div className="flex w-full items-center justify-between gap-3">
-          <div className="relative min-w-0 flex-1 text-input-amount">
-            <p aria-hidden className="truncate whitespace-pre">
+        {/* A typed amount is never cut (section 08): the field is as wide as what was typed, and when it
+            and the USDC and Max chips no longer share the row, the chips move under it. */}
+        <div className="flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <div className="relative min-w-0 grow basis-auto text-input-amount">
+            <p aria-hidden className="whitespace-pre">
               <span className="text-fg">{shown.whole}</span>
               <span className="text-fg-subtle">{shown.decimals}</span>
             </p>
@@ -192,12 +194,14 @@ export function RepayForm({
         note && <Alert tone="info" className="w-full" title={note.title} body={note.body} />
       )}
 
+      {/* The one full-width action: a long label ("Repay 60.00 USDC instead") wraps rather than run
+          into the pill's padding at 320 (section 08). */}
       {check.kind === "overOutstanding" && !settled ? (
         // An offer, so it acts: it fills the outstanding amount, and the creator then repays that (S7).
         <Button
           type="button"
           size="lg"
-          className="w-full md:px-6"
+          className="w-full whitespace-normal text-center md:px-6"
           onClick={(e) => {
             // The fill turns this into the submit button before the click finishes; without this the
             // same click would then send the repayment the creator only asked to see.
@@ -213,7 +217,7 @@ export function RepayForm({
         <Button
           type="submit"
           size="lg"
-          className="w-full md:px-6"
+          className="w-full whitespace-normal text-center md:px-6"
           disabled={check.kind !== "ok" || settled}
           loading={busy}
           loadingLabel={busyLabel ?? undefined}

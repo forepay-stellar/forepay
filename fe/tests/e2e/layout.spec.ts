@@ -419,3 +419,92 @@ test("the repay amount takes the Input amount role: 32 on a phone, 36 from a tab
   }
   await holdsAtEveryWidth(page, "3a with 60.00 typed");
 });
+
+test("a typed amount is never cut: the USDC and Max chips move under it instead", async ({ page }) => {
+  await mockApi(page, frameLedger());
+  await mockRpc(page, { account: true, trustline: true, usdc: 8_200_000_000n, contract: {} });
+  await connected(page);
+  await page.goto("/repayment");
+  await expect(page.getByRole("region", { name: "What is left to repay" })).toContainText("60.00");
+  const input = page.locator("#repay-amount");
+  // 60.00 left, so the field takes two digits before the point (the widest case is the next test).
+  for (const typed of ["30.00", "99.00", "90.0000001"]) {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await input.fill(typed);
+    for (const width of [320, 375, 390, 834, 1024, 1199, 1200, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.waitForTimeout(100);
+      const fit = await input.evaluate((el) => {
+        const shown = el.parentElement!.querySelector("p")!;
+        const field = el.closest("form")!.getBoundingClientRect();
+        const text = document.createRange();
+        text.selectNodeContents(shown);
+        const r = text.getBoundingClientRect();
+        return { shown: shown.textContent, cut: shown.scrollWidth > shown.clientWidth + 1, inside: r.right <= field.right };
+      });
+      expect(fit, `"${typed}" at ${width}`).toEqual({ shown: typed, cut: false, inside: true });
+      await expect(page.getByRole("button", { name: "Max" })).toBeInViewport();
+    }
+  }
+  await holdsAtEveryWidth(page, "3a with a long amount typed");
+});
+
+test("the amount field takes no more digits than fit, even with the most there is to repay", async ({ page }) => {
+  // The widest case: 100.00 USDC left (the cap), so the field takes up to 100 before the point.
+  const ledger = frameLedger();
+  ledger.advances[0].principal = 1_000_000_000n;
+  ledger.advances[0].repaid = 0n;
+  await mockApi(page, ledger);
+  await mockRpc(page, { account: true, trustline: true, usdc: 8_200_000_000n, contract: {} });
+  await connected(page);
+  await page.goto("/repayment");
+  await expect(page.getByRole("region", { name: "What is left to repay" })).toContainText("100.00");
+  const input = page.locator("#repay-amount");
+  // Typed key by key, as a creator would: nothing past 100 before the point, so "1234…" stops at
+  // "12" and a wide "800" at "80"; and no zero before another digit.
+  await input.pressSequentially("123456789012345678");
+  await expect(input).toHaveValue("12");
+  await input.fill("");
+  await input.pressSequentially("800.0000000");
+  await expect(input).toHaveValue("80.0000000");
+  await input.fill("");
+  await input.pressSequentially("000.0000000");
+  await expect(input).toHaveValue("0.0000000");
+  // Three digits take six decimals: the seventh of "100.0000000" is refused.
+  await input.fill("");
+  await input.pressSequentially("100.0000000");
+  await expect(input).toHaveValue("100.000000");
+  await input.fill("");
+  await input.pressSequentially("100.0000001");
+  await expect(input).toHaveValue("100.000000");
+  const fits = async (typed: string) => {
+    await expect(input).toHaveValue(typed);
+    for (const width of [320, 375, 1024, 1199]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.waitForTimeout(100);
+      const fit = await input.evaluate((el) => {
+        const shown = el.parentElement!.querySelector("p")!;
+        const r = document.createRange();
+        r.selectNodeContents(shown);
+        return {
+          cut: shown.scrollWidth > shown.clientWidth + 1,
+          // Within the bordered field's content box, not just the input (which grows with the text).
+          inside: (() => {
+            const box = el.closest(".rounded-input") as HTMLElement;
+            const edge = box.getBoundingClientRect().right - parseFloat(getComputedStyle(box).paddingRight);
+            return r.getBoundingClientRect().right <= edge + 0.5;
+          })(),
+          page: document.documentElement.scrollWidth <= window.innerWidth,
+        };
+      });
+      expect(fit, `"${typed}" at ${width}`).toEqual({ cut: false, inside: true, page: true });
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
+  };
+  // The widest amounts the field takes, measured: zeros are Geist's widest digit.
+  await fits("100.000000");
+  // The widest two-digit amount, zeros being Geist's widest digit.
+  await input.fill("");
+  await input.pressSequentially("80.0000000");
+  await fits("80.0000000");
+});
