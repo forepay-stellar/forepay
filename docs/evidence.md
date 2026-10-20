@@ -134,10 +134,21 @@ Run of **2026-10-17**, [full record](../tools/runs/2026-10-17T183309Z/EVIDENCE.m
 
 | Case | What was submitted | Result |
 | --- | --- | --- |
-| **Invalid proof** | A structurally valid signature from a key that is **not** a registered witness | Refused, `#14 ClaimMismatch` |
+| **Invalid proof** | A structurally valid signature from a key that is **not** a registered witness | Refused, `#14 VerifierRejected` |
 | **Replayed proof** | The publisher and window from an advance that had already been funded | Refused, `#20 NullifierSpent` |
 | **Stale proof** | A proof two hours old, against a one-hour freshness window | Refused, `#12 ProofStale` |
-| *(extra)* **Someone else's proof** | A proof bound to one borrower, submitted by another | Refused, `#14 ClaimMismatch` |
+| *(extra)* **Someone else's proof** | Another borrower's proof, submitted as our own | Refused, `#14 VerifierRejected` |
+
+`#14` means **Reclaim's own deployed contract** refused the signature, not that ours did. That is
+worth knowing for the last row: the contract does not "notice" the wrong borrower and object. It
+rebuilds the exact bytes an attestor would have signed *for the borrower named in the call*, gets
+different bytes, and the real signature does not match them — so Reclaim's verifier rejects it. The
+binding is enforced by cryptography, with our contract as the thing that cannot look away from it.
+
+A fifth case is enforced before any of this, and needs no proof at all: since
+[#81](https://github.com/forepay-stellar/forepay/issues/81), taking an advance requires the
+**borrower's own signature**, so a stranger cannot submit a proof on someone's behalf even if the
+proof is genuine.
 
 > ### ⚠️ Why these four rows have **no transaction links**, and why that is the right answer
 >
