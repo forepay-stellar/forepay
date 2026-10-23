@@ -12,7 +12,7 @@ import type { PickedWallet } from "@/lib/stellar/wallet";
  * waiting for and where to look, with a way out: the kit's own modal shows nothing while a wallet
  * asks, and the popup it opens sits beside the page, not in it.
  *
- * Phone: a sheet from the bottom edge. Desktop: centred, the width of the kit's list (22rem).
+ * Phone: a sheet from the bottom edge. From a tablet up: centred, the width of the kit's list (22rem).
  */
 export function WalletPickerDialog({
   open,
@@ -33,7 +33,7 @@ export function WalletPickerDialog({
         <Base.Backdrop className="fixed inset-0 z-50 bg-fg/40 transition-opacity duration-150 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 motion-reduce:transition-none" />
         <Base.Popup
           aria-label={waitingFor ? `Waiting for ${waitingFor.name}` : "Connect wallet"}
-          className="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-[22rem] justify-center outline-none transition-opacity duration-150 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 motion-reduce:transition-none lg:inset-x-0 lg:bottom-auto lg:top-1/2 lg:-translate-y-1/2"
+          className="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-[22rem] justify-center outline-none transition-opacity duration-150 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 motion-reduce:transition-none md:inset-x-0 md:bottom-auto md:top-1/2 md:-translate-y-1/2"
         >
           {/* Kept mounted while waiting: the kit's pending connection lives in it. The kit wraps its card
               in an inline-flex section that shrinks to its content; stretch it to the dialog instead. */}
@@ -65,8 +65,8 @@ function Waiting({ wallet, onCancel }: { wallet: PickedWallet; onCancel: () => v
         )}
       </div>
       <div className="flex flex-col items-center gap-1.5 text-center">
-        <Base.Title className="text-[18px] font-semibold tracking-[-0.2px] text-fg">Waiting for {wallet.name}</Base.Title>
-        <Base.Description className="text-[14px] leading-[21px] text-fg-muted">
+        <Base.Title className="text-card-title text-fg">Waiting for {wallet.name}</Base.Title>
+        <Base.Description className="text-body text-fg-muted">
           Approve the connection in the {wallet.name} window.
         </Base.Description>
       </div>

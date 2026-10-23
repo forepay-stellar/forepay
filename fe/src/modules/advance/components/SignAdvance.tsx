@@ -25,10 +25,10 @@ export function SignAdvance({
 }) {
   const pending = <SkeletonBlock className="h-4 w-20 rounded-chip" />;
   return (
-    <section className="flex w-full flex-col items-center gap-5 rounded-card bg-surface p-8 lg:w-[520px]">
+    <section className="flex w-full flex-col items-center gap-5 rounded-card bg-surface p-8 md:w-[520px]">
       <IlloWaitingForSignature />
-      <h2 className="text-[24px] font-semibold tracking-[-0.5px] text-fg">Approve in {walletName}</h2>
-      <p className="text-center text-[15px] leading-[23px] text-fg-muted">
+      <h2 className="text-card-title text-fg">Approve in {walletName}</h2>
+      <p className="text-center text-body text-fg-muted">
         {walletName} opened a window. Check the details and approve. This page updates on its own.
       </p>
       <DetailRows

@@ -26,12 +26,12 @@ export function BeforeYouStart({ onStart }: { onStart: () => void }) {
         body="Prove your AdSense revenue from the last three months and get up to 100 USDC on Stellar testnet. Repay whenever you like."
       />
       <div className="flex w-full flex-col gap-3.5 rounded-tile bg-surface p-[22px]">
-        <p className="text-[14px] font-medium text-fg-muted">You will need</p>
+        <p className="text-small font-medium text-fg-muted">You will need</p>
         <div className="flex items-center gap-3">
           <IconTile>
             <ChartColumn aria-hidden />
           </IconTile>
-          <p className="flex-1 text-[15px] leading-[21px] text-fg">
+          <p className="flex-1 text-body text-fg">
             An AdSense account with revenue in the last three months
           </p>
         </div>
@@ -39,7 +39,7 @@ export function BeforeYouStart({ onStart }: { onStart: () => void }) {
           <IconTile>
             <Wallet aria-hidden />
           </IconTile>
-          <p className="flex-1 text-[15px] leading-[21px] text-fg">A Stellar wallet set to testnet</p>
+          <p className="flex-1 text-body text-fg">A Stellar wallet set to testnet</p>
         </div>
       </div>
     </OnboardingShell>

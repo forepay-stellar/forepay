@@ -34,19 +34,19 @@ export function FundsReceived({
     advance ? render(advance) : advanceFailed ? missing : pending;
 
   return (
-    <section className="flex w-full flex-col items-center gap-4 rounded-card bg-surface p-6 lg:w-[560px] lg:gap-5 lg:p-10">
+    <section className="flex w-full flex-col items-center gap-4 rounded-card bg-surface p-6 md:w-[560px] md:gap-5 md:p-10">
       <IlloFundsReceived />
       <p>
         <Amount
           stroops={amount}
           sign="+"
-          className="text-[48px] font-semibold leading-[48px] tracking-[-1.8px] text-success lg:text-[64px] lg:leading-[64px]"
+          className="text-amount text-success"
           decimalsClassName="text-success-subtle"
-          unitClassName="pb-1.5 text-[18px] font-medium text-success-strong"
+          unitClassName="pb-1.5 text-card-title font-medium text-success-strong"
         />
       </p>
-      <h2 className="text-[22px] font-semibold tracking-[-0.5px] text-fg lg:text-[26px]">The USDC is in your wallet</h2>
-      <p className="text-center text-[15px] leading-[23px] text-fg-muted">
+      <h2 className="text-card-title text-fg">The USDC is in your wallet</h2>
+      <p className="text-center text-body text-fg-muted">
         You can repay any amount, any time, from the Repayment tab.
       </p>
       <DetailRows

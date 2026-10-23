@@ -80,15 +80,15 @@ export function RepayForm({
   return (
     <form
       aria-label="Make a repayment"
-      className={cn("flex w-full flex-col gap-5 rounded-card bg-surface p-5 lg:p-6", className)}
+      className={cn("flex w-full flex-col gap-5 rounded-card bg-surface p-5 md:p-6", className)}
       onSubmit={(e) => {
         e.preventDefault();
         if (check.kind === "ok" && !locked) onSubmit(check.amount);
       }}
     >
       <div className="flex flex-col gap-1">
-        <h2 className="text-[18px] font-semibold tracking-[-0.2px] text-fg">Make a repayment</h2>
-        <p className="text-[14px] text-fg-muted">Any amount, any time. Every payment is recorded on Stellar.</p>
+        <h2 className="text-card-title text-fg">Make a repayment</h2>
+        <p className="text-body text-fg-muted">Any amount, any time. Every payment is recorded on Stellar.</p>
       </div>
 
       <div
@@ -101,7 +101,7 @@ export function RepayForm({
               : "outline-1 -outline-offset-[0.5px] outline-line-strong focus-within:outline-[1.5px] focus-within:-outline-offset-[0.75px] focus-within:outline-brand",
         )}
       >
-        <div className="flex w-full justify-between text-[13px]">
+        <div className="flex w-full justify-between text-small">
           <label htmlFor="repay-amount" className="text-fg-muted">
             Amount
           </label>
@@ -112,9 +112,11 @@ export function RepayForm({
             </p>
           )}
         </div>
-        <div className="flex w-full items-center justify-between gap-3">
-          <div className="relative min-w-0 flex-1 text-[36px] font-semibold tracking-[-1.1px]">
-            <p aria-hidden className="truncate whitespace-pre">
+        {/* A typed amount is never cut (section 08): the field is as wide as what was typed, and when it
+            and the USDC and Max chips no longer share the row, the chips move under it. */}
+        <div className="flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <div className="relative min-w-0 grow basis-auto text-input-amount">
+            <p aria-hidden className="whitespace-pre">
               <span className="text-fg">{shown.whole}</span>
               <span className="text-fg-subtle">{shown.decimals}</span>
             </p>
@@ -133,14 +135,14 @@ export function RepayForm({
             />
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <span className="rounded-pill px-2.5 py-1.5 text-[13px] font-medium text-fg outline outline-1 -outline-offset-[0.5px] outline-line">
+            <span className="rounded-pill px-2.5 py-1.5 text-small font-medium text-fg outline outline-1 -outline-offset-[0.5px] outline-line">
               USDC
             </span>
             <button
               type="button"
               onClick={onMax}
               disabled={settled || busy}
-              className="rounded-pill bg-action px-2.5 py-1.5 text-[12px] font-medium text-fg-on-brand outline-none hover:bg-action-hover focus-visible:ring-2 focus-visible:ring-brand disabled:bg-line disabled:text-fg-subtle"
+              className="rounded-pill bg-action px-2.5 py-1.5 text-small font-medium text-fg-on-brand outline-none not-disabled:hover:bg-action-hover focus-visible:ring-2 focus-visible:ring-brand disabled:bg-line disabled:text-fg-subtle"
             >
               Max
             </button>
@@ -148,28 +150,32 @@ export function RepayForm({
         </div>
       </div>
 
-      <div className="flex w-full gap-2">
-        {CHIPS.map(({ chip: c, label }) => {
-          const on = chip === c;
-          return (
-            <button
-              key={c}
-              type="button"
-              aria-pressed={on}
-              disabled={settled || busy}
-              onClick={() => onChip(c)}
-              className={cn(
-                "flex min-w-0 flex-1 justify-center whitespace-nowrap rounded-pill px-4 py-2.5 text-[14px] font-medium outline outline-1 -outline-offset-[0.5px] transition-colors focus-visible:ring-2 focus-visible:ring-brand disabled:text-fg-subtle",
-                on ? "bg-brand-subtle text-brand-strong outline-brand" : "bg-surface text-fg outline-line-strong hover:bg-subtle",
-              )}
-            >
-              {label}
-            </button>
-          );
-        })}
+      {/* The three chips share one row equally, as drawn, where the widest label ("Full amount") fits
+          three times over; otherwise Full amount moves to a second row, at the same width (section 08). */}
+      <div className="@container w-full">
+        <div className="grid grid-cols-2 gap-2 @[19.5rem]:grid-cols-3">
+          {CHIPS.map(({ chip: c, label }) => {
+            const on = chip === c;
+            return (
+              <button
+                key={c}
+                type="button"
+                aria-pressed={on}
+                disabled={settled || busy}
+                onClick={() => onChip(c)}
+                className={cn(
+                  "flex justify-center whitespace-nowrap rounded-pill px-2.5 py-2.5 text-small font-medium outline outline-1 -outline-offset-[0.5px] transition-colors focus-visible:ring-2 focus-visible:ring-brand disabled:text-fg-subtle",
+                  on ? "bg-brand-subtle text-brand-strong outline-brand" : "bg-surface text-fg outline-line-strong not-disabled:hover:bg-subtle",
+                )}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <dl className="flex w-full flex-col gap-3 text-[14px]">
+      <dl className="flex w-full flex-col gap-3 text-body">
         <div className="flex justify-between gap-4">
           <dt className="text-fg-muted">Left after this</dt>
           <dd id="repay-after" className={cn("whitespace-nowrap font-medium", invalid ? "text-danger" : "text-fg")}>
@@ -188,12 +194,14 @@ export function RepayForm({
         note && <Alert tone="info" className="w-full" title={note.title} body={note.body} />
       )}
 
+      {/* The one full-width action: a long label ("Repay 60.00 USDC instead") wraps rather than run
+          into the pill's padding at 320 (section 08). */}
       {check.kind === "overOutstanding" && !settled ? (
         // An offer, so it acts: it fills the outstanding amount, and the creator then repays that (S7).
         <Button
           type="button"
           size="lg"
-          className="w-full lg:px-6"
+          className="w-full whitespace-normal text-center md:px-6"
           onClick={(e) => {
             // The fill turns this into the submit button before the click finishes; without this the
             // same click would then send the repayment the creator only asked to see.
@@ -209,7 +217,7 @@ export function RepayForm({
         <Button
           type="submit"
           size="lg"
-          className="w-full lg:px-6"
+          className="w-full whitespace-normal text-center md:px-6"
           disabled={check.kind !== "ok" || settled}
           loading={busy}
           loadingLabel={busyLabel ?? undefined}

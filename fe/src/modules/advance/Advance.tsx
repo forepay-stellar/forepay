@@ -31,7 +31,7 @@ import { ReviewOffer } from "./components/ReviewOffer";
 import { SignAdvance } from "./components/SignAdvance";
 import { maxFee } from "./fee";
 import { isCapped } from "./cap";
-import { clearPending, loadPending, savePending, type PendingAdvance } from "./pending";
+import { clearPending, loadPending, markRefused, onRefused, savePending, type PendingAdvance } from "./pending";
 import { WalletSignError } from "@/lib/stellar/wallet-error";
 import { acceptFailure, proofStillGood, proveFailure, type AdvanceFailure } from "./failures";
 
@@ -92,8 +92,8 @@ export function Advance() {
   useEffect(() => {
     if (!address) return;
     const pending = loadPending(address);
-    if (pending) void resume(pending);
-    // `resume` only reads refs and setters; it runs per mount and per wallet.
+    if (pending) void pickUp(pending);
+    // `pickUp` only reads refs and setters; it runs per mount and per wallet.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address]);
 
@@ -145,7 +145,7 @@ export function Advance() {
     leave();
     // While an advance sent earlier is still being waited on, the start is that wait, not 2a.
     const pending = loadPending(me);
-    if (pending) return void resume(pending);
+    if (pending) return void pickUp(pending);
     setFlow({ at: "start" });
   }
 
@@ -225,13 +225,22 @@ export function Advance() {
     };
 
     // Once the network has it, the transaction is remembered: leaving the page no longer loses it.
-    const remember = (hash: string) => savePending({ address: me, hash, req: r });
+    let sentHash: string | undefined;
+    const remember = (hash: string) => {
+      sentHash = hash;
+      savePending({ address: me, hash, req: r });
+    };
     try {
       const { hash, value } = await requestAdvance(me, r, sign, remember);
       if (id !== attempt.current) return;
       landed(r, hash, value);
     } catch (e) {
-      if (id !== attempt.current) return;
+      if (id !== attempt.current) {
+        // The creator left meanwhile. A send turned down before any ledger will never land, so the
+        // screen they come back to says so at once rather than waiting two minutes for it.
+        if (sentHash && e instanceof TransactionFailedError && !e.charged && !e.unconfirmed) markRefused(me, sentHash);
+        return;
+      }
       stopped(e, r, signed);
     }
   }
@@ -247,6 +256,12 @@ export function Advance() {
     void queryClient.invalidateQueries({ queryKey: ["transactions"] });
   }
 
+  /** Back to a transaction sent before the creator left the page: its refusal, or the wait for it. */
+  function pickUp(p: PendingAdvance) {
+    if (p.refused) refusedMeanwhile(p);
+    else void resume(p);
+  }
+
   /** "Sending your USDC" again, for a transaction sent before the creator left the page. */
   async function resume(p: PendingAdvance) {
     leave();
@@ -255,6 +270,10 @@ export function Advance() {
     slowTimer.current = setTimeout(() => {
       if (id === attempt.current) setFlow({ at: "signing", req: p.req, sent: true, slow: true });
     }, SLOW_AFTER_MS);
+    // The send itself may still be answering, to the screen that was left: a refusal ends this wait.
+    const stopListening = onRefused(p.hash, () => {
+      if (id === attempt.current) refusedMeanwhile(p);
+    });
     try {
       const { hash, value } = await awaitAdvance(p.hash);
       if (id !== attempt.current) return;
@@ -262,7 +281,17 @@ export function Advance() {
     } catch (e) {
       if (id !== attempt.current) return;
       stopped(e, p.req, true);
+    } finally {
+      stopListening();
     }
+  }
+
+  /** The network turned down a send the creator left: nothing was charged, and Try again sends it. */
+  function refusedMeanwhile(p: PendingAdvance) {
+    leave();
+    clearPending();
+    const refused = new TransactionFailedError("The network did not accept the transaction", false);
+    setFlow({ at: "failed", failure: acceptFailure(refused, true), req: p.req, during: "accept" });
   }
 
   /**

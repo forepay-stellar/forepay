@@ -34,7 +34,7 @@ export function SegmentedTabs() {
             aria-current={active ? "page" : undefined}
             className={cn(
               tab,
-              "px-5 py-2.5 text-[14px]",
+              "px-2.5 py-2.5 text-small nav:px-5",
               active ? "bg-brand text-fg-on-brand" : "text-fg-subtle hover:text-fg-on-brand",
             )}
           >
@@ -52,7 +52,7 @@ export function TabBar() {
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-4 bottom-6 z-40 flex gap-1 rounded-pill bg-action p-1.5 lg:hidden"
+      className="fixed inset-x-4 bottom-6 z-40 flex gap-1 rounded-pill bg-action p-1.5 md:hidden"
     >
       {APP_TABS.map(({ href, label, icon: Icon }) => {
         const active = isActive(href);
@@ -63,7 +63,7 @@ export function TabBar() {
             aria-current={active ? "page" : undefined}
             className={cn(
               tab,
-              "flex flex-1 flex-col items-center gap-[3px] py-2 text-[11px]",
+              "flex flex-1 flex-col items-center gap-[3px] py-2 text-small",
               active ? "bg-brand text-fg-on-brand" : "text-fg-subtle hover:text-fg-on-brand",
             )}
           >

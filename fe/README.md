@@ -79,6 +79,16 @@ The mock reads two localStorage keys. Set them in the browser and reload:
 Every other state on the board (each contract code, signing, pending, timed out) needs the stubbed
 RPC and is exercised in `tests/e2e/advance.spec.ts`.
 
+While `NEXT_PUBLIC_API_URL` is empty, Repayment and History read fixtures instead of the #16 API.
+One more key picks their state:
+
+| Key | Value | What happens |
+| --- | --- | --- |
+| `forepay.mock.ledger` | `active` (or unset) | Advance 1: 30.00 of 90.00 USDC repaid, with the 3a and 3b frames' transactions |
+| `forepay.mock.ledger` | `none` | "No advance yet" on both pages |
+| `forepay.mock.ledger` | `repaid` | the advance fully repaid, with a last 60.00 repayment |
+| `forepay.mock.ledger` | `error` | "We cannot read your balance right now" |
+
 ## A wallet to test with
 
 1. Install the Freighter browser extension and create an account.

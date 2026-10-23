@@ -10,6 +10,8 @@ const eslintConfig = defineConfig([
     // Default ignores of eslint-config-next:
     ".next/**",
     ".next-e2e/**",
+    // Any other build output a dev server was pointed at (NEXT_DIST_DIR), so a stray one cannot fail lint.
+    ".next-*/**",
     "out/**",
     "build/**",
     "next-env.d.ts",

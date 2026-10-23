@@ -7,8 +7,8 @@ export function DetailRows({ rows }: { rows: { label: string; value: ReactNode; 
     <dl className="flex w-full flex-col gap-3 rounded-tile bg-canvas p-[18px]">
       {rows.map((r) => (
         <div key={r.label} className="flex items-center justify-between gap-4">
-          <dt className="text-[14px] text-fg-muted">{r.label}</dt>
-          <dd className={cn("text-[14px] font-medium text-fg", r.mono && "font-mono")}>{r.value}</dd>
+          <dt className="text-body text-fg-muted">{r.label}</dt>
+          <dd className={cn("text-body font-medium text-fg", r.mono && "font-mono")}>{r.value}</dd>
         </div>
       ))}
     </dl>

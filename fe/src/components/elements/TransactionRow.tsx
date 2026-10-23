@@ -17,8 +17,11 @@ import { cn } from "@/lib/cn";
 export type RowIcon = "advance" | "repayment" | "failed" | "pending" | "proof" | "trustline";
 export type RowTone = "success" | "danger" | "pending" | "fg" | "subtle" | "muted";
 
-/** A label that a phone says shorter ("Failed, not charged" → "Not charged"). */
-export type Label = { text: string; short?: string };
+/**
+ * A label that a phone says shorter ("Failed, no USDC moved" → "Failed"). An amount carries its unit
+ * apart, so every row can put it under the figure at once on a narrow phone.
+ */
+export type Label = { text: string; short?: string; unit?: string };
 
 const tile: Record<RowIcon, { className: string; icon: ReactNode }> = {
   advance: { className: "bg-brand text-fg-on-brand", icon: <ArrowDownToLine aria-hidden /> },
@@ -45,8 +48,8 @@ function Text({ label }: { label: Label }) {
   if (!label.short) return <>{label.text}</>;
   return (
     <>
-      <span className="lg:hidden">{label.short}</span>
-      <span className="hidden lg:inline">{label.text}</span>
+      <span className="md:hidden">{label.short}</span>
+      <span className="hidden md:inline">{label.text}</span>
     </>
   );
 }
@@ -60,7 +63,6 @@ export function TransactionRow({
   amount,
   amountTone,
   receiptHref,
-  noReceipt,
 }: {
   icon: RowIcon;
   title: Label;
@@ -71,40 +73,43 @@ export function TransactionRow({
   amountTone: RowTone;
   /** The transaction on stellar.expert. Without it the row is not a link. */
   receiptHref?: string;
-  /** What stands where the receipt would be, for a repayment that never reached Stellar. */
-  noReceipt?: Label;
 }) {
   const body = (
     <>
       <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-icon [&_svg]:size-[22px]", tile[icon].className)}>
         {tile[icon].icon}
       </span>
-      <span className="flex min-w-0 flex-1 flex-col gap-1">
-        <span className="truncate text-[15px] font-medium text-fg">
+      {/* Section 08: the title column keeps at least its longest word, so a title wraps between words
+          and is never cut; on a narrow phone the amount gives way instead (its unit wraps under it). */}
+      <span className="flex min-w-min flex-1 flex-col gap-1">
+        <span className="text-body font-medium text-fg">
           <Text label={title} />
         </span>
-        <span className="flex gap-2.5 whitespace-nowrap text-[13px]">
+        {/* On a narrow phone the date moves under the status rather than past the row (section 08). */}
+        <span className="flex flex-wrap gap-x-2.5 gap-y-0.5 text-small">
           <span className={tone[statusTone]}>
             <Text label={status} />
           </span>
           <span className="text-fg-muted">{date}</span>
         </span>
       </span>
-      <span className="flex shrink-0 flex-col items-end gap-1 whitespace-nowrap">
-        <span className={cn("text-[15px] font-semibold", tone[amountTone])}>
+      <span className="flex flex-col items-end gap-1 text-right">
+        {/* Under 360 the longest amount no longer fits beside the title, so every row puts the unit
+            under its figure, and the column stays even (section 08). */}
+        <span className={cn("text-body font-semibold", tone[amountTone])}>
           <Text label={amount} />
+          {amount.unit && (
+            <>
+              {" "}
+              <span className="block min-[22.5rem]:inline">{amount.unit}</span>
+            </>
+          )}
         </span>
-        {receiptHref ? (
-          <span className="flex items-center gap-1 text-[13px] text-fg-muted group-hover:text-brand-strong">
+        {receiptHref && (
+          <span className="flex items-center gap-1 whitespace-nowrap text-small text-fg-muted group-hover:text-brand-strong">
             Receipt
             <ArrowUpRight className="size-3.5" aria-hidden />
           </span>
-        ) : (
-          noReceipt && (
-            <span className="text-[13px] text-fg-muted">
-              <Text label={noReceipt} />
-            </span>
-          )
         )}
       </span>
     </>

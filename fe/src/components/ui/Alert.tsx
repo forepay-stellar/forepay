@@ -28,8 +28,8 @@ export function Alert({
         <t.Icon className={cn("size-[18px]", t.glyph)} aria-hidden />
       </span>
       <div className="flex flex-1 flex-col gap-1">
-        <p className={cn("text-[15px] font-medium", t.text)}>{title}</p>
-        <p className={cn("text-[14px] leading-[20px]", t.text)}>{body}</p>
+        <p className={cn("text-body font-medium", t.text)}>{title}</p>
+        <p className={cn("text-body", t.text)}>{body}</p>
       </div>
     </div>
   );

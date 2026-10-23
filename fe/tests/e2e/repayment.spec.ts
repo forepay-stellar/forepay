@@ -62,7 +62,8 @@ test("a partial repayment and then a full one, each read back from the API", asy
   await expect(card(page)).toContainText("60.00 of 90.00 USDC repaid");
   await expect(card(page)).toContainText("66%");
   await expect(transactions.getByText("Pending")).toHaveCount(0);
-  await expect(transactions.getByText("Today")).toBeVisible();
+  // The new row is dated today. Scoped to it: a fixture row can be dated today too (20 Oct 2026).
+  await expect(transactions.getByRole("listitem").filter({ hasText: "−30.00" })).toContainText("Today");
   await expect(amount(page)).toHaveValue("");
   await expect(form(page)).toContainText("790.00 USDC");
   expect(chain.contract?.sent?.map((c) => [c.method, c.args[2]])).toEqual([["repay", 30n * USDC]]);
@@ -260,7 +261,7 @@ test("a read that fails after figures were shown does not keep the old figures",
   await expect(page.getByText("60.00")).toHaveCount(0);
 });
 
-test("every completed row opens its receipt on stellar.expert, a failed row has none", async ({ page }) => {
+test("every row opens its receipt on stellar.expert, a failed one too: it is on the ledger", async ({ page }) => {
   await open(page, "/repayment", frameLedger());
   const rows = page.getByRole("region", { name: "Transactions" }).getByRole("listitem");
   await expect(rows).toHaveCount(4);
@@ -268,8 +269,9 @@ test("every completed row opens its receipt on stellar.expert, a failed row has 
   await expect(advance).toHaveAttribute("href", `https://stellar.expert/explorer/testnet/tx/${ADVANCE_TX}`);
   await expect(advance).toHaveAttribute("target", "_blank");
   await expect(rows.nth(0)).toContainText("+90.00 USDC");
-  await expect(rows.nth(2)).toContainText(/Failed, not charged|Not charged/);
-  await expect(rows.nth(2).getByRole("link")).toHaveCount(0);
+  await expect(rows.nth(2)).toContainText(/Failed, no USDC moved|Failed/);
+  await expect(rows.nth(2)).not.toContainText(/not charged/i);
+  await expect(rows.nth(2).getByRole("link")).toHaveAttribute("href", /stellar\.expert\/explorer\/testnet\/tx\/[0-9a-f]{64}$/);
 });
 
 test("See all opens every transaction, by month, with the proof and the USDC allowance", async ({ page }) => {

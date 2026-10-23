@@ -53,8 +53,8 @@ export function Dialog({
               <span className="h-[5px] w-10 rounded-[3px] bg-line-strong" />
             </div>
             {lead}
-            <Base.Title className="text-[20px] font-semibold tracking-[-0.3px] text-fg">{title}</Base.Title>
-            <Base.Description className="text-[15px] leading-[23px] text-fg-muted">{body}</Base.Description>
+            <Base.Title className="text-card-title text-fg">{title}</Base.Title>
+            <Base.Description className="text-body text-fg-muted">{body}</Base.Description>
             {children}
           </Base.Popup>
         ) : (
@@ -75,8 +75,8 @@ export function Dialog({
               </Base.Close>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Base.Title className="text-[20px] font-semibold tracking-[-0.3px] text-fg">{title}</Base.Title>
-              <Base.Description className="text-[15px] leading-[23px] text-fg-muted">{body}</Base.Description>
+              <Base.Title className="text-card-title text-fg">{title}</Base.Title>
+              <Base.Description className="text-body text-fg-muted">{body}</Base.Description>
             </div>
             {children}
           </Base.Popup>
@@ -92,8 +92,8 @@ export function DialogSlot({ rows }: { rows: { label: string; value: string }[] 
     <dl className="flex flex-col gap-2.5 rounded-tile bg-canvas p-4">
       {rows.map((r) => (
         <div key={r.label} className="flex justify-between">
-          <dt className="text-[14px] text-fg-muted">{r.label}</dt>
-          <dd className="text-[14px] font-medium text-fg">{r.value}</dd>
+          <dt className="text-body text-fg-muted">{r.label}</dt>
+          <dd className="text-body font-medium text-fg">{r.value}</dd>
         </div>
       ))}
     </dl>

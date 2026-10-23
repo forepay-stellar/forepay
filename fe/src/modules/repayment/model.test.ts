@@ -4,6 +4,7 @@ import {
   amountInputString,
   checkAmount,
   chipAmount,
+  maxWhole,
   sanitizeAmountInput,
   typedAmount,
 } from "./model";
@@ -20,6 +21,26 @@ describe("the repay form", () => {
     expect(sanitizeAmountInput("1.12345678")).toBeNull();
     expect(sanitizeAmountInput("abc")).toBeNull();
     expect(sanitizeAmountInput("-1")).toBeNull();
+  });
+
+  it("takes no whole part over what fits, and no leading zero", () => {
+    // 60 left: up to 99, so typing past what is left still shows "Only … left".
+    expect(sanitizeAmountInput("99.0000001", maxWhole(600_000_000n))).toBe("99.0000001");
+    expect(sanitizeAmountInput("100", maxWhole(600_000_000n))).toBeNull();
+    // 100 left (the cap): 100 and 100.5, never 101 or a wide 800.
+    expect(sanitizeAmountInput("100", maxWhole(1_000_000_000n))).toBe("100");
+    expect(sanitizeAmountInput("100.5", maxWhole(1_000_000_000n))).toBe("100.5");
+    expect(sanitizeAmountInput("100.000000", maxWhole(1_000_000_000n))).toBe("100.000000");
+    expect(sanitizeAmountInput("100.0000000", maxWhole(1_000_000_000n))).toBeNull();
+    expect(sanitizeAmountInput("99.0000000", maxWhole(1_000_000_000n))).toBe("99.0000000");
+    expect(sanitizeAmountInput("101", maxWhole(1_000_000_000n))).toBeNull();
+    expect(sanitizeAmountInput("800.0000000", maxWhole(1_000_000_000n))).toBeNull();
+    expect(sanitizeAmountInput("123456789012345678", maxWhole(1_000_000_000n))).toBeNull();
+    expect(sanitizeAmountInput("05")).toBeNull();
+    expect(sanitizeAmountInput("000.0000000")).toBeNull();
+    expect(sanitizeAmountInput("0")).toBe("0");
+    expect(sanitizeAmountInput("0.5")).toBe("0.5");
+    expect(maxWhole(50_000_000n)).toBe(99);
   });
 
   it("reads nothing or zero as no amount", () => {

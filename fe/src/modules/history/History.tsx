@@ -49,7 +49,8 @@ function HistoryScreen({ address }: { address: string }) {
     );
   } else if (!picked) {
     body = (
-      <div className="flex w-full justify-center pt-4">
+      // 16 under the title on a phone, 48 more from a tablet up ("No advance yet" frames).
+      <div className="flex w-full justify-center md:pt-12">
         <NoAdvance />
       </div>
     );
@@ -59,12 +60,12 @@ function HistoryScreen({ address }: { address: string }) {
 
   return (
     // 28 under the top nav on desktop (Z7FXmJ); the shell leaves that gap to each page.
-    <div className="flex w-full flex-col gap-4 lg:gap-7 lg:pt-7">
+    <div className="flex w-full flex-col gap-4 md:gap-7 md:pt-7">
       <header className="flex flex-col gap-1.5">
         {picked && !advances.isError && !transactions.isError && (
-          <p className="hidden text-[15px] text-brand lg:block">Advance {picked.number}</p>
+          <p className="hidden text-body text-brand md:block">Advance {picked.number}</p>
         )}
-        <h1 className="text-[30px] font-semibold tracking-[-0.9px] text-fg lg:text-[40px] lg:tracking-[-1.2px]">History</h1>
+        <h1 className="text-page-title text-fg">History</h1>
       </header>
       {body}
     </div>
@@ -74,14 +75,15 @@ function HistoryScreen({ address }: { address: string }) {
 function Figure({ label, stroops, tone }: { label: string; stroops: bigint; tone: string }) {
   const { whole, decimals } = usdcParts(stroops);
   return (
-    <div className="flex min-w-0 flex-1 flex-col gap-1.5 rounded-tile bg-surface p-3.5 lg:p-6">
-      <dt className="whitespace-nowrap text-[12px] text-fg-muted lg:text-[14px]">{label}</dt>
-      <dd className="flex items-end gap-1.5 whitespace-nowrap">
-        <span className={cn("text-[20px] font-semibold tracking-[-0.8px] lg:text-[32px]", tone)}>
+    <div className="flex min-w-0 flex-col gap-1.5 rounded-tile bg-surface p-3.5 md:p-6">
+      <dt className="whitespace-nowrap text-small text-fg-muted">{label}</dt>
+      {/* The unit under the figure on a phone, beside it from a tablet up, as the 3b frames draw. */}
+      <dd className="flex flex-col gap-0.5 md:flex-row md:items-end md:gap-1.5">
+        <span className={cn("whitespace-nowrap text-figure", tone)}>
           {whole}
           {decimals}
         </span>
-        <span className="text-[11px] font-medium text-fg-muted lg:text-[14px]">USDC</span>
+        <span className="text-small font-medium text-fg-muted">USDC</span>
       </dd>
     </div>
   );
@@ -90,8 +92,10 @@ function Figure({ label, stroops, tone }: { label: string; stroops: bigint; tone
 function Ledger({ advance, transactions }: { advance: AdvanceSummary; transactions: LedgerTransaction[] }) {
   const months = groupByMonth(historyRows(transactions, advance));
   return (
-    <div className="flex w-full flex-col gap-4 lg:gap-7">
-      <dl className="flex w-full gap-2 lg:gap-4">
+    <div className="flex w-full flex-col gap-4 md:gap-7">
+      {/* Section 08: the tiles share equal columns at least 98 wide (the widest label plus padding on a
+          phone); when three do not fit, as at 320, the third moves to a new row at the same width. */}
+      <dl className="grid w-full grid-cols-[repeat(auto-fit,minmax(6.125rem,1fr))] gap-2 md:gap-4">
         <Figure label="Advanced" stroops={advance.principal} tone="text-fg" />
         <Figure label="Repaid" stroops={advance.repaid} tone="text-success" />
         <Figure label="Left to repay" stroops={outstanding(advance)} tone="text-brand" />
@@ -100,9 +104,9 @@ function Ledger({ advance, transactions }: { advance: AdvanceSummary; transactio
         <section
           key={m.month}
           aria-label={m.month}
-          className="flex w-full flex-col gap-1 rounded-card bg-surface px-5 pb-2 pt-5 lg:px-6 lg:pb-3 lg:pt-6"
+          className="flex w-full flex-col gap-1 rounded-card bg-surface px-5 pb-2 pt-5 md:px-6 md:pb-3 md:pt-6"
         >
-          <h2 className="text-[14px] font-medium text-fg-muted">{m.month}</h2>
+          <h2 className="text-small font-medium text-fg-muted">{m.month}</h2>
           <ul className="flex w-full flex-col gap-1">
             {m.rows.map((row) => (
               <LedgerRow key={row.key} row={row} />
@@ -110,7 +114,7 @@ function Ledger({ advance, transactions }: { advance: AdvanceSummary; transactio
           </ul>
         </section>
       ))}
-      <LedgerNote className="hidden lg:flex" />
+      <LedgerNote className="hidden md:flex" />
     </div>
   );
 }

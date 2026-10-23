@@ -16,8 +16,8 @@ export function ProgressPanel({ title, body, action }: { title: string; body: st
       <span className="flex size-10 items-center justify-center" aria-hidden>
         <LoaderCircle className="size-8 animate-spin text-brand motion-reduce:animate-none" />
       </span>
-      <h2 className="text-[19px] font-semibold tracking-[-0.3px] text-fg">{title}</h2>
-      <p className="text-[14px] leading-[21px] text-fg-muted">{body}</p>
+      <h2 className="text-card-title text-fg">{title}</h2>
+      <p className="text-body text-fg-muted">{body}</p>
       {action && <div className="flex w-full [&>*]:flex-1">{action}</div>}
     </section>
   );

@@ -59,15 +59,15 @@ export function AllowUsdc({
       ) : (
         <dl className="flex w-full flex-col gap-3.5 rounded-tile bg-surface p-[22px]">
           <div className="flex items-center justify-between">
-            <dt className="text-[14px] text-fg-muted">Wallet</dt>
-            <dd className="flex items-center gap-1.5 text-[14px] font-medium text-fg">
+            <dt className="text-body text-fg-muted">Wallet</dt>
+            <dd className="flex items-center gap-1.5 text-body font-medium text-fg">
               <Check className="size-[15px] text-success" aria-hidden />
               {walletName} connected
             </dd>
           </div>
           <div className="flex items-center justify-between">
-            <dt className="text-[14px] text-fg-muted">USDC</dt>
-            <dd className="flex items-center gap-1.5 text-[14px] font-medium text-brand-strong">
+            <dt className="text-body text-fg-muted">USDC</dt>
+            <dd className="flex items-center gap-1.5 text-body font-medium text-brand-strong">
               <CircleAlert className="size-[15px] text-brand" aria-hidden />
               Not allowed yet
             </dd>

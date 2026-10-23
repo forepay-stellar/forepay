@@ -31,11 +31,13 @@ export function OnboardingShell({
   actions?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-dvh flex-col bg-canvas lg:px-20">
-      {/* Desktop top bar */}
-      {/* Three columns, the outer two equal and at least as wide as the widest chips, so the stepper stays
-          centred and keeps its place from step to step whatever the wallet chip says. */}
-      <header className="hidden h-[90px] grid-cols-[minmax(15.5rem,1fr)_minmax(0,480px)_minmax(15.5rem,1fr)] items-center gap-6 lg:grid">
+    // Section 08: a 32px gutter on a tablet, 40 at 1024, 80 from 1280.
+    <div className="flex min-h-dvh flex-col bg-canvas md:px-8 lg:px-10 xl:px-20">
+      {/* Top bar, from 768. On a tablet the three sit side by side as drawn (wordmark, the 480 stepper,
+          the chips). From 1024 the outer two columns are equal and at least as wide as the widest chips,
+          so the stepper stays centred and keeps its place from step to step whatever the wallet chip
+          says. */}
+      <header className="mx-auto hidden h-[90px] w-full grid-cols-[auto_minmax(0,480px)_auto] items-center justify-between gap-[18px] md:grid lg:max-w-[1200px] lg:grid-cols-[minmax(15.5rem,1fr)_minmax(0,480px)_minmax(15.5rem,1fr)] lg:gap-6">
         <div className="flex">
           <Wordmark />
         </div>
@@ -47,7 +49,7 @@ export function OnboardingShell({
       </header>
 
       {/* Phone header */}
-      <header className="flex h-[60px] items-center justify-between px-4 lg:hidden">
+      <header className="flex h-[60px] items-center justify-between px-4 md:hidden">
         {onBack ? (
           <button
             type="button"
@@ -65,23 +67,24 @@ export function OnboardingShell({
           {wallet}
         </div>
       </header>
-      <div className="lg:hidden">
+      <div className="md:hidden">
         <OnboardingProgress current={step} />
       </div>
 
-      <main className="flex flex-1 flex-col lg:items-center lg:justify-center">
+      {/* From 768 the column is centred in the page, as on the tablet and desktop frames. */}
+      <main className="flex flex-1 flex-col md:items-center md:justify-center md:py-10">
         <div
           className={cn(
-            "flex w-full flex-1 flex-col items-center gap-4 px-5 pt-5 lg:flex-none lg:gap-5 lg:px-0 lg:pt-0",
-            narrow ? "lg:w-[400px]" : "lg:w-[520px]",
+            "flex w-full flex-1 flex-col items-center gap-4 px-5 pt-5 md:flex-none md:gap-5 md:px-0 md:pt-0",
+            narrow ? "md:w-[400px]" : "md:w-[520px]",
           )}
         >
           {onBack && (
-            <div className="hidden w-full lg:flex">
+            <div className="hidden w-full md:flex">
               <button
                 type="button"
                 onClick={onBack}
-                className="flex items-center gap-2 rounded-pill py-2 text-[14px] font-medium text-brand-strong outline-none hover:underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-brand"
+                className="flex items-center gap-2 rounded-pill py-2 text-small font-medium text-brand-strong outline-none hover:underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-brand"
               >
                 <ChevronLeft className="size-4" aria-hidden />
                 Back
@@ -90,7 +93,7 @@ export function OnboardingShell({
           )}
           {children}
           {actions && (
-            <div className="mt-auto flex w-full flex-col items-center gap-3 pb-8 pt-4 lg:mt-0 lg:contents">
+            <div className="mt-auto flex w-full flex-col items-center gap-3 pb-8 pt-4 md:mt-0 md:contents">
               {actions}
             </div>
           )}
@@ -100,17 +103,17 @@ export function OnboardingShell({
   );
 }
 
-/** Title and body of a step, sized for a phone and for the 520px desktop column. */
+/** Title and body of a step, sized for a phone and for the 520px column from a tablet up. */
 export function StepText({ title, body, extra }: { title: string; body: string; extra?: string }) {
   return (
     <>
-      <h1 className="w-full text-center text-[28px] font-semibold leading-[30px] tracking-[-0.8px] text-fg lg:text-[44px] lg:leading-[46px] lg:tracking-[-1.3px]">
+      <h1 className="w-full text-center text-page-title text-fg">
         {title}
       </h1>
-      <p className="w-full text-center text-[15px] leading-[23px] text-fg-muted lg:text-[17px] lg:leading-[26px]">
+      <p className="w-full text-center text-body text-fg-muted">
         {body}
       </p>
-      {extra && <p className="w-full text-center text-[14px] leading-[21px] text-fg-muted">{extra}</p>}
+      {extra && <p className="w-full text-center text-body text-fg-muted">{extra}</p>}
     </>
   );
 }

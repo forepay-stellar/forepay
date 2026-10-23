@@ -141,6 +141,37 @@ test("a reload while the USDC is sent goes on waiting for it", async ({ page }) 
   await expect(heading(page, "See how much you can get")).toBeVisible();
 });
 
+for (const back of ["after", "before"] as const) {
+  test(`a send refused ${back === "after" ? "while the creator is away" : "after they come back"} says so at once, not after two minutes`, async ({
+    page,
+  }) => {
+    const chain: Chain = { account: true, trustline: true, advance: { send: "refused", holdSend: true } };
+    await connect(page, chain);
+    await proveToOffer(page);
+    await page.getByRole("button", { name: "Accept 90.00 USDC" }).click();
+    await expect(heading(page, "Sending your USDC")).toBeVisible();
+    await expect.poll(() => chain.advance?.sent).toBe(1);
+
+    await page.getByRole("link", { name: "Repayment" }).click();
+    await expect(page).toHaveURL(/\/repayment$/, { timeout: 20_000 });
+    if (back === "after") chain.advance!.holdSend = false;
+    await page.getByRole("link", { name: "Advance" }).click();
+    await expect(page).toHaveURL(/\/advance$/, { timeout: 20_000 });
+    if (back === "before") {
+      await expect(heading(page, "Sending your USDC")).toBeVisible({ timeout: 20_000 });
+      chain.advance!.holdSend = false;
+    }
+
+    // Well inside the two-minute wait for a transaction that may still land.
+    await expect(heading(page, "The transaction did not go through")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("Nothing was charged and no USDC moved. Try again in a moment.")).toBeVisible();
+    chain.advance!.send = "ok";
+    await page.getByRole("button", { name: "Try again" }).click();
+    await expect(heading(page, "The USDC is in your wallet")).toBeVisible();
+    expect(chain.advance?.sent).toBe(2);
+  });
+}
+
 test("a high revenue is capped at 100 USDC and says so", async ({ page }) => {
   await connect(page, { account: true, trustline: true }, { "forepay.mock.revenue": "1240.00" });
   await proveToOffer(page);

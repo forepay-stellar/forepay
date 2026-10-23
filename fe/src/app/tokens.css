@@ -97,45 +97,16 @@
   --radius-hero: 28px;
   --radius-pill: 999px;
 
-  /* Type scale (Geist). text-display, text-page, text-amount, text-card-title, ... */
-  --text-display: 4rem;
-  --text-display--line-height: 1;
-  --text-display--letter-spacing: -0.03em;
-  --text-display--font-weight: 600;
-
-  --text-page: 2.5rem;
-  --text-page--line-height: 1.1;
-  --text-page--letter-spacing: -0.03em;
-  --text-page--font-weight: 600;
-
-  --text-amount: 2.25rem;
-  --text-amount--line-height: 1.1;
-  --text-amount--letter-spacing: -0.03em;
-  --text-amount--font-weight: 600;
-
-  --text-card-title: 1.125rem;
-  --text-card-title--line-height: 1.3;
-  --text-card-title--letter-spacing: -0.01em;
-  --text-card-title--font-weight: 600;
-
-  --text-body: 0.9375rem;
-  --text-body--line-height: 1.5;
-
-  --text-body-sm: 0.875rem;
-  --text-body-sm--line-height: 1.5;
-
-  --text-caption: 0.8125rem;
-  --text-caption--line-height: 1.4;
-
-  --text-label: 0.75rem;
-  --text-label--line-height: 1.3;
-  --text-label--font-weight: 500;
-
-  /* Status chips: pair with `uppercase`. */
-  --text-overline: 0.6875rem;
-  --text-overline--line-height: 1.3;
-  --text-overline--letter-spacing: 0.08em;
-  --text-overline--font-weight: 600;
+  /*
+   * Section 08: the side column widens from 320 to 360 at a 1200 window. In rem like Tailwind's own
+   * breakpoints, so `wide:` sorts after `lg:` (a px breakpoint would sort before it and never win).
+   */
+  --breakpoint-wide: 75rem;
+  /*
+   * Where the top nav fits as the 834 tablet frame draws it (wordmark 179, tabs 318, chips 248, 12
+   * apart). Narrower, from 768, the tabs take 10 of side padding instead of 20.
+   */
+  --breakpoint-nav: 52.125rem;
 
   /*
    * Shadows. Not used by the orange design, which is flat: surfaces separate
@@ -146,4 +117,69 @@
   --shadow-hero: 0 12px 32px rgb(28 22 18 / 0.12);
   --shadow-nav: 0 10px 30px rgb(28 22 18 / 0.18);
   --shadow-glow: 0 10px 24px rgb(28 22 18 / 0.16);
+}
+
+/*
+ * Type roles, from "Type scale per breakpoint" in section 08 of the pen.dev design: each steps at the
+ * tablet (768) and desktop (1024) breakpoints, in rem so the reader's text size setting still applies.
+ * Weights and line heights as in 02 Typography. Use these, not a pixel size written for one screen.
+ */
+@utility text-hero {
+  font-size: 3.5rem;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  @media (width >= 48rem) { font-size: 4.5rem; }
+  @media (width >= 64rem) { font-size: 5.5rem; }
+}
+@utility text-amount {
+  font-size: 3rem;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  @media (width >= 48rem) { font-size: 3.5rem; }
+  @media (width >= 64rem) { font-size: 4rem; }
+}
+@utility text-page-title {
+  font-size: 1.75rem;
+  /* 30 on 28 and 46 on 44, as the onboarding titles are drawn. */
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  @media (width >= 48rem) { font-size: 2.25rem; }
+  @media (width >= 64rem) { font-size: 2.75rem; }
+}
+@utility text-card-title {
+  font-size: 1.25rem;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  font-weight: 600;
+  @media (width >= 48rem) { font-size: 1.375rem; }
+  @media (width >= 64rem) { font-size: 1.5rem; }
+}
+/* The amount typed in a field (the 3a repay input): added by @AncungAulia on #71 (#84). */
+@utility text-input-amount {
+  font-size: 2rem;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  @media (width >= 48rem) { font-size: 2.25rem; }
+}
+/* Figures in tiles and breakdowns (History, "Your advance"): added by @AncungAulia on #71. */
+@utility text-figure {
+  font-size: 1.25rem;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  @media (width >= 48rem) { font-size: 1.75rem; }
+  @media (width >= 64rem) { font-size: 2rem; }
+}
+@utility text-body {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+@utility text-small {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  @media (width >= 64rem) { font-size: 0.875rem; }
 }
