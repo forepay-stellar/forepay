@@ -106,20 +106,39 @@ contract, or read the [five funding transactions](deployments.md).
 | Prove revenue, see the offer with its derivation, accept | **Merged** — [#57](https://github.com/forepay-stellar/forepay/pull/57) |
 | Repayment and history, read from the ledger | **Merged** — [#58](https://github.com/forepay-stellar/forepay/pull/58) |
 | Backend the screens read from | **Merged and live** — <https://api-forepay.jameshub.fun/health> ([API reference](api.md)) |
-| **Live demo link** | ⏳ [#22](https://github.com/forepay-stellar/forepay/issues/22) |
-| **Screenshots** | ⏳ [#22](https://github.com/forepay-stellar/forepay/issues/22) |
+| **Live demo link** | **Live** — <https://app.forepay.xyz>, testnet, no login (how it was checked: the #22 entry in [deployments.md](deployments.md)) |
+| **Screenshots** | Taken from the live app — see below |
 
 The offer screen does not hard-code the 25% rate or the 100 USDC cap. It reads them from the
 contract, so the derivation shown next to the figure is the arithmetic that produced it.
 
+### Screenshots, from the live app
+
+Every screenshot here is of <https://app.forepay.xyz> on 2026-10-23. None comes from a local or
+mocked build.
+
+| Step | Desktop | Phone |
+| --- | --- | --- |
+| Before you start | [1a](evidence/1a-before-you-start-desktop.png) | [1a](evidence/1a-before-you-start-mobile.png) |
+| Connect your wallet | [1b](evidence/1b-connect-wallet-desktop.png) | [1b](evidence/1b-connect-wallet-mobile.png) |
+| No wallet installed | [1b](evidence/1b-no-wallet-installed-desktop.png) | [1b](evidence/1b-no-wallet-installed-mobile.png) |
+| An unfunded wallet is asked for test XLM | [1c](evidence/1c-add-test-xlm-desktop.jpg) | |
+| Prove revenue: wallet allowed USDC, rule read from the contract | [2a](evidence/2a-prove-revenue-desktop.jpg) | |
+| Repayment, before the first advance | [3a](evidence/3a-repayment-no-advance-desktop.jpg) | |
+| History, before the first advance | [3b](evidence/3b-history-no-advance-desktop.jpg) | |
+
 > #### What Deliverable 2 does not show yet
 >
-> **This row is not ready to tick.** The screens are written, reviewed and merged, and the API they
-> read is live — but there is no deployed URL to click and no screenshots yet. Until
-> [#22](https://github.com/forepay-stellar/forepay/issues/22) lands, this row is honestly **Partial**.
+> **The flow stops at “prove revenue” on the live app.** The screens after it — the offer with its
+> derivation, signing, the advance arriving, a repayment — are written, reviewed and merged, but
+> there is no screenshot of them, because none could be taken honestly yet:
 >
-> It also cannot complete end to end in a browser until Deliverable 1's missing piece arrives: the
-> flow stops at “prove revenue” without a real AdSense account.
+> - the live app is not yet connected to the proof relay; that client is
+>   [#75](https://github.com/forepay-stellar/forepay/pull/75), in review;
+> - and a real proof needs an AdSense account with revenue, which is Deliverable 1's open gap
+>   ([#77](https://github.com/forepay-stellar/forepay/issues/77)).
+>
+> Until both land, this row is honestly **Partial**: live, but not end to end.
 
 ---
 
@@ -227,13 +246,14 @@ simulated.
 | | |
 | --- | --- |
 | **Deliverable 1** | **Present**, with one stated gap: no advance against a real AdSense proof yet (#77) |
-| **Deliverable 2** | **Partial** — screens merged and the API live, no deployed URL or screenshots yet (#22) |
+| **Deliverable 2** | **Partial** — live at <https://app.forepay.xyz> with screenshots; the flow stops at “prove revenue” until the relay client (#75) and a real proof (#77) land |
 | **Deliverable 3** | **Partial** — transaction evidence and all three negative cases done; video outstanding (#28) |
 
-We would rather hand you this table than have you discover it. The two Partials are both work that
-exists and is not yet published; the gap in Deliverable 1 is an external dependency on a Google
-account, and [#77](https://github.com/forepay-stellar/forepay/issues/77) explains what would close
-it and what the alternative is if it does not arrive.
+We would rather hand you this table than have you discover it. Deliverable 3's Partial is work that
+exists and is not yet published (the video). Deliverable 1's gap, and what still keeps Deliverable 2
+from end to end, is the same external dependency on a Google account:
+[#77](https://github.com/forepay-stellar/forepay/issues/77) explains what would close it and what
+the alternative is if it does not arrive.
 
 ## Everything else, if you want to go deeper
 
