@@ -209,7 +209,14 @@ export function contractFailureCopy(code: number): FailureCopy {
  * - `simulationFailed`: Stellar answered, but could not run the request, with no contract code to say why.
  * - `notConfigured`: this build is missing an address it needs, so nothing reached the network.
  * - `walletLocked`, `walletWrongNetwork`, `walletNoAnswer`: the wallet could not sign, for that reason.
- * - `relayNotReady`: proofs are meant to come from the #17 relay, and its client is not built yet.
+ * - `relayNotReady`: proofs are meant to come from the #17 relay, and this build cannot reach it.
+ * - `googleSignIn`: Google refused the sign-in the relay was handed, for example an expired one.
+ * - `noAdsense`: the Google account has no approved AdSense account the relay can read.
+ * - `relayFailed`: the relay could not make the proof (busy, or failed on its side). Nothing was saved.
+ * - `proofRunning`: a proof for this wallet is already running, started from a tab that lost it.
+ * - `relayUnreachable`: the relay did not answer. Not Stellar: nothing on chain was asked.
+ * - `googleUnavailable`: Google's sign-in did not load.
+ * - `popupBlocked`: the browser blocked Google's sign-in window. The creator closed nothing.
  */
 export type ProveFailure =
   | "cancelled"
@@ -225,7 +232,14 @@ export type ProveFailure =
   | "walletLocked"
   | "walletWrongNetwork"
   | "walletNoAnswer"
-  | "relayNotReady";
+  | "relayNotReady"
+  | "googleSignIn"
+  | "noAdsense"
+  | "relayFailed"
+  | "proofRunning"
+  | "relayUnreachable"
+  | "googleUnavailable"
+  | "popupBlocked";
 
 export function proveFailureCopy(kind: ProveFailure, walletName = "Freighter"): FailureCopy {
   switch (kind) {
@@ -302,6 +316,41 @@ export function proveFailureCopy(kind: ProveFailure, walletName = "Freighter"): 
       return {
         title: "Proving revenue is not open yet",
         body: "Forepay cannot read AdSense revenue yet. Try again later.",
+      };
+    case "googleSignIn":
+      return {
+        title: "Google did not let us read AdSense",
+        body: "Sign in again and allow Forepay to see your AdSense reports. Nothing was saved.",
+      };
+    case "noAdsense":
+      return {
+        title: "We found no approved AdSense account",
+        body: "Sign in with the Google account that owns an approved AdSense account, then try again.",
+      };
+    case "relayFailed":
+      return {
+        title: "We could not finish your proof",
+        body: "Nothing was saved or charged. Try again in a few minutes.",
+      };
+    case "proofRunning":
+      return {
+        title: "Your proof is already being made",
+        body: "We started one for this wallet earlier. Nothing was charged. Try again in a few minutes to pick it up.",
+      };
+    case "relayUnreachable":
+      return {
+        title: "We could not reach Forepay",
+        body: "Nothing was saved or charged. Check your connection, then try again.",
+      };
+    case "googleUnavailable":
+      return {
+        title: "Google sign-in did not load",
+        body: "Nothing was read or saved. Check your connection, then try again.",
+      };
+    case "popupBlocked":
+      return {
+        title: "Your browser blocked the Google window",
+        body: "Allow pop-ups for Forepay, then try again. Nothing was read or saved.",
       };
   }
 }

@@ -15,8 +15,9 @@ describe("proveRevenue", () => {
     session.abandon();
   });
 
-  it("says the relay is not ready rather than pretending, once a relay URL is set", async () => {
+  it("says the relay is not ready rather than pretending, when the Google client id is missing", async () => {
     vi.stubEnv("NEXT_PUBLIC_RELAY_URL", "https://relay.example");
+    vi.stubEnv("NEXT_PUBLIC_GOOGLE_CLIENT_ID", "");
     const { proveRevenue, RelayNotReadyError } = await import("./index");
     await expect(proveRevenue("GA6H", () => {}).result).rejects.toBeInstanceOf(RelayNotReadyError);
   });

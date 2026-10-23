@@ -123,6 +123,9 @@ describe("proveFailureCopy", () => {
     "walletWrongNetwork",
     "walletNoAnswer",
     "relayNotReady",
+    "googleSignIn",
+    "noAdsense",
+    "relayFailed",
   ];
 
   it("keeps every failure inside the copy rules, and never says Something went wrong", () => {

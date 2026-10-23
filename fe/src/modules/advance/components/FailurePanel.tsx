@@ -124,6 +124,21 @@ export function FailurePanel({
         illustration = <IlloSessionCancelled data-illo="session-cancelled" />;
         actions = <Button onClick={a.onProve}>Prove my revenue</Button>;
         break;
+      case "googleSignIn":
+      case "noAdsense":
+      case "relayFailed":
+      case "proofRunning":
+      case "relayUnreachable":
+      case "googleUnavailable":
+      case "popupBlocked":
+        illustration = <IlloSessionCancelled data-illo="session-cancelled" />;
+        actions = (
+          <>
+            <Button onClick={a.onProve}>Prove my revenue</Button>
+            {back}
+          </>
+        );
+        break;
       case "declined":
         illustration = <IlloSessionCancelled data-illo="session-cancelled" />;
         actions = <Button onClick={a.onReviewOffer}>Review offer again</Button>;
