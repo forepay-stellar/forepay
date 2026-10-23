@@ -2,7 +2,8 @@ import Image from "next/image";
 import { ButtonLink } from "@/components/Button";
 import { ScrollLift } from "@/components/ScrollLift";
 import { landing } from "@/content/landing";
-import { APP_URL, CONTRACT_URL } from "@/lib/env";
+import { APP_URL } from "@/lib/env";
+import { Footer } from "./Footer";
 
 // Landing / Desktop → CTA and footer: "Paid early." in tangerine with the clay wallet over it,
 // an orange sunrise rising from below, and the footer continuing the sunrise's deep orange
@@ -17,19 +18,8 @@ const T = (px: number) => `calc(var(--t) * ${px})`;
 // The sunrise: a soft peach halo, then the orange disc fading to the footer's deep orange.
 const SUNRISE = "radial-gradient(55% 45% at 50% 5%, #F2620F, #C24A08 55%)";
 
-function resolve(href: string) {
-  if (href === "APP") return APP_URL;
-  if (href === "CONTRACT") return CONTRACT_URL;
-  return href;
-}
-
-function isExternal(href: string) {
-  return href.startsWith("http");
-}
-
 export function ClosingAndFooter() {
   const c = landing.closing;
-  const f = landing.footer;
 
   return (
     <div className="relative overflow-hidden">
@@ -150,53 +140,7 @@ export function ClosingAndFooter() {
         </div>
       </section>
 
-      {/* The top of the footer fades in from clear, so the sunrise runs into it without a line */}
-      <footer className="relative bg-[linear-gradient(to_bottom,transparent,var(--color-footer)_200px)] text-white">
-        <div className="mx-auto flex max-w-[1440px] flex-col gap-9 px-5 pt-7 md:gap-[calc(var(--t)*56)] md:px-[calc(var(--t)*40)] md:pt-[calc(var(--t)*56)] lg:gap-[72px] lg:px-20 lg:pt-16">
-          <div className="flex flex-col gap-9 md:flex-row md:gap-12 lg:gap-24">
-            <p className="text-[15px] leading-normal text-white/80 md:flex-1 md:text-base lg:w-[320px]">
-              <span className="block md:max-w-[300px] lg:max-w-[320px]">{f.line}</span>
-            </p>
-            <nav aria-label="Footer" className="flex gap-6 md:gap-12 lg:gap-24">
-              {f.columns.map((col) => (
-                <div key={col.heading} className="flex flex-1 flex-col gap-2.5 md:w-[160px] md:flex-none md:gap-3 lg:w-[200px]">
-                  <h2 className="text-sm font-semibold md:text-[15px]">{col.heading}</h2>
-                  <ul className="flex flex-col gap-2.5 md:gap-3">
-                    {col.links.map((l) => {
-                      const href = resolve(l.href);
-                      return (
-                        <li key={l.label}>
-                          <a
-                            href={href}
-                            {...(isExternal(href) ? { target: "_blank", rel: "noreferrer" } : {})}
-                            className="text-sm text-white/80 transition-colors hover:text-white md:text-[15px]"
-                          >
-                            {l.label}
-                          </a>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              ))}
-            </nav>
-          </div>
-          <div className="flex flex-col gap-1.5 border-t border-white/20 pt-[18px] text-[13px] text-white/70 md:flex-row md:justify-between md:pt-5 md:text-sm">
-            <span>{f.legal}</span>
-            <span>{f.testnet}</span>
-          </div>
-          <div className="h-[60px] overflow-hidden md:h-[calc(var(--t)*141)] lg:h-[240px]">
-            <Image
-              src="/brand/wordmark-cream.webp"
-              alt="Forepay"
-              width={1283}
-              height={204}
-              sizes="(min-width: 1440px) 1280px, 90vw"
-              className="h-auto w-full"
-            />
-          </div>
-        </div>
-      </footer>
+      <Footer onHome />
     </div>
   );
 }

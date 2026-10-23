@@ -128,6 +128,10 @@ export const landing = {
       },
     ],
     legal: "© 2026 Forepay. Open source under AGPL-3.0.",
+    legalLinks: [
+      { label: "Privacy policy", href: "/privacy" },
+      { label: "Terms of service", href: "/terms" },
+    ],
     testnet: "Live on Stellar testnet",
   },
 } as const;
