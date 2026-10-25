@@ -9,6 +9,7 @@
     "test": "tsx --test \"src/**/*.test.ts\"",
     "prove:adsense": "tsx src/cli/prove-adsense.ts",
     "prove:smoke": "tsx src/cli/prove-smoke.ts",
+    "spike:post-body": "tsx src/cli/spike-post-body.ts",
     "zk:files": "tsx src/cli/zk-files.ts",
     "verify:proof": "tsx src/cli/verify-proof.ts",
     "start": "tsx src/api/server.ts"
