@@ -69,7 +69,7 @@ test("a proof that carries the token is refused", async () => {
   assert.equal(await code(proveRevenue(deps({ zkFetch: zk }), { borrower: ALICE, accessToken: TOKEN })), "audit");
 });
 
-test("an account Google will not report for stops before the attestor", async () => {
+test("an account that is not READY stops before the attestor", async () => {
   const zk = fakeZkFetch();
   const google = fakeGoogle({ state: "CLOSED" });
   assert.equal(await code(proveRevenue(deps({ google, zkFetch: zk }), { borrower: ALICE, accessToken: TOKEN })), "account");
