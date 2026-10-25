@@ -95,8 +95,9 @@ async function mockRelay(page: Page, relay: Relay) {
   });
 }
 
-async function connect(page: Page, relay: Relay, popup: Popup) {
-  await stubGoogle(page, popup);
+/** `popup` null leaves `window.google` unset, so the app loads Google's script itself (routed by the test). */
+async function connect(page: Page, relay: Relay, popup: Popup | null) {
+  if (popup) await stubGoogle(page, popup);
   await mockRelay(page, relay);
   await mockRpc(page, { account: true, trustline: true });
   await mockApi(page, frameLedger());
@@ -109,6 +110,7 @@ async function connect(page: Page, relay: Relay, popup: Popup) {
 
 const heading = (page: Page, name: string) => page.getByRole("heading", { name, exact: true });
 const prove = (page: Page) => page.getByRole("button", { name: "Prove my revenue" }).click();
+const proveAgain = (page: Page) => page.getByRole("button", { name: "Prove again" }).click();
 
 test("signs in with Google, the relay proves, and the offer follows", async ({ page }) => {
   const relay = relayFor();
@@ -127,8 +129,9 @@ test("a Google account with no AdSense the relay can read is named", async ({ pa
   await connect(page, relay, "ok");
   await prove(page);
   await expect(heading(page, "We found no approved AdSense account")).toBeVisible();
-  await expect(page.getByText("This Google account has no AdSense account we can read.", { exact: false })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Prove my revenue" })).toBeVisible();
+  await expect(page.getByText("We could not find one approved AdSense account on this Google account.", { exact: false })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Prove again" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Back" })).toBeVisible();
 });
 
 test("closing Google's window is named, and proving can start again", async ({ page }) => {
@@ -189,10 +192,74 @@ test("a kept job the relay no longer has gets its own panel, and opens Google's 
   }, E2E_ADDRESS);
   const relay = relayFor();
   await connect(page, relay, "ok");
-  await expect(heading(page, "Your earlier proof has ended")).toBeVisible();
+  await expect(heading(page, "Your earlier proof is gone")).toBeVisible();
   expect(await opened(page)).toBe(0);
   expect(relay.posts).toEqual([]);
-  await prove(page);
+  await proveAgain(page);
   await expect(page.getByRole("button", { name: "Accept 90.00 USDC" })).toBeVisible();
   expect(await opened(page)).toBe(1);
+});
+
+for (const { what, code, title } of [
+  { what: "Google refusing the token", code: "token", title: "Google did not let us read AdSense" },
+  { what: "a proof that failed on the relay", code: "prove", title: "We could not finish your proof" },
+]) {
+  test(`${what} is named, and Prove again starts over`, async ({ page }) => {
+    const relay = relayFor({ j1: [{ id: "j1", stage: "failed", error: { code, message: "x" } }] });
+    await connect(page, relay, "ok");
+    await prove(page);
+    await expect(heading(page, title)).toBeVisible();
+    relay.jobs.j1 = [done("j1")];
+    await proveAgain(page);
+    await expect(page.getByRole("button", { name: "Accept 90.00 USDC" })).toBeVisible();
+  });
+}
+
+test("a relay that does not answer is named as Forepay, not Stellar", async ({ page }) => {
+  await connect(page, relayFor(), "ok");
+  await page.route("https://relay.e2e.invalid/proofs", (route) => route.abort("connectionrefused"));
+  await prove(page);
+  await expect(heading(page, "We could not reach Forepay")).toBeVisible();
+});
+
+test("Google's script loads while 2a is open, before any press", async ({ page }) => {
+  let loads = 0;
+  await page.route("https://accounts.google.com/gsi/client", (route) => {
+    loads++;
+    return route.fulfill({ contentType: "text/javascript", body: "window.google = { accounts: { oauth2: { initTokenClient: () => ({ requestAccessToken() {} }) } } };" });
+  });
+  await connect(page, relayFor(), null);
+  await expect(page.getByRole("button", { name: "Prove my revenue" })).toBeVisible();
+  await expect.poll(() => loads).toBe(1);
+  await prove(page);
+  await expect(heading(page, "Sign in with Google in the new window")).toBeVisible();
+  expect(loads).toBe(1);
+});
+
+test("Google's script failing to load is named, not taken for a closed window", async ({ page }) => {
+  await page.route("https://accounts.google.com/gsi/client", (route) => route.abort("connectionrefused"));
+  await connect(page, relayFor(), null);
+  await prove(page);
+  await expect(heading(page, "Google sign-in did not load")).toBeVisible();
+});
+
+test("coming back with a proof still running shows it at once, never 2a's button", async ({ page }) => {
+  const relay = relayFor();
+  relay.hold = true;
+  await connect(page, relay, "ok");
+  await prove(page);
+  await expect(heading(page, "Reading your revenue")).toBeVisible();
+  await page.getByRole("link", { name: "History", exact: true }).filter({ visible: true }).click();
+  await expect(page).toHaveURL(/\/history$/);
+  // Watch every change to the page from here on: 2a's button must never be put on it.
+  await page.evaluate(() => {
+    const w = window as unknown as { __sawProve: boolean };
+    w.__sawProve = false;
+    new MutationObserver(() => {
+      if ([...document.querySelectorAll("button")].some((b) => b.textContent === "Prove my revenue")) w.__sawProve = true;
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+  await page.getByRole("link", { name: "Advance", exact: true }).filter({ visible: true }).click();
+  await expect(heading(page, "Reading your revenue")).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { __sawProve: boolean }).__sawProve)).toBe(false);
 });

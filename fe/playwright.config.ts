@@ -6,6 +6,8 @@ import { defineConfig, devices } from "@playwright/test";
 // PW_PORT (and the port after it, for the relay build) lets two worktrees run their e2e suites side by side.
 const PORT = Number(process.env.PW_PORT ?? 3219);
 const RELAY_PORT = PORT + 1;
+// PW_RELAY=0 leaves out the relay build and its specs, for a quicker run of the others.
+const RELAY = process.env.PW_RELAY !== "0";
 const RELAY_SPEC = /relay\.spec\.ts$/;
 
 /** One dev server. `proving` sets the Reclaim seam: the mock (no relay) or the relay. */
@@ -31,6 +33,18 @@ function server(port: number, distDir: string, proving: Record<string, string>) 
   };
 }
 
+/**
+ * The real proving seam (#17), on a second build whose relay and Google client are set. The relay
+ * and Google's sign-in are answered by the spec (tests/e2e/relay.spec.ts).
+ */
+function relayProjects() {
+  const use = { baseURL: `http://localhost:${RELAY_PORT}` };
+  return [
+    { name: "relay-desktop", testMatch: RELAY_SPEC, use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 960 }, ...use } },
+    { name: "relay-mobile", testMatch: RELAY_SPEC, use: { ...devices["Pixel 7"], viewport: { width: 390, height: 844 }, ...use } },
+  ];
+}
+
 export default defineConfig({
   testDir: "tests/e2e",
   fullyParallel: true,
@@ -40,24 +54,17 @@ export default defineConfig({
   projects: [
     { name: "desktop", testIgnore: RELAY_SPEC, use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 960 } } },
     { name: "mobile", testIgnore: RELAY_SPEC, use: { ...devices["Pixel 7"], viewport: { width: 390, height: 844 } } },
-    // The real proving seam (#17), on a second build whose relay and Google client are set. The relay
-    // and Google's sign-in are answered by the spec (tests/e2e/relay.spec.ts).
-    {
-      name: "relay-desktop",
-      testMatch: RELAY_SPEC,
-      use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 960 }, baseURL: `http://localhost:${RELAY_PORT}` },
-    },
-    {
-      name: "relay-mobile",
-      testMatch: RELAY_SPEC,
-      use: { ...devices["Pixel 7"], viewport: { width: 390, height: 844 }, baseURL: `http://localhost:${RELAY_PORT}` },
-    },
+    ...(RELAY ? relayProjects() : []),
   ],
   webServer: [
     server(PORT, ".next-e2e", { NEXT_PUBLIC_RELAY_URL: "" }),
-    server(RELAY_PORT, ".next-e2e-relay", {
-      NEXT_PUBLIC_RELAY_URL: "https://relay.e2e.invalid",
-      NEXT_PUBLIC_GOOGLE_CLIENT_ID: "e2e.apps.googleusercontent.com",
-    }),
+    ...(RELAY
+      ? [
+          server(RELAY_PORT, ".next-e2e-relay", {
+            NEXT_PUBLIC_RELAY_URL: "https://relay.e2e.invalid",
+            NEXT_PUBLIC_GOOGLE_CLIENT_ID: "e2e.apps.googleusercontent.com",
+          }),
+        ]
+      : []),
   ],
 });

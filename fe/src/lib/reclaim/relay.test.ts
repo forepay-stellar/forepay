@@ -166,6 +166,29 @@ describe("relayProveRevenue", () => {
     expect(t.kept).toBeNull();
   });
 
+  it("a poll that fails on the network keeps the id; the next press follows it and a 404 is still gone, with no sign-in", async () => {
+    const t = store({ borrower: BORROWER, id: "gone" });
+    let down = true;
+    const fetch = (async () => {
+      if (down) throw new TypeError("Failed to fetch");
+      return new Response(JSON.stringify({ error: "no such proof job" }), { status: 404 });
+    }) as unknown as typeof globalThis.fetch;
+    let signIns = 0;
+    const signIn: SignIn = async () => {
+      signIns++;
+      return "ya29.token";
+    };
+    const o = { relayUrl: "https://r", signIn, fetch, sleep: noSleep, jobs: t.jobs };
+    const first = await relayProveRevenue(BORROWER, () => {}, o).result.catch((x) => x);
+    expect((first as RelayError).code).toBe("unreachable");
+    expect(t.kept).toEqual({ borrower: BORROWER, id: "gone" });
+    down = false;
+    const second = await relayProveRevenue(BORROWER, () => {}, o).result.catch((x) => x);
+    expect((second as RelayError).code).toBe("gone");
+    expect(signIns).toBe(0);
+    expect(t.kept).toBeNull();
+  });
+
   it("after a gone job, the next press signs in and starts a fresh proof", async () => {
     const t = store({ borrower: BORROWER, id: "gone" });
     const fetch = (async (url: string, init?: RequestInit) => {
