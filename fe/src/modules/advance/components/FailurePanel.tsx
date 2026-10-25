@@ -128,6 +128,7 @@ export function FailurePanel({
       case "noAdsense":
       case "relayFailed":
       case "proofRunning":
+      case "proofGone":
       case "relayUnreachable":
       case "googleUnavailable":
       case "popupBlocked":

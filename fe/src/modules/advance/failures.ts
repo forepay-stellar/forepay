@@ -19,6 +19,7 @@ function sorted(e: unknown): AdvanceFailure {
       token: "googleSignIn",
       account: "noAdsense",
       running: "proofRunning",
+      gone: "proofGone",
       unconfigured: "relayNotReady",
       unreachable: "relayUnreachable",
       googleUnavailable: "googleUnavailable",

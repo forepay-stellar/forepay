@@ -12,7 +12,8 @@
  *
  * The job id is kept for the length of the tab (`sessionJobs`). A creator who leaves /advance or reloads
  * while the relay proves comes back to the same job, without a second sign-in, instead of starting a
- * second proof the relay would refuse as already running (409).
+ * second proof the relay would refuse as already running (409). A kept job the relay no longer has
+ * ends the session as `gone`, so the sign-in it needs starts from a press.
  */
 import type { AdvanceRequest } from "@/lib/stellar/contract";
 import { ReclaimCancelledError, RelayError, type ProveSession, type ProveStage, type RelayErrorCode } from "./session";
@@ -237,8 +238,11 @@ export function relayProveRevenue(borrower: string, onStage: (stage: ProveStage)
       onStage("reading");
       const job = await follow(kept);
       if (job) return job;
+      // The relay no longer has it (it restarted, or the hour passed). Signing in again here would open
+      // Google's popup outside any press, on mount or after an await, and the browser would block it
+      // (review on #75). The creator's next press opens it instead.
       jobs.clear();
-      reading = false;
+      throw new RelayError("gone", "the relay no longer has this proof job");
     }
     signIn();
     const accessToken = await token;

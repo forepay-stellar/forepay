@@ -143,16 +143,41 @@ describe("relayProveRevenue", () => {
     expect(t.kept).toBeNull();
   });
 
-  it("a kept job the relay no longer has starts a fresh proof", async () => {
+  it("a kept job the relay no longer has ends as gone, and never opens Google's popup outside a press", async () => {
+    const t = store({ borrower: BORROWER, id: "gone" });
+    const calls: string[] = [];
+    const fetch = (async (url: string, init?: RequestInit) => {
+      calls.push(`${init?.method ?? "GET"} ${url}`);
+      return new Response(JSON.stringify({ error: "no such proof job" }), { status: 404 });
+    }) as unknown as typeof globalThis.fetch;
+    let signIns = 0;
+    const signIn: SignIn = async () => {
+      signIns++;
+      return "ya29.token";
+    };
+    const stages: ProveStage[] = [];
+    const s = relayProveRevenue(BORROWER, (st) => stages.push(st), { relayUrl: "https://r", signIn, fetch, sleep: noSleep, jobs: t.jobs });
+    const e = await s.result.catch((x) => x);
+    expect(e).toBeInstanceOf(RelayError);
+    expect((e as RelayError).code).toBe("gone");
+    expect(signIns).toBe(0);
+    expect(stages).toEqual(["reading"]);
+    expect(calls).toEqual(["GET https://r/proofs/gone"]);
+    expect(t.kept).toBeNull();
+  });
+
+  it("after a gone job, the next press signs in and starts a fresh proof", async () => {
     const t = store({ borrower: BORROWER, id: "gone" });
     const fetch = (async (url: string, init?: RequestInit) => {
       if (init?.method === "POST") return new Response(JSON.stringify({ id: "j2", stage: "queued" }), { status: 202 });
       if (url.endsWith("/gone")) return new Response(JSON.stringify({ error: "no such proof job" }), { status: 404 });
       return new Response(JSON.stringify({ id: "j2", stage: "done", request: REQUEST }));
     }) as unknown as typeof globalThis.fetch;
+    const o = { relayUrl: "https://r", signIn: signedIn, fetch, sleep: noSleep, jobs: t.jobs };
+    await relayProveRevenue(BORROWER, () => {}, o).result.catch(() => {});
     const stages: ProveStage[] = [];
-    await relayProveRevenue(BORROWER, (st) => stages.push(st), { relayUrl: "https://r", signIn: signedIn, fetch, sleep: noSleep, jobs: t.jobs }).result;
-    expect(stages).toEqual(["reading", "waiting", "reading"]);
+    await relayProveRevenue(BORROWER, (st) => stages.push(st), o).result;
+    expect(stages).toEqual(["waiting", "reading"]);
   });
 
   it("a job kept for another wallet is not this one's", async () => {

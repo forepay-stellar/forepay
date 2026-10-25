@@ -126,6 +126,11 @@ describe("proveFailureCopy", () => {
     "googleSignIn",
     "noAdsense",
     "relayFailed",
+    "proofRunning",
+    "proofGone",
+    "relayUnreachable",
+    "googleUnavailable",
+    "popupBlocked",
   ];
 
   it("keeps every failure inside the copy rules, and never says Something went wrong", () => {

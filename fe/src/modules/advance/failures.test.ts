@@ -12,6 +12,7 @@ describe("proveFailure", () => {
     expect(proveFailure(new RelayError("token", "x"))).toEqual({ kind: "googleSignIn" });
     expect(proveFailure(new RelayError("account", "x"))).toEqual({ kind: "noAdsense" });
     expect(proveFailure(new RelayError("running", "x"))).toEqual({ kind: "proofRunning" });
+    expect(proveFailure(new RelayError("gone", "x"))).toEqual({ kind: "proofGone" });
     expect(proveFailure(new RelayError("unconfigured", "x"))).toEqual({ kind: "relayNotReady" });
     expect(proveFailure(new RelayError("unreachable", "x"))).toEqual({ kind: "relayUnreachable" });
     expect(proveFailure(new RelayError("googleUnavailable", "x"))).toEqual({ kind: "googleUnavailable" });

@@ -214,6 +214,7 @@ export function contractFailureCopy(code: number): FailureCopy {
  * - `noAdsense`: the Google account has no approved AdSense account the relay can read.
  * - `relayFailed`: the relay could not make the proof (busy, or failed on its side). Nothing was saved.
  * - `proofRunning`: a proof for this wallet is already running, started from a tab that lost it.
+ * - `proofGone`: the proof this tab was waiting on ended while the creator was away, and is no longer kept.
  * - `relayUnreachable`: the relay did not answer. Not Stellar: nothing on chain was asked.
  * - `googleUnavailable`: Google's sign-in did not load.
  * - `popupBlocked`: the browser blocked Google's sign-in window. The creator closed nothing.
@@ -237,6 +238,7 @@ export type ProveFailure =
   | "noAdsense"
   | "relayFailed"
   | "proofRunning"
+  | "proofGone"
   | "relayUnreachable"
   | "googleUnavailable"
   | "popupBlocked";
@@ -336,6 +338,11 @@ export function proveFailureCopy(kind: ProveFailure, walletName = "Freighter"): 
       return {
         title: "Your proof is already being made",
         body: "We started one for this wallet earlier. Nothing was charged. Try again in a few minutes to pick it up.",
+      };
+    case "proofGone":
+      return {
+        title: "Your earlier proof has ended",
+        body: "It finished while you were away, and is no longer kept. Prove your revenue again, it takes about a minute. Nothing was charged.",
       };
     case "relayUnreachable":
       return {
