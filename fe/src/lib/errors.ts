@@ -328,7 +328,7 @@ export function proveFailureCopy(kind: ProveFailure, walletName = "Freighter"): 
       };
     case "noAdsense":
       return {
-        title: "We found no approved AdSense account",
+        title: "We could not use your AdSense account",
         body: "We could not find one approved AdSense account on this Google account. Sign in with the account that owns your AdSense, then try again. Nothing was charged.",
       };
     case "relayFailed":

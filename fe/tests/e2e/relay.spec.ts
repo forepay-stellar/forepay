@@ -128,7 +128,7 @@ test("a Google account with no AdSense the relay can read is named", async ({ pa
   const relay = relayFor({ j1: [{ id: "j1", stage: "failed", error: { code: "account", message: "no AdSense account" } }] });
   await connect(page, relay, "ok");
   await prove(page);
-  await expect(heading(page, "We found no approved AdSense account")).toBeVisible();
+  await expect(heading(page, "We could not use your AdSense account")).toBeVisible();
   await expect(page.getByText("We could not find one approved AdSense account on this Google account.", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "Prove again" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Back" })).toBeVisible();
@@ -262,4 +262,30 @@ test("coming back with a proof still running shows it at once, never 2a's button
   await page.getByRole("link", { name: "Advance", exact: true }).filter({ visible: true }).click();
   await expect(heading(page, "Reading your revenue")).toBeVisible();
   expect(await page.evaluate(() => (window as unknown as { __sawProve: boolean }).__sawProve)).toBe(false);
+});
+
+test("Back after a poll that failed waits on the same job, never a spinner with nothing behind it", async ({ page }) => {
+  const relay = relayFor();
+  await connect(page, relay, "ok");
+  await page.route("https://relay.e2e.invalid/proofs/j1", (route) => route.abort("connectionrefused"));
+  await prove(page);
+  await expect(heading(page, "We could not reach Forepay")).toBeVisible();
+  await page.unroute("https://relay.e2e.invalid/proofs/j1");
+  await page.getByRole("button", { name: "Back" }).click();
+  await expect(page.getByRole("button", { name: "Accept 90.00 USDC" })).toBeVisible();
+  expect(relay.posts).toHaveLength(1);
+  expect(await opened(page)).toBe(1);
+});
+
+test("Back after a kept job the relay no longer has returns to 2a", async ({ page }) => {
+  await page.addInitScript((borrower) => {
+    if (window.location.pathname === "/start") {
+      window.sessionStorage.setItem("forepay.proof.job", JSON.stringify({ borrower, id: "old" }));
+    }
+  }, E2E_ADDRESS);
+  await connect(page, relayFor(), "ok");
+  await expect(heading(page, "Your earlier proof is gone")).toBeVisible();
+  await page.getByRole("button", { name: "Back" }).click();
+  await expect(page.getByRole("button", { name: "Prove my revenue" })).toBeVisible();
+  expect(await opened(page)).toBe(0);
 });

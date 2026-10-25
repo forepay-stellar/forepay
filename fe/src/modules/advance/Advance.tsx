@@ -168,6 +168,9 @@ export function Advance() {
     // While an advance sent earlier is still being waited on, the start is that wait, not 2a.
     const pending = loadPending(me);
     if (pending) return void pickUp(pending);
+    // Likewise a proof the relay may still be making (a poll that failed kept its id): wait on it, so
+    // "Reading your revenue" on the start is always backed by a running session.
+    if (proofRunning(me)) return void prove();
     setFlow({ at: "start" });
   }
 
