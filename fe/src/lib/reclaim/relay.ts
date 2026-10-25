@@ -115,6 +115,8 @@ export type JobStore = {
   clear: () => void;
 };
 
+// One slot for the tab: proving with a second wallet in the same tab replaces the first wallet's id.
+// Rare, and that wallet then proves again once its job ends.
 const JOB_KEY = "forepay.proof.job";
 
 /**

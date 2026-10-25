@@ -57,6 +57,20 @@ const quoteKey = (address: string, revenueUsd: string) => ["quote", address, rev
 const sizingKey = (address: string) => ["sizing", address] as const;
 
 /**
+ * "Reading your revenue". The words describe the relay (#17): about a minute, more behind a queue, and
+ * the job id is kept for the tab, so other pages are safe and a closed tab loses it (lib/reclaim/relay.ts).
+ * The mock (no relay) does not resume after leaving, which is acceptable for a build without proofs.
+ */
+function ReadingRevenue() {
+  return (
+    <ProgressPanel
+      title="Reading your revenue"
+      body="This takes about a minute, longer when others are proving too. You can use other pages meanwhile. Closing this tab means proving again."
+    />
+  );
+}
+
+/**
  * 02 Prove and accept (#20): 2a Prove revenue, 2b Review offer, 2c Sign, 2d Receive, and every state on
  * the "Prove and accept / States and interactions" board.
  *
@@ -208,6 +222,9 @@ export function Advance() {
   }
 
   async function accept(r: AdvanceRequest) {
+    // No clock check on the proof's age here: `requestAdvance` simulates before it asks the wallet, and the
+    // contract refuses a proof over an hour old with 12 ("This proof expired"), so no signature is asked
+    // for a stale proof (e2e "a proof that expires while the offer is open…").
     leave();
     const id = attempt.current;
     let signed = false;
@@ -378,6 +395,16 @@ export function Advance() {
   if (flow.at === "start") {
     // A transaction left waiting from an earlier visit is picked up by the effect above, after this
     // first render. Show it as sending from the start, so 2a and its "Prove my revenue" never flash.
+    // Likewise a proof the relay is still making for this wallet: the effect waits on it.
+    if (proofRunning(me)) {
+      return (
+        <AdvanceScreen title="Get an advance" step={0} focusKey="resuming-proof">
+          <Centered>
+            <ReadingRevenue />
+          </Centered>
+        </AdvanceScreen>
+      );
+    }
     if (loadPending(me)) {
       return (
         <AdvanceScreen title="Approve the advance" step={2} focusKey="resuming">
@@ -422,12 +449,7 @@ export function Advance() {
               }
             />
           ) : (
-            // About a minute on the relay, more behind a queue. The job id is kept for the tab, so other
-            // pages are safe; a closed tab loses it (lib/reclaim/relay.ts).
-            <ProgressPanel
-              title="Reading your revenue"
-              body="This takes about a minute, longer when others are proving too. You can use other pages meanwhile. Closing this tab means proving again."
-            />
+            <ReadingRevenue />
           )}
         </Centered>
       </AdvanceScreen>
