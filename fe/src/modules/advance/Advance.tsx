@@ -7,7 +7,7 @@ import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { notify } from "@/components/ui/Toaster";
 import { isSignatureDeclined } from "@/lib/errors";
 import { formatUsd, formatWindow } from "@/lib/format";
-import { proofRunning, proveRevenue, type ProveSession, type ProveStage } from "@/lib/reclaim";
+import { preloadSignIn, proofRunning, proveRevenue, type ProveSession, type ProveStage } from "@/lib/reclaim";
 import {
   TransactionFailedError,
   awaitAdvance,
@@ -98,6 +98,12 @@ export function Advance() {
     // `pickUp` and `prove` only read refs and setters; they run per mount and per wallet.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address]);
+
+  // Google's sign-in script, loaded while 2a is open, so "Prove my revenue" opens the popup inside the
+  // press. Loaded only on the press, the popup opens after an await and browsers may block it.
+  useEffect(() => {
+    if (flow.at === "start" || flow.at === "failed") preloadSignIn();
+  }, [flow.at]);
 
   // The offer on 2b and 2c. Read in `check` before 2b opens, so it is already here.
   const req = "req" in flow ? flow.req : undefined;
