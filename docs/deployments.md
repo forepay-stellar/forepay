@@ -924,3 +924,25 @@ caller top up the TTL separately — `extend_ttl` is callable by anyone, which i
 must never be load-bearing for security (it is not here; nothing in this contract treats expiry as
 a permission). Recorded here rather than silently paid, because the number is the kind a reviewer
 would find and we should have found first.
+
+---
+
+## #81 proposed: borrower authorisation (2026-10-25)
+
+The second upgrade of the day, queued behind #76 because the contract allows one pending proposal
+at a time.
+
+| Step | Transaction |
+| --- | --- |
+| Release `v0.4.0`, wasm `481e7f16…` | [release](https://github.com/forepay-stellar/forepay/releases/tag/v0.4.0_sc_advance_forepay-advance_pkg0.1.0_cli28.1.0) |
+| Upload the release artifact | [`6f43d8266876…`](https://stellar.expert/explorer/testnet/tx/6f43d8266876a798f1551cdc146b57fb264ac15f901c297814df2bad857a615d) |
+| `propose_upgrade`, production `CCQFL2Q6…I2HS` | [`98403335052b…`](https://stellar.expert/explorer/testnet/tx/98403335052b23d28158db6187f367d63c43bfc5e675aa90cabcf67398ebac02) |
+| `propose_upgrade`, dev `CD25Q4TD…HQN4` | [`3077b27b40f5…`](https://stellar.expert/explorer/testnet/tx/3077b27b40f5bb50b583102c99b86f7512831cf6ef2dc6f52ff977abb3d6a9ed) |
+| `execute_upgrade` | **pending — not before 2026-10-26 11:58 UTC** |
+
+`executable_at` is `1793015932` and `1793015937`.
+
+Until it executes, both contracts still accept `request_advance` and `verify_and_reserve` **without
+the borrower's authorisation**. On testnet, where every proof in existence is signed by a key
+published in this repository, the only creator who could be harmed by that is us — but it is the
+live state and it is stated rather than implied.
