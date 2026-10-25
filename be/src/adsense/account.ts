@@ -75,9 +75,12 @@ export async function resolvePublisherId(get: GoogleGet, accessToken: string, co
 }
 
 /**
- * Refuse an account that cannot report. AdSense answers reports:generate with a bare
- * 403 "The caller does not have permission" for an account that is CLOSED or was never
- * approved, which reads like a token problem and is not one. accounts.get says why.
+ * Refuse an account that is not READY, before the attestor is paid for.
+ *
+ * What we have measured is narrow (#77): a READY account with no earnings answers
+ * reports:generate with 200 and no `totals`, and a 403 came from a Google account with
+ * no access to the publisher. What Google returns for a CLOSED or unapproved account
+ * has not been observed, so the message names the state and does not guess.
  */
 export async function assertAccountReady(get: GoogleGet, accessToken: string, publisherId: string): Promise<void> {
   const acct = (await get(`${ADSENSE_API}/accounts/${publisherId}`, accessToken)) as { state?: string; pendingTasks?: string[] };
@@ -85,7 +88,7 @@ export async function assertAccountReady(get: GoogleGet, accessToken: string, pu
   const pending = acct.pendingTasks?.length ? ` Pending tasks: ${acct.pendingTasks.join(", ")}.` : "";
   throw new ProveError(
     "account",
-    `AdSense account ${publisherId} is ${acct.state ?? "in an unknown state"}, not READY.${pending} Google does not serve reports for it.`,
+    `AdSense account ${publisherId} is ${acct.state ?? "in an unknown state"}, not READY.${pending} Only a READY account is proven.`,
   );
 }
 
