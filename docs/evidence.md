@@ -88,10 +88,16 @@ contract, or read the [five funding transactions](deployments.md).
 > signature was accepted, and the same digest with one byte changed was rejected, by
 > **Reclaim's own deployed contract**, not ours ([record](deployments.md)).
 >
-> The missing piece is one AdSense account that Google will serve a report for. The only account
-> available to us is **closed**, and Google serves no reports for a closed account. That is
-> [#77](https://github.com/forepay-stellar/forepay/issues/77), and it is the one item on this
-> project that cannot be solved by writing code.
+> The missing piece is one AdSense account with revenue in the window being proven. The only
+> account available to us is approved and in good standing — and has **never earned a cent**. Read
+> over its whole history, 2023-12 to 2026-10, Google answers `200` with headers and **no rows at
+> all**: no page views, no clicks, no earnings. An approved account that never served an ad has
+> nothing to prove.
+>
+> That is [#77](https://github.com/forepay-stellar/forepay/issues/77), and it is the one item on
+> this project that cannot be solved by writing code. A *new* account cannot solve it either: the
+> window proven is the last three complete calendar months, which is always in the past, so an
+> account created today earned nothing in it no matter how fast Google approves it.
 
 ---
 

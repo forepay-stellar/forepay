@@ -876,3 +876,51 @@ The node process stayed under 500 MB.
 > and is not now: #76 landed in #79, and #74 landed too. What is left is only the account. The
 > deployed wasm carrying the new encoding is still behind its 24-hour timelock; `execute_upgrade`
 > is not before 2026-10-21 08:50 UTC.
+
+---
+
+## #76 executed, the dev template re-pinned, and a fee worth writing down (2026-10-25)
+
+The 24-hour timelock from 2026-10-20 ran out on 2026-10-21; this executed four days later, which is
+late on my part and not a property of the contract.
+
+| Step | Transaction |
+| --- | --- |
+| `execute_upgrade`, production `CCQFL2Q6…I2HS` | [`89f7a4cdeadf…`](https://stellar.expert/explorer/testnet/tx/89f7a4cdeadf957b9fc4ba4239da18abd542293aa6133cabe27958463b387c61) |
+| `execute_upgrade`, dev `CD25Q4TD…HQN4` | [`d11213447e80…`](https://stellar.expert/explorer/testnet/tx/d11213447e80c8fa8a52f2b37310d6dc1694da3f2e43c4de1ade44110fe9d5bf) |
+| `set_claim_template`, dev, **eight parts** | [`0143e6f080ab…`](https://stellar.expert/explorer/testnet/tx/0143e6f080ab83b1aaa802b1596534d10001d4af03be15cff239f8bb72288374) |
+
+Both contracts now run wasm `ade4687f35f05f7366cb10284f593b578199106f82f23e61cd5d583bec227641`,
+the `v0.3.0` release artifact. State survived again: `admin`, `liquidity` and `is_upgradeable` all
+read back unchanged, and the old four-part template was still readable between the upgrade and the
+re-pin.
+
+The rehearsal was re-run end to end against the new encoding: **7/7 GREEN**,
+`tools/runs/2026-10-25T114611Z/`. B.1 now runs in its inverted form — a proof bound to someone else,
+submitted as ours — because #81 made the original direction unreachable.
+
+### `set_claim_template` cost 21,370 XLM, and that is not a typo
+
+The call simulated successfully and then failed to submit with `TxInsufficientBalance` against an
+account holding 9,162 XLM. The CLI reported the reason plainly:
+
+```
+⚠️ Wrapping transaction with a fee bump transaction due to a fee of 21370.9566228 XLM.
+```
+
+It is **rent**, not computation. `Self::bump()` extends the instance entry's TTL by
+`180 * 17_280 = 3,110,400` ledgers on every admin write — which is exactly `max_entry_ttl` on this
+network — and the instance entry grew when the template went from four parts to eight. Rent is
+charged per kilobyte per ledger, so a bigger entry pushed to the maximum lifetime is the whole bill.
+
+On testnet this is free to fix: friendbot caps one grant per account, so the balance came from
+sweeping three of the #62 top-up accounts, which were idle after the USDC sweep. The transaction
+then went through unchanged.
+
+**This would be absurd on mainnet, and it is a real finding rather than a testnet curiosity.**
+Extending to the network maximum on every admin call is a design that charges six months of rent to
+change one stored value. A contract handling real money should extend by what it needs and let a
+caller top up the TTL separately — `extend_ttl` is callable by anyone, which is precisely why TTL
+must never be load-bearing for security (it is not here; nothing in this contract treats expiry as
+a permission). Recorded here rather than silently paid, because the number is the kind a reviewer
+would find and we should have found first.
