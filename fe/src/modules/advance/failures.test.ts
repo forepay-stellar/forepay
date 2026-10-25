@@ -17,7 +17,8 @@ describe("proveFailure", () => {
     expect(proveFailure(new RelayError("unreachable", "x"))).toEqual({ kind: "relayUnreachable" });
     expect(proveFailure(new RelayError("googleUnavailable", "x"))).toEqual({ kind: "googleUnavailable" });
     expect(proveFailure(new RelayError("popupBlocked", "x"))).toEqual({ kind: "popupBlocked" });
-    for (const code of ["busy", "provider", "prove", "audit", "internal"] as const) {
+    expect(proveFailure(new RelayError("busy", "x"))).toEqual({ kind: "relayBusy" });
+    for (const code of ["provider", "prove", "audit", "internal"] as const) {
       expect(proveFailure(new RelayError(code, "x"))).toEqual({ kind: "relayFailed" });
     }
     expect(proveFailure(new ContractError(14, "x"))).toEqual({ code: 14 });

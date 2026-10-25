@@ -126,6 +126,7 @@ describe("proveFailureCopy", () => {
     "googleSignIn",
     "noAdsense",
     "relayFailed",
+    "relayBusy",
     "proofRunning",
     "proofGone",
     "relayUnreachable",

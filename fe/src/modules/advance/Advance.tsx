@@ -413,8 +413,8 @@ export function Advance() {
             />
           ) : flow.stage === "waiting" ? (
             <ProgressPanel
-              title="Log in to AdSense in the new window"
-              body="We only read your revenue for the last three months. Your password never reaches us."
+              title="Sign in with Google in the new window"
+              body="Pick the Google account that owns your AdSense, and allow Forepay to see your AdSense reports. We only read your revenue for the last three months."
               action={
                 <Button variant="outline" onClick={() => session.current?.reopen()}>
                   Open the window again
@@ -422,7 +422,12 @@ export function Advance() {
               }
             />
           ) : (
-            <ProgressPanel title="Reading your revenue" body="This takes a few seconds. Keep this page open." />
+            // About a minute on the relay, more behind a queue. The job id is kept for the tab, so other
+            // pages are safe; a closed tab loses it (lib/reclaim/relay.ts).
+            <ProgressPanel
+              title="Reading your revenue"
+              body="This takes about a minute, longer when others are proving too. You can use other pages meanwhile. Closing this tab means proving again."
+            />
           )}
         </Centered>
       </AdvanceScreen>

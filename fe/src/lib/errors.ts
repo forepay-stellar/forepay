@@ -212,7 +212,8 @@ export function contractFailureCopy(code: number): FailureCopy {
  * - `relayNotReady`: proofs are meant to come from the #17 relay, and this build cannot reach it.
  * - `googleSignIn`: Google refused the sign-in the relay was handed, for example an expired one.
  * - `noAdsense`: the Google account has no approved AdSense account the relay can read.
- * - `relayFailed`: the relay could not make the proof (busy, or failed on its side). Nothing was saved.
+ * - `relayFailed`: the relay could not make the proof, on its side. Nothing was charged.
+ * - `relayBusy`: the relay is proving for others and its queue is full.
  * - `proofRunning`: a proof for this wallet is already running, started from a tab that lost it.
  * - `proofGone`: the proof this tab was waiting on ended while the creator was away, and is no longer kept.
  * - `relayUnreachable`: the relay did not answer. Not Stellar: nothing on chain was asked.
@@ -237,6 +238,7 @@ export type ProveFailure =
   | "googleSignIn"
   | "noAdsense"
   | "relayFailed"
+  | "relayBusy"
   | "proofRunning"
   | "proofGone"
   | "relayUnreachable"
@@ -247,7 +249,7 @@ export function proveFailureCopy(kind: ProveFailure, walletName = "Freighter"): 
   switch (kind) {
     case "cancelled":
       return {
-        title: "You closed the AdSense window",
+        title: "You closed the Google window",
         body: "Nothing was read or saved. Start again when you are ready.",
       };
     case "declined":
@@ -322,22 +324,27 @@ export function proveFailureCopy(kind: ProveFailure, walletName = "Freighter"): 
     case "googleSignIn":
       return {
         title: "Google did not let us read AdSense",
-        body: "Sign in again and allow Forepay to see your AdSense reports. Nothing was saved.",
+        body: "Sign in again and allow Forepay to see your AdSense reports. Nothing was charged.",
       };
     case "noAdsense":
       return {
         title: "We found no approved AdSense account",
-        body: "Sign in with the Google account that owns an approved AdSense account, then try again.",
+        body: "This Google account has no AdSense account we can read. Sign in with the account that owns your AdSense, then try again. Nothing was charged.",
       };
     case "relayFailed":
       return {
         title: "We could not finish your proof",
-        body: "Nothing was saved or charged. Try again in a few minutes.",
+        body: "Nothing was charged. Try again in a few minutes.",
+      };
+    case "relayBusy":
+      return {
+        title: "Forepay is busy right now",
+        body: "Many creators are proving at once. Nothing was read or charged. Try again in a few minutes.",
       };
     case "proofRunning":
       return {
         title: "Your proof is already being made",
-        body: "We started one for this wallet earlier. Nothing was charged. Try again in a few minutes to pick it up.",
+        body: "A proof for this wallet started earlier, in a tab that no longer has it. Wait a few minutes for it to end, then prove again. Nothing was charged.",
       };
     case "proofGone":
       return {
@@ -347,7 +354,7 @@ export function proveFailureCopy(kind: ProveFailure, walletName = "Freighter"): 
     case "relayUnreachable":
       return {
         title: "We could not reach Forepay",
-        body: "Nothing was saved or charged. Check your connection, then try again.",
+        body: "Nothing was charged. Check your connection, then try again.",
       };
     case "googleUnavailable":
       return {

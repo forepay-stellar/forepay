@@ -20,6 +20,7 @@ function sorted(e: unknown): AdvanceFailure {
       account: "noAdsense",
       running: "proofRunning",
       gone: "proofGone",
+      busy: "relayBusy",
       unconfigured: "relayNotReady",
       unreachable: "relayUnreachable",
       googleUnavailable: "googleUnavailable",

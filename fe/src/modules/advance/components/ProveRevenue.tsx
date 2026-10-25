@@ -41,7 +41,7 @@ export function ProveRevenue({
         <div className="@container flex min-w-0 flex-1 flex-col gap-4 md:gap-[18px]">
           <h2 className="text-card-title text-fg">See how much you can get</h2>
           <p className="text-body text-fg-muted">
-            Log in to AdSense in a secure window. We read your revenue for the last three months and nothing else.
+            Sign in with Google in a secure window. We read your AdSense revenue for the last three months and nothing else.
           </p>
           {/* Side by side only where each list keeps its longest item ("Revenue from the last three
               complete months", about 360 in Body) on one line: two of them and the 24 gap. */}
