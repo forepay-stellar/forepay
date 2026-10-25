@@ -877,6 +877,19 @@ The node process stayed under 500 MB.
 > deployed wasm carrying the new encoding is still behind its 24-hour timelock; `execute_upgrade`
 > is not before 2026-10-21 08:50 UTC.
 
+> **Updated 2026-10-25: the host runs `main`.** The second bullet no longer holds. The host was
+> already on `main` at `29d6719`, and was fast-forwarded to `03da644` (#89, #91, #92) and restarted.
+> The only runtime change is #92's wording for an account that is not `READY`; the lockfile did not
+> change, so nothing was reinstalled. Checked from outside after the restart:
+>
+> ```
+> GET /health                                   200 {"status":"ok"}
+> GET /config                                   recorded: true, relay: true, advance CCQFL2…I2HS
+> GET /ready                                    {"status":"ok","latestLedger":5382728}
+> OPTIONS /proofs, Origin https://app.forepay.xyz   Access-Control-Allow-Origin: https://app.forepay.xyz
+> OPTIONS /proofs, any other origin                 no Access-Control-Allow-Origin
+> ```
+
 ---
 
 ## #76 executed, the dev template re-pinned, and a fee worth writing down (2026-10-25)
