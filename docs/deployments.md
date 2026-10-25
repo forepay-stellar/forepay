@@ -848,7 +848,7 @@ rebuilds the Forepay-specific bytes.
 | Host | Node 24, one LXC (2 cores, 2 GB), behind a Cloudflare Tunnel; a systemd unit restarts it on failure |
 | `/config` | the recorded addresses, `"recorded": true`, `"relay": true` |
 | `/ready` | `{"status":"ok"}` against `https://soroban-testnet.stellar.org` |
-| CORS | `http://localhost:3000` only, until the front end's deployed origin is known (#22) |
+| CORS | `http://localhost:3000` and `https://app.forepay.xyz` (#22), since 2026-10-23. Checked: both get `Access-Control-Allow-Origin` on `GET /transactions` and on the `POST /proofs` preflight; any other origin gets none |
 | Secrets | the Reclaim app id and secret, in `be/.env`, `chmod 600`, owned by the service user. No Stellar secret key is on the host: the relay never signs. |
 
 Checked from outside:
