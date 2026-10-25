@@ -22,11 +22,13 @@ export {
 
 const RELAY_URL = process.env.NEXT_PUBLIC_RELAY_URL ?? "";
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+// The e2e relay answers at once, so its jobs are polled faster than a real one's.
+const POLL_MS = process.env.NEXT_PUBLIC_E2E === "1" ? 200 : undefined;
 
 export function proveRevenue(borrower: string, onStage: (stage: ProveStage) => void): ProveSession {
   if (!RELAY_URL) return mockProveRevenue(borrower, onStage);
   if (!GOOGLE_CLIENT_ID) return { result: Promise.reject(new RelayNotReadyError()), reopen: () => {}, abandon: () => {} };
-  return relayProveRevenue(borrower, onStage, { relayUrl: RELAY_URL, signIn: googleSignIn(GOOGLE_CLIENT_ID) });
+  return relayProveRevenue(borrower, onStage, { relayUrl: RELAY_URL, signIn: googleSignIn(GOOGLE_CLIENT_ID), pollMs: POLL_MS });
 }
 
 /** A proof the relay is still making for this wallet, started from this tab before the creator left. */

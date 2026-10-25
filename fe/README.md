@@ -42,8 +42,10 @@ pnpm test:e2e                     # Playwright, tests/e2e
 It uses Playwright's own Chromium. Google Chrome works too (`PW_CHANNEL=chrome`), but on a Mac with
 a Chrome update pending, Chrome's updater can keep a finished run from exiting. It starts its own
 `next dev` on port 3219 (or `PW_PORT`), built into `.next-e2e` (`NEXT_DIST_DIR`), so it runs
-alongside your own `next dev`. Any other `NEXT_DIST_DIR` makes Next add its type folder to
-`tsconfig.json`; do not commit that. It sets its own environment (`playwright.config.ts`): the test
+alongside your own `next dev`. A second one, on the port after it and built into `.next-e2e-relay`,
+has the relay and the Google client id set, for `tests/e2e/relay.spec.ts`: there Google's sign-in is
+a stub on `window.google` and the spec answers the relay. Both folders' types are in `tsconfig.json`;
+any other `NEXT_DIST_DIR` makes Next add its own, so do not commit that. It sets its own environment (`playwright.config.ts`): the test
 wallet (`NEXT_PUBLIC_E2E=1`), a fake RPC URL and a fake #16 API URL whose answers each spec decides
 (`tests/e2e/rpc.ts`, `tests/e2e/api.ts`), so a run never touches testnet or a real API and needs no
 browser extension.
