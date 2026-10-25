@@ -946,3 +946,44 @@ Until it executes, both contracts still accept `request_advance` and `verify_and
 the borrower's authorisation**. On testnet, where every proof in existence is signed by a key
 published in this repository, the only creator who could be harmed by that is us — but it is the
 live state and it is stated rather than implied.
+
+---
+
+## #22 — the creator front end, public (2026-10-23)
+
+**<https://app.forepay.xyz>** serves `fe/` from `main`, on testnet, with no login.
+
+| | |
+| --- | --- |
+| Host | Vercel, project `forepay-vue5` in @AncungAulia's team, root directory `fe`. Each merge to `main` that touches `fe/` redeploys it |
+| Deployed commit | `9b81d82` (#71 merged). `9538cf4` after it touched only `landing-page/`, and Vercel skipped it as not affected |
+| Domain | `app.forepay.xyz`, a CNAME to Vercel at the domain's DNS |
+| Contract | `NEXT_PUBLIC_ADVANCE_CONTRACT_ID` = `CCQFL2Q66DHFAZU2KPRWNHU4FTZJW75N5XLNXECFFGMW3PROIXJPI2HS`, the production contract above |
+| USDC | `CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA`, `USDC:GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5` |
+| RPC | `https://soroban-testnet.stellar.org` |
+| API | `https://api-forepay.jameshub.fun` (#16) |
+| Not set | `NEXT_PUBLIC_RELAY_URL` and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (the relay client is #75, not merged), `NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID`, `NEXT_PUBLIC_E2E` |
+
+Checked by the rendered page, not by a status code (#22):
+
+- In Chrome, with a Freighter testnet wallet connected: the onboarding step that asks an unfunded
+  wallet for test XLM; then, once the wallet was funded and allowed USDC, 2a "Get an advance" with
+  the wallet card (Freighter, Stellar testnet, "Can receive USDC: Yes") and the rule read from the
+  contract ("A quarter of your proven revenue, up to 100 USDC"); Repayment and History reading
+  "No advance yet" from the API. No console errors.
+- In headless Chromium, with no wallet, at 1440 and 390: "Before you start", "Connect your wallet",
+  and "Install a Stellar wallet" after pressing Connect wallet. No console errors.
+- The API answers the deployed origin: `GET /config` with `Origin: https://app.forepay.xyz` returns
+  `access-control-allow-origin: https://app.forepay.xyz`, as does the preflight. The `CORS` row of
+  the #16 / #17 entry above is no longer only `localhost`.
+
+The screenshots are in [`docs/evidence/`](evidence/).
+
+### What is not claimed yet
+
+- **Proving revenue does not reach the offer on this deployment.** With `NEXT_PUBLIC_RELAY_URL`
+  empty, 2a proves against the mock in `fe/src/lib/reclaim/mock.ts`, and the contract refuses its
+  proofs. No screenshot of the offer, signing, a sent advance or a repayment is taken from it.
+  The relay client is #75; a real proof also needs a `READY` AdSense account with revenue (#77).
+- **WalletConnect is off.** Without a project ID, only the browser extensions (Freighter, xBull,
+  Rabet) are offered, although "Connect your wallet" mentions mobile wallets through WalletConnect.
