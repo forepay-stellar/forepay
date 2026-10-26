@@ -243,6 +243,14 @@ pub fn borrower_bytes(env: &Env, borrower: &Address) -> Option<Bytes> {
     string_bytes(env, &borrower.to_string())
 }
 
+/// `0x` followed by exactly 40 hex digits, either case: the shape of a Reclaim owner.
+pub fn is_eth_address(b: &Bytes) -> bool {
+    if b.len() != 42 || b.get(0) != Some(b'0') || b.get(1) != Some(b'x') {
+        return false;
+    }
+    (2..42).all(|i| matches!(b.get(i), Some(c) if c.is_ascii_hexdigit()))
+}
+
 /// ASCII-lowercase a byte string.
 ///
 /// Reclaim lowercases `owner` before signing, so the digest must be built from the

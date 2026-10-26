@@ -77,6 +77,10 @@ pub enum DataKey {
     /// One advance, keyed by the nullifier that funded it. Persistent: an advance that
     /// vanished when its TTL lapsed would erase a debt, which is not a rounding error.
     Advance(BytesN<32>),
+    /// The attestor's `owner` every claim must carry: the Reclaim app the relay proves
+    /// with, `0x…`, lowercase (#102). Absent means the borrower, which is what the
+    /// rehearsal's test witness signs; no real attestor claim has that owner.
+    ClaimOwner,
 }
 
 /// An advance that has been paid out, and what is still owed on it.
@@ -283,6 +287,13 @@ pub struct ClaimTemplateSet {
     #[topic]
     pub admin: Address,
     pub parts: u32,
+}
+
+#[contractevent]
+pub struct ClaimOwnerSet {
+    #[topic]
+    pub admin: Address,
+    pub owner: Bytes,
 }
 
 #[contractevent]
@@ -508,6 +519,37 @@ impl AdvanceContract {
         env.storage().instance().get(&DataKey::ProviderHash)
     }
 
+    /// Pin the attestor's `owner`: the Reclaim app id the relay proves with (#102).
+    ///
+    /// A real attestor signs `identifier \n owner \n timestamp \n epoch` with `owner` set
+    /// to the **requesting app's** address, not to anything in the claim. The contract
+    /// cannot read it from the claim, because it rebuilds the digest rather than trusting
+    /// one, so it has to be pinned like the template. Pinning it also refuses claims made
+    /// through any other Reclaim app.
+    ///
+    /// It carries no part of the borrower binding: that lives in `contextAddress`, inside
+    /// the identifier, and is unaffected.
+    ///
+    /// `owner` must be `0x` and 40 hex digits. It is stored lowercased, because Reclaim
+    /// lowercases it before signing.
+    pub fn set_claim_owner(env: Env, owner: Bytes) -> Result<(), Error> {
+        let admin = Self::require_admin(&env)?;
+        if !claim::is_eth_address(&owner) {
+            return Err(Error::ClaimMismatch);
+        }
+        let owner = claim::lowercase(&env, &owner);
+        env.storage().instance().set(&DataKey::ClaimOwner, &owner);
+        Self::bump(&env);
+
+        ClaimOwnerSet { admin, owner }.publish(&env);
+        Ok(())
+    }
+
+    /// The pinned owner, if one is set. Absent means the borrower (the rehearsal's form).
+    pub fn claim_owner(env: Env) -> Option<Bytes> {
+        env.storage().instance().get(&DataKey::ClaimOwner)
+    }
+
     // -------------------------------------------------- verify a claim (#9)
 
     /// Check a Reclaim proof and return only what it actually attested.
@@ -574,9 +616,14 @@ impl AdvanceContract {
         let identifier = claim::identifier(&env, &parameters, &context);
         let identifier_hex = claim::hex_prefixed(&identifier);
 
-        // The attestor's `owner` is the borrower's own address, lowercased, because that
-        // is what the relay put in the claim. Reclaim lowercases it before signing.
-        let owner = claim::lowercase(&env, &borrower_b);
+        // The attestor's `owner` is the Reclaim app that requested the proof, pinned by the
+        // admin (#102). Before #102 this was the borrower, which no real attestor claim
+        // carries; that form survives only where nothing is pinned, for the rehearsal's
+        // test witness. Reclaim lowercases the owner before signing.
+        let owner: Bytes = match env.storage().instance().get(&DataKey::ClaimOwner) {
+            Some(pinned) => pinned,
+            None => claim::lowercase(&env, &borrower_b),
+        };
         let digest = claim::message_digest(&env, &identifier_hex, &owner, timestamp_s, epoch);
 
         let verifier: Address = env

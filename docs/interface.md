@@ -28,6 +28,11 @@ sign_data  = identifier \n owner_lowercase \n timestamp_s \n epoch
 digest     = keccak256("\x19Ethereum Signed Message:\n" + len(sign_data) + sign_data)
 ```
 
+**`owner` is the Reclaim app that requested the proof, not the borrower** (#102). A real attestor
+sets it to the app id the relay proves with (`RECLAIM_APP_ID`), so the contract cannot rebuild it from
+the claim and pins it instead (`set_claim_owner`). The borrower is bound by `contextAddress`, inside
+`identifier`, and never was by `owner`.
+
 **The revenue figure is not a signed field.** It lives in `context` and reaches the signature only
 through `identifier`. Nothing may trust a figure that was not fed into the identifier computation.
 
@@ -52,6 +57,7 @@ vary.
 | `provider` | constant `"http"` | Reclaim's HTTP provider |
 | `parameters_template` | **admin, `set_claim_template`** | The exact bytes come from the first live proof (#5) |
 | `provider_hash` | **admin, same call** | Reclaim's provider hash for the AdSense provider |
+| `claim_owner` | **admin, `set_claim_owner`** | The attestor's `owner`: Forepay's Reclaim app id, lowercase (#102). Absent means the borrower, which only the rehearsal's test witness signs |
 
 `set_claim_template` is admin-gated and may be called again — the template changes whenever the
 provider version changes. It does **not** invalidate existing advances; it only governs what a new
