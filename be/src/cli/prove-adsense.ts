@@ -63,6 +63,7 @@ async function main() {
   try {
     proven = await proveRevenue(
       {
+        owner: env.appId,
         google: googleGet,
         zkFetch: (url, options, secretOptions) => client.zkFetch(url, { ...options, zkEngine: ZK_ENGINE }, secretOptions),
         months: env.months,

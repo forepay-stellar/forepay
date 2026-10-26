@@ -43,6 +43,8 @@ export interface ProveDeps {
   months?: number;
   /** Expected signer. Defaults to the production attestor; tests pass a throwaway key. */
   attestor?: string;
+  /** The Reclaim app id proofs are requested with: the `owner` the contract pins (#102). */
+  owner?: string;
 }
 
 export interface ProveInput {
@@ -98,6 +100,7 @@ export async function proveRevenue(deps: ProveDeps, input: ProveInput, onStep: (
       now: deps.now?.(),
       maxAgeS: MAX_AGE_S,
       attestor: deps.attestor,
+      owner: deps.owner,
     });
   } catch (e) {
     throw new ProveError("audit", (e as Error).message);

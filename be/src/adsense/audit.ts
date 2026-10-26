@@ -84,6 +84,12 @@ export interface AuditExpectations {
   maxAgeS?: number;
   /** Expected signer. Defaults to the production attestor; tests pass a throwaway key. */
   attestor?: string;
+  /**
+   * The Reclaim app id the proof was requested with, which the attestor signs as `owner`
+   * and the contract pins (#102). When given, a claim with any other owner fails here
+   * instead of as `VerifierRejected` on chain.
+   */
+  owner?: string;
 }
 
 export interface FieldReport {
@@ -299,9 +305,13 @@ export function auditRevenueProof(proof: RevenueProof, expect: AuditExpectations
   } else fail("context.providerHash is not a 32-byte hex hash");
 
   // 5. owner, timestamp, epoch.
-  if (/^0x[0-9a-f]{40}$/.test(claim.owner)) {
-    ok("owner", claim.owner, "Address of the key zkFetch signed the request with. Public by construction.");
-  } else fail(`owner is not a lowercase 20-byte address: ${claim.owner}`);
+  if (!/^0x[0-9a-f]{40}$/.test(claim.owner)) {
+    fail(`owner is not a lowercase 20-byte address: ${claim.owner}`);
+  } else if (expect.owner && claim.owner !== expect.owner.toLowerCase()) {
+    fail(`owner is ${claim.owner}, not the Reclaim app ${expect.owner.toLowerCase()} the contract pins (#102)`);
+  } else {
+    ok("owner", claim.owner, "The Reclaim app the proof was requested with, which the contract pins (#102). Public by construction.");
+  }
 
   const nowS = Math.floor(now.getTime() / 1000);
   const maxAge = expect.maxAgeS ?? 7 * 86_400;
