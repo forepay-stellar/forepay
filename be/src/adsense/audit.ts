@@ -99,7 +99,10 @@ export interface FieldReport {
 }
 
 export interface AuditResult {
+  /** The figure in USD, as a decimal. For AdSense it is the extracted figure itself. */
   revenueUsd: string;
+  /** The extracted parameter exactly as signed: what the contract rebuilds the context from. */
+  figure: { name: string; value: string };
   timestampS: number;
   signer: string;
   fields: FieldReport[];
@@ -125,7 +128,7 @@ const PARAMETER_KEYS = new Set([
 ]);
 
 /** Request headers allowed in the public parameters (compared lowercased). */
-const PUBLIC_HEADERS = new Set(["accept", "user-agent"]);
+export const PUBLIC_HEADERS: ReadonlySet<string> = new Set(["accept", "user-agent"]);
 
 const CONTEXT_KEYS = ["contextAddress", "contextMessage", "extractedParameters", "providerHash"];
 
@@ -145,13 +148,56 @@ const CREDENTIAL_PATTERNS: [string, RegExp][] = [
 
 const DECIMAL = /^\d+(?:\.\d+)?$/;
 
+/**
+ * What a claim from one provider must look like, field by field. The audit is the
+ * same for every source; only these differ (#95).
+ */
+export interface ClaimShape {
+  url: string;
+  urlWhy: string;
+  method: "GET" | "POST";
+  /** `""` for a GET. For a POST, the exact body: it carries the window (#93). */
+  body: string;
+  bodyWhy: string;
+  responseMatches: { type: string; value: string }[];
+  responseRedactions: { regex: string }[];
+  matchesWhy: string;
+  /** Request headers allowed in the public parameters, lowercased. */
+  publicHeaders: ReadonlySet<string>;
+  /** The one extracted parameter, its format, and how to read it as USD. */
+  figure: { name: string; format: RegExp; why: string; toUsd: (v: string) => string };
+}
+
+/** The AdSense claim shape (#4): a GET whose URL carries the account and the window. */
+export function adsenseShape(expect: Pick<AuditExpectations, "publisherId" | "stellarAddress" | "window">): ClaimShape {
+  const req = buildRevenueRequest(expect);
+  return {
+    url: req.url,
+    urlWhy:
+      "Host, publisher id and window. The publisher id is public (it appears in the ad code on every page that shows AdSense ads) and cannot authenticate anyone.",
+    method: "GET",
+    body: "",
+    bodyWhy: "Empty: the report endpoint takes no body.",
+    responseMatches: req.secretOptions.responseMatches,
+    responseRedactions: req.secretOptions.responseRedactions,
+    matchesWhy: "What the response had to contain: USD and a total; the window is fixed by the URL. Patterns only, no response data.",
+    publicHeaders: PUBLIC_HEADERS,
+    figure: {
+      name: "revenueUsd",
+      format: DECIMAL,
+      why: "The figure being proven: estimated earnings in USD over the window. Disclosed on purpose.",
+      toUsd: (v) => v,
+    },
+  };
+}
+
 export function recoverSigner(messageDigest: Uint8Array, sig64: Uint8Array, recoveryId: number) {
   const sig = secp256k1.Signature.fromCompact(sig64).addRecoveryBit(recoveryId);
   const pub = sig.recoverPublicKey(messageDigest).toRawBytes(false);
   return `0x${Buffer.from(keccak_256(pub.subarray(1))).subarray(12).toString("hex")}`;
 }
 
-export function auditRevenueProof(proof: RevenueProof, expect: AuditExpectations): AuditResult {
+export function auditRevenueProof(proof: RevenueProof, expect: AuditExpectations, shape: ClaimShape = adsenseShape(expect)): AuditResult {
   const failures: string[] = [];
   const fields: FieldReport[] = [];
   const fail = (msg: string) => failures.push(msg);
@@ -159,11 +205,6 @@ export function auditRevenueProof(proof: RevenueProof, expect: AuditExpectations
 
   const claim = proof.claimData;
   const now = expect.now ?? new Date();
-  const expected = buildRevenueRequest({
-    publisherId: expect.publisherId,
-    stellarAddress: expect.stellarAddress,
-    window: expect.window,
-  });
 
   // 1. Nothing credential-shaped, anywhere in the proof.
   const whole = JSON.stringify(proof);
@@ -190,26 +231,22 @@ export function auditRevenueProof(proof: RevenueProof, expect: AuditExpectations
     if (!PARAMETER_KEYS.has(key)) fail(`parameters carries an unexpected key: ${key}`);
   }
 
-  if (params.url === expected.url) {
-    ok(
-      "parameters.url",
-      String(params.url),
-      "Host, publisher id and window. The publisher id is public (it appears in the ad code on every page that shows AdSense ads) and cannot authenticate anyone.",
-    );
+  if (params.url === shape.url) {
+    ok("parameters.url", String(params.url), shape.urlWhy);
   } else {
-    fail(`parameters.url is ${JSON.stringify(params.url)}, expected ${expected.url}`);
+    fail(`parameters.url is ${JSON.stringify(params.url)}, expected ${shape.url}`);
   }
 
-  if (params.method === "GET") ok("parameters.method", "GET", "A constant.");
-  else fail(`parameters.method is ${JSON.stringify(params.method)}, expected GET`);
+  if (params.method === shape.method) ok("parameters.method", shape.method, "A constant.");
+  else fail(`parameters.method is ${JSON.stringify(params.method)}, expected ${shape.method}`);
 
-  if (params.body === undefined || params.body === "") {
-    ok("parameters.body", '""', "Empty: the report endpoint takes no body.");
-  } else fail("parameters.body is not empty");
+  if ((params.body ?? "") === shape.body) {
+    ok("parameters.body", shape.body === "" ? '""' : shape.body, shape.bodyWhy);
+  } else fail(shape.body === "" ? "parameters.body is not empty" : `parameters.body is ${JSON.stringify(params.body)}, expected ${shape.body}`);
 
   const headers = (params.headers ?? {}) as Record<string, unknown>;
   for (const [name, value] of Object.entries(headers)) {
-    if (PUBLIC_HEADERS.has(name.toLowerCase())) {
+    if (shape.publicHeaders.has(name.toLowerCase())) {
       ok(
         `parameters.headers.${name}`,
         String(value),
@@ -230,7 +267,7 @@ export function auditRevenueProof(proof: RevenueProof, expect: AuditExpectations
   } else fail(`parameters.paramValues is not empty: ${Object.keys(paramValues).join(", ")}`);
 
   const matches = (params.responseMatches ?? []) as { type?: string; value?: string }[];
-  const expectedMatches = expected.secretOptions.responseMatches;
+  const expectedMatches = shape.responseMatches;
   if (
     matches.length === expectedMatches.length &&
     matches.every(
@@ -240,15 +277,11 @@ export function auditRevenueProof(proof: RevenueProof, expect: AuditExpectations
         m.value === expectedMatches[i].value,
     )
   ) {
-    ok(
-      "parameters.responseMatches",
-      `${matches.length} regexes`,
-      "What the response had to contain: USD and a total; the window is fixed by the URL. Patterns only, no response data.",
-    );
+    ok("parameters.responseMatches", `${matches.length} regexes`, shape.matchesWhy);
   } else fail("parameters.responseMatches differ from the provider's");
 
   const redactions = (params.responseRedactions ?? []) as Record<string, unknown>[];
-  const expectedRedactions = expected.secretOptions.responseRedactions;
+  const expectedRedactions = shape.responseRedactions;
   if (
     redactions.length === expectedRedactions.length &&
     redactions.every(
@@ -290,15 +323,12 @@ export function auditRevenueProof(proof: RevenueProof, expect: AuditExpectations
 
   const extracted = (context.extractedParameters ?? {}) as Record<string, unknown>;
   const extractedKeys = Object.keys(extracted);
-  let revenueUsd = "";
-  if (extractedKeys.length === 1 && extractedKeys[0] === "revenueUsd" && DECIMAL.test(String(extracted.revenueUsd))) {
-    revenueUsd = String(extracted.revenueUsd);
-    ok(
-      "context.extractedParameters.revenueUsd",
-      revenueUsd,
-      "The figure being proven: estimated earnings in USD over the window. Disclosed on purpose.",
-    );
-  } else fail(`context.extractedParameters must be exactly { revenueUsd: <decimal> }, got ${JSON.stringify(extracted)}`);
+  const { name } = shape.figure;
+  let figure = "";
+  if (extractedKeys.length === 1 && extractedKeys[0] === name && shape.figure.format.test(String(extracted[name]))) {
+    figure = String(extracted[name]);
+    ok(`context.extractedParameters.${name}`, figure, shape.figure.why);
+  } else fail(`context.extractedParameters must be exactly { ${name}: <${shape.figure.format.source}> }, got ${JSON.stringify(extracted)}`);
 
   if (typeof context.providerHash === "string" && /^0x[0-9a-f]{64}$/.test(context.providerHash)) {
     ok("context.providerHash", context.providerHash, "Hash of the provider configuration. Derived from public parameters.");
@@ -348,7 +378,7 @@ export function auditRevenueProof(proof: RevenueProof, expect: AuditExpectations
   if (proof.identifier !== claim.identifier) fail("top-level identifier differs from claimData.identifier");
 
   if (failures.length > 0) throw new AuditError(failures);
-  return { revenueUsd, timestampS: claim.timestampS, signer, fields };
+  return { revenueUsd: shape.figure.toUsd(figure), figure: { name, value: figure }, timestampS: claim.timestampS, signer, fields };
 }
 
 /** The audit as a Markdown table, for the comment on #4. */

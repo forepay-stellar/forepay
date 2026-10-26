@@ -1,10 +1,12 @@
 /**
- * Test support for #17: a Google AdSense API and a zkFetch that behave like the real
+ * Test support for #17 and #95: Google's AdSense and AdMob APIs and a zkFetch that behave like the real
  * ones for one account, with claims signed by a throwaway key standing in for the
  * attestor. Not imported by the relay itself.
  */
 import { secp256k1 } from "@noble/curves/secp256k1";
 
+import type { AdmobFetch } from "../admob/account.js";
+import { ADMOB_API } from "../admob/request.js";
 import { ProveError, type GoogleGet } from "../adsense/account.js";
 import { ADSENSE_API, CONTEXT_MESSAGE, type RevenueWindow } from "../adsense/request.js";
 import { canonicalStringify, createSignDataForClaim, getIdentifierFromClaimInfo, messageDigest } from "../reclaim/claim-digest.js";
@@ -58,10 +60,45 @@ export function fakeGoogle(o: FakeGoogle = {}): GoogleGet & { calls: string[] } 
   return Object.assign(get, { calls });
 }
 
+/**
+ * An AdMob networkReport response with the bytes #93 read from a real account: two-space
+ * indents inside elements, and `\n,\r\n` between them. Without `micros` it is the zero
+ * case, `[header, footer {}]`.
+ */
+export function admobReport(w: RevenueWindow, micros?: string): string {
+  const el = (o: unknown) => JSON.stringify(o, null, 2);
+  const header = el({ header: { dateRange: { startDate: w.start, endDate: w.end }, localizationSettings: { currencyCode: "USD" } } });
+  const row = el({ row: { metricValues: { ESTIMATED_EARNINGS: { microsValue: micros } } } });
+  const footer = micros === undefined ? el({ footer: {} }) : el({ footer: { matchingRowCount: "1" } });
+  return `[${[header, ...(micros === undefined ? [] : [row]), footer].join("\n,\r\n")}\n]`;
+}
+
+export interface FakeAdmob {
+  accounts?: string[];
+  report?: string;
+}
+
+export function fakeAdmob(o: FakeAdmob = {}): AdmobFetch & { calls: { url: string; body?: string }[] } {
+  const calls: { url: string; body?: string }[] = [];
+  const fetchAdmob = async (url: string, token: string, body?: string) => {
+    calls.push({ url, body });
+    if (token !== TOKEN) throw new ProveError("token", "Google refused the access token (401).");
+    const path = url.slice(ADMOB_API.length);
+    if (path === "/accounts") {
+      return JSON.stringify({ account: (o.accounts ?? [PUB]).map((p) => ({ name: `accounts/${p}`, publisherId: p, currencyCode: "USD" })) });
+    }
+    if (path === `/accounts/${PUB}/networkReport:generate` && body !== undefined) return o.report ?? admobReport(Q3, "12345678");
+    throw new Error(`unexpected AdMob call ${url}`);
+  };
+  return Object.assign(fetchAdmob, { calls });
+}
+
 export interface FakeZk {
   /** Overrides applied to the signed context, e.g. another contextAddress. */
   context?: Record<string, unknown>;
   revenueUsd?: string;
+  /** Replaces `{ revenueUsd }` as the extracted parameters, e.g. `{ revenueMicros }`. */
+  extracted?: Record<string, string>;
   timestampS?: number;
   fail?: Error;
 }
@@ -76,7 +113,7 @@ export function fakeZkFetch(o: FakeZk = {}): ZkFetch & { calls: Parameters<ZkFet
     calls.push([url, options, secretOptions]);
     if (o.fail) throw o.fail;
     const parameters = canonicalStringify({
-      body: "",
+      body: "body" in options ? options.body : "",
       headers: { "User-Agent": "reclaim/0.0.1", ...options.headers },
       method: options.method,
       responseMatches: secretOptions.responseMatches,
@@ -86,7 +123,7 @@ export function fakeZkFetch(o: FakeZk = {}): ZkFetch & { calls: Parameters<ZkFet
     const context = JSON.stringify({
       contextAddress: options.context.contextAddress,
       contextMessage: options.context.contextMessage ?? CONTEXT_MESSAGE,
-      extractedParameters: { revenueUsd: o.revenueUsd ?? "1234.56" },
+      extractedParameters: o.extracted ?? { revenueUsd: o.revenueUsd ?? "1234.56" },
       providerHash: `0x${"ab".repeat(32)}`,
       ...o.context,
     });

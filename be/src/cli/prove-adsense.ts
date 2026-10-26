@@ -1,8 +1,14 @@
 /**
- * Produce one real AdSense revenue proof (#4), audit it, and save it for #5.
+ * Produce one real AdSense revenue proof (#4), audit it, and save it for #5. With
+ * `--admob` (`pnpm -C be prove:admob`), the same for AdMob (#95): the proof the AdMob
+ * claim template is derived from (#96).
  *
  *   pnpm -C be zk:files      once: the circuit files zkFetch proves with
  *   pnpm -C be prove:adsense
+ *   GOOGLE_ACCESS_TOKEN="$(wl-paste)" pnpm -C be prove:admob
+ *
+ * A token in the environment wins over be/.env, so a short-lived token for someone
+ * else's account never has to be written to a file.
  *
  * Reads be/.env (see be/.env.example). The file must be chmod 600, per the working
  * agreement; this script refuses to run otherwise.
@@ -26,13 +32,17 @@ import { join } from "node:path";
 
 import { ReclaimClient } from "@reclaimprotocol/zk-fetch";
 
+import { admobFetch } from "../admob/account.js";
 import { ProveError, googleGet } from "../adsense/account.js";
 import { formatFieldReport } from "../adsense/audit.js";
 import { DEFAULT_TRAILING_MONTHS } from "../adsense/request.js";
 import { prepareVerification } from "../reclaim/claim-digest.js";
 import { ZK_ENGINE, hasZkFiles } from "../reclaim/zk-files.js";
-import { isoDate, proveRevenue, type ProveStep, type Proven } from "../relay/prove.js";
+import { isoDate, proveRevenue, type ProveStep, type Proven, type Source } from "../relay/prove.js";
 import { BE_ROOT, die, keepSecret, loadEnv, need, optional } from "./env.js";
+
+const SOURCE: Source = process.argv.includes("--admob") ? "admob" : "adsense";
+const PRODUCT = SOURCE === "admob" ? "AdMob" : "AdSense";
 
 function readConfig() {
   loadEnv(true);
@@ -42,13 +52,13 @@ function readConfig() {
     appSecret: keepSecret(need("RECLAIM_APP_SECRET")),
     accessToken: keepSecret(need("GOOGLE_ACCESS_TOKEN")),
     stellarAddress: need("STELLAR_ADDRESS"),
-    publisherId: optional("ADSENSE_PUBLISHER_ID"),
+    publisherId: optional(SOURCE === "admob" ? "ADMOB_PUBLISHER_ID" : "ADSENSE_PUBLISHER_ID"),
     months: Number(optional("TRAILING_MONTHS") || DEFAULT_TRAILING_MONTHS),
   };
 }
 
 const STEPS: Record<ProveStep, string> = {
-  checking: "[1/3] Checking the account and the provider against the live AdSense response…",
+  checking: `[1/3] Checking the account and the provider against the live ${PRODUCT} response…`,
   proving: "[2/3] Proving through Reclaim's attestor (this takes a while)…",
   auditing: "[3/3] Auditing the claim field by field…",
 };
@@ -56,7 +66,7 @@ const STEPS: Record<ProveStep, string> = {
 async function main() {
   const env = readConfig();
 
-  console.log("Forepay #4: AdSense revenue proof\n");
+  console.log(`Forepay ${SOURCE === "admob" ? "#95" : "#4"}: ${PRODUCT} revenue proof\n`);
   console.log(`  borrower:     ${env.stellarAddress}`);
   const client = new ReclaimClient(env.appId, env.appSecret, false, 2);
   let proven: Proven;
@@ -65,10 +75,11 @@ async function main() {
       {
         owner: env.appId,
         google: googleGet,
+        admob: admobFetch,
         zkFetch: (url, options, secretOptions) => client.zkFetch(url, { ...options, zkEngine: ZK_ENGINE }, secretOptions),
         months: env.months,
       },
-      { borrower: env.stellarAddress, accessToken: env.accessToken, publisherId: env.publisherId },
+      { borrower: env.stellarAddress, accessToken: env.accessToken, publisherId: env.publisherId, source: SOURCE },
       (step) => console.log(`\n${STEPS[step]}`),
     );
   } catch (e) {
@@ -76,12 +87,12 @@ async function main() {
     die(`${(e as Error).message}${notSaved}`);
   }
   const { proof, publisherId, window, audit } = proven;
-  console.log(`  publisher id: ${publisherId} (READY)`);
+  console.log(`  publisher id: ${publisherId}${SOURCE === "adsense" ? " (READY)" : ""}`);
   console.log(`  window:       ${isoDate(window.start)} → ${isoDate(window.end)} (${env.months} complete months)`);
 
   const dir = join(BE_ROOT, "proofs");
   mkdirSync(dir, { recursive: true });
-  const file = join(dir, `adsense-${publisherId}-${proof.claimData.timestampS}.json`);
+  const file = join(dir, `${SOURCE}-${publisherId}-${proof.claimData.timestampS}.json`);
   writeFileSync(file, JSON.stringify(proof, null, 2) + "\n", { mode: 0o644 });
 
   const v = prepareVerification(
@@ -90,7 +101,8 @@ async function main() {
     proof.signatures[0],
   );
 
-  console.log(`\n✔ Audit passed. Proven revenue: ${audit.revenueUsd} USD`);
+  const signed = audit.figure.name === "revenueUsd" ? "" : ` (signed as ${audit.figure.name} ${audit.figure.value})`;
+  console.log(`\n✔ Audit passed. Proven revenue: ${audit.revenueUsd} USD${signed}`);
   console.log(`  saved: ${file}\n`);
   console.log(formatFieldReport(audit.fields));
   console.log("\nverify_proof inputs (for #5):");

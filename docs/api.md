@@ -141,6 +141,10 @@ anything, and the contract reads the borrower from that context, never from an a
 
 `publisherId` is optional: without it, the relay uses the only AdSense account the token can read.
 
+`source` is optional, `"adsense"` (the default) or `"admob"` (#95). With `"admob"` the token needs
+`admob.readonly` instead, `publisherId` names an AdMob account, and the proof is of AdMob's
+`networkReport:generate` over the same window. A client that does not send `source` is unchanged.
+
 `202`, with `Location: /proofs/<id>`:
 
 ```json
@@ -149,7 +153,7 @@ anything, and the contract reads the borrower from that context, never from an a
 
 | Status | When |
 | --- | --- |
-| `400` | Not JSON, a borrower that is not a `G…`, no token or one too short to be Google's, or a malformed `publisherId` |
+| `400` | Not JSON, a borrower that is not a `G…`, no token or one too short to be Google's, a malformed `publisherId`, or a `source` other than `adsense` or `admob` |
 | `409` | A proof for this borrower is already in progress (`code: "running"`). The running job's id is not returned: a borrower's address is public, and the id reads their revenue. Keep the id from the `202` |
 | `413` | Body over 8 KB |
 | `503` | The relay is busy (`code: "busy"`, `Retry-After: 120`), or not configured on this server (`code: "unconfigured"`; `/config` says `"relay": false`) |
@@ -181,13 +185,18 @@ Poll every few seconds. `stage` goes `queued` → `checking` → `proving` → `
 `epoch` are strings: pass them through `BigInt()`. The contract accepts the proof for an hour after
 `timestampS`.
 
+For `source: "admob"`, `request` also carries `"source": "admob"` and `"revenueMicros"`, the figure
+exactly as signed, in millionths of a USD (`"12345678"`). `revenueUsd` is then the same figure as an
+exact decimal (`"12.345678"`), for display only: the contract takes `revenueMicros` and truncates it
+to cents (#94). An AdSense `request` has neither field.
+
 A failed job has `error: { code, message }`. The code says whose move it is:
 
 | `code` | Meaning | What the creator can do |
 | --- | --- | --- |
-| `token` | Google refused the token: expired, or without `adsense.readonly` | Sign in again |
-| `account` | No AdSense account, several (pass `publisherId`), or one that is not `READY` | Use an approved account |
-| `provider` | AdSense answered in a shape the provider does not expect | Nothing; ours to fix |
+| `token` | Google refused the token: expired, or without `adsense.readonly` (`admob.readonly` for AdMob) | Sign in again |
+| `account` | No AdSense or AdMob account, several (pass `publisherId`), or an AdSense one that is not `READY` | Use an approved account |
+| `provider` | Google answered in a shape the provider does not expect, or AdMob reports no earnings in the window (no `row`, #93) | Nothing; ours to fix, or no revenue to prove |
 | `prove` | The attestor or zkFetch failed | Try again |
 | `audit` | The proof came back but failed the audit, so it was not returned | Nothing; ours to fix |
 | `internal` | Anything else | Try again |
