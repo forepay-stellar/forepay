@@ -2,6 +2,7 @@ import { Check, CircleAlert, EyeOff } from "lucide-react";
 import type { ReactNode } from "react";
 import { IlloProvingRevenue } from "@/components/illustrations/ProvingRevenue";
 import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/cn";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { SOURCE_NAME, type RevenueSource } from "@/lib/reclaim";
 import type { Sizing } from "@/lib/stellar/contract";
@@ -131,7 +132,10 @@ function SourcePicker({ source, onSource }: { source: RevenueSource; onSource: (
         {SOURCES.map((s) => (
           <label
             key={s.source}
-            className="flex cursor-pointer items-start gap-2.5 rounded-tile border border-line bg-surface p-3.5 transition-colors has-[:checked]:border-brand has-[:checked]:bg-brand-subtle has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-canvas"
+            className={cn(
+              "flex cursor-pointer items-start gap-2.5 rounded-tile border p-3.5 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-canvas",
+              source === s.source ? "border-brand bg-brand-subtle" : "border-line bg-surface",
+            )}
           >
             <input
               type="radio"

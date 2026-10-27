@@ -308,6 +308,11 @@ test("AdMob, chosen on 2a, asks Google for AdMob only, and the offer names it", 
   const group = page.getByRole("group", { name: "Where you earn" });
   await expect(group.getByRole("radio", { name: /AdSense/ })).toBeChecked();
   await chooseAdmob(page);
+  // The highlighted tile is the chosen one, never the other. Polled: the colours ease over 150 ms.
+  const fill = (name: RegExp) => group.locator("label").filter({ hasText: name }).evaluate((l) => getComputedStyle(l).backgroundColor);
+  const BRAND_SUBTLE = "rgb(255, 243, 234)";
+  await expect.poll(() => fill(/AdMob/)).toBe(BRAND_SUBTLE);
+  await expect.poll(() => fill(/AdSense/)).not.toBe(BRAND_SUBTLE);
   await expect(page.getByText("We read your AdMob revenue for the last three months", { exact: false })).toBeVisible();
   await prove(page);
   await expect(page.getByText("Pick the Google account that owns your AdMob, and allow Forepay to see your AdMob reports.", { exact: false })).toBeVisible();
