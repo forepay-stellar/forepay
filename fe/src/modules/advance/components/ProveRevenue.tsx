@@ -114,8 +114,8 @@ export function ProveRevenue({
 }
 
 const SOURCES: { source: RevenueSource; detail: string }[] = [
-  { source: "adsense", detail: "Ads on your website" },
-  { source: "admob", detail: "Ads in your app" },
+  { source: "adsense", detail: "Websites" },
+  { source: "admob", detail: "Apps" },
 ];
 
 /**
@@ -127,7 +127,7 @@ function SourcePicker({ source, onSource }: { source: RevenueSource; onSource: (
     <fieldset className="flex flex-col gap-2.5">
       <legend className="mb-2.5 text-small font-medium text-fg-muted">Where you earn</legend>
       {/* Side by side once each tile keeps "AdSense" beside its radio (about 19rem of card); stacked
-          on the narrowest phones (section 08). */}
+          on the narrowest phones (section 08). The details are one word, so neither tile wraps. */}
       <div className="grid grid-cols-1 gap-2.5 @[19rem]:grid-cols-2">
         {SOURCES.map((s) => (
           <label
@@ -143,7 +143,8 @@ function SourcePicker({ source, onSource }: { source: RevenueSource; onSource: (
               value={s.source}
               checked={source === s.source}
               onChange={() => onSource(s.source)}
-              className="mt-0.5 size-4 shrink-0 accent-brand"
+              // The tile's ring is the one focus indicator, as on Button.
+              className="mt-0.5 size-4 shrink-0 accent-brand outline-none"
             />
             <span className="flex min-w-0 flex-col gap-0.5">
               <span className="text-body font-medium text-fg">{SOURCE_NAME[s.source]}</span>

@@ -139,17 +139,18 @@ export function isSignatureDeclined(e: unknown): boolean {
 /**
  * The advance contract's refusals (`docs/interface.md` §7), in the brief's words (§3, rule 4, and the
  * "Prove and accept / States and interactions" board, word for word). Shared by #20 and #21. Codes 1 to 6 are admin and upgrade errors a
- * creator can never cause, so they fall to the generic sentence.
+ * creator can never cause, so they fall to the generic sentence. `sourceName` is where the proof came
+ * from, `AdMob` for an AdMob proof (#97).
  */
-export function contractFailureCopy(code: number): FailureCopy {
+export function contractFailureCopy(code: number, sourceName = "AdSense"): FailureCopy {
   switch (code) {
     case 10:
-      return { title: "Advances are not open yet", body: "Forepay is not taking AdSense proofs yet. Try again later." };
+      return { title: "Advances are not open yet", body: `Forepay is not taking ${sourceName} proofs yet. Try again later.` };
     case 11:
     case 14:
       return {
         title: "We could not confirm this proof",
-        body: "The revenue could not be matched to Google's data. Try proving again. If it keeps happening, log out of AdSense and back in first.",
+        body: `The revenue could not be matched to Google's data. Try proving again. If it keeps happening, log out of ${sourceName} and back in first.`,
       };
     case 12:
       return {
@@ -169,7 +170,7 @@ export function contractFailureCopy(code: number): FailureCopy {
     case 30:
       return {
         title: "We could not read your revenue",
-        body: "The figure from AdSense was not a plain amount. Nothing was charged.",
+        body: `The figure from ${sourceName} was not a plain amount. Nothing was charged.`,
       };
     case 31:
       return {

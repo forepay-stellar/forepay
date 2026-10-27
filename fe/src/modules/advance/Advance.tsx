@@ -66,14 +66,15 @@ const quoteKey = (address: string, revenueUsd: string) => ["quote", address, rev
 const sizingKey = (address: string) => ["sizing", address] as const;
 
 /**
- * "Reading your revenue". The words describe the relay (#17): about a minute, more behind a queue, and
- * the job id is kept for the tab, so other pages are safe and a closed tab loses it (lib/reclaim/relay.ts).
- * The mock (no relay) does not resume after leaving, which is acceptable for a build without proofs.
+ * "Reading your AdSense revenue", or AdMob's (#97). The words describe the relay (#17): about a minute,
+ * more behind a queue, and the job id is kept for the tab, so other pages are safe and a closed tab loses
+ * it (lib/reclaim/relay.ts). The mock (no relay) does not resume after leaving, which is acceptable for a
+ * build without proofs.
  */
-function ReadingRevenue() {
+function ReadingRevenue({ source }: { source: RevenueSource }) {
   return (
     <ProgressPanel
-      title="Reading your revenue"
+      title={`Reading your ${SOURCE_NAME[source]} revenue`}
       body="This takes about a minute, longer when others are proving too. You can use other pages meanwhile. Closing this tab means proving again."
     />
   );
@@ -118,8 +119,9 @@ export function Advance() {
   useEffect(() => {
     if (!address) return;
     const pending = loadPending(address);
+    const kept = proofRunning(address);
     if (pending) void pickUp(pending);
-    else if (proofRunning(address)) void prove();
+    else if (kept) void prove(kept);
     // `pickUp` and `prove` only read refs and setters; they run per mount and per wallet.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address]);
@@ -181,7 +183,8 @@ export function Advance() {
     if (pending) return void pickUp(pending);
     // Likewise a proof the relay may still be making (a poll that failed kept its id): wait on it, so
     // "Reading your revenue" on the start is always backed by a running session.
-    if (proofRunning(me)) return void prove();
+    const kept = proofRunning(me);
+    if (kept) return void prove(kept);
     setFlow({ at: "start" });
   }
 
@@ -190,11 +193,16 @@ export function Advance() {
     setFlow({ at: "offer", req: r });
   }
 
-  async function prove() {
+  /**
+   * Prove `src`, the choice on 2a unless a kept job names its own. That becomes the choice, so Prove
+   * again and Back after a resumed job stay on its source.
+   */
+  async function prove(src: RevenueSource = source) {
     leave();
+    setSource(src);
     const id = attempt.current;
     setFlow({ at: "proving", stage: "waiting" });
-    const s = proveRevenue(me, source, (stage) => {
+    const s = proveRevenue(me, src, (stage) => {
       if (id === attempt.current) setFlow({ at: "proving", stage });
     });
     session.current = s;
@@ -410,11 +418,12 @@ export function Advance() {
     // A transaction left waiting from an earlier visit is picked up by the effect above, after this
     // first render. Show it as sending from the start, so 2a and its "Prove my revenue" never flash.
     // Likewise a proof the relay is still making for this wallet: the effect waits on it.
-    if (proofRunning(me)) {
+    const kept = proofRunning(me);
+    if (kept) {
       return (
         <AdvanceScreen title="Get an advance" step={0} focusKey="resuming-proof">
           <Centered>
-            <ReadingRevenue />
+            <ReadingRevenue source={kept} />
           </Centered>
         </AdvanceScreen>
       );
@@ -439,7 +448,7 @@ export function Advance() {
           usdc={usdc.isError ? "error" : usdc.data}
           source={source}
           onSource={setSource}
-          onProve={prove}
+          onProve={() => void prove()}
         />
       </AdvanceScreen>
     );
@@ -465,7 +474,7 @@ export function Advance() {
               }
             />
           ) : (
-            <ReadingRevenue />
+            <ReadingRevenue source={source} />
           )}
         </Centered>
       </AdvanceScreen>
@@ -499,6 +508,7 @@ export function Advance() {
               beforeOffer
               allowing={allowing}
               terms={terms.data}
+              sourceName={SOURCE_NAME[flow.req.source ?? "adsense"]}
               onAction={(action) => onFailureAction(action, offerFailure, flow.req, "prove")}
             />
           </Centered>
@@ -570,6 +580,7 @@ export function Advance() {
           beforeOffer={flow.during === "prove"}
           allowing={allowing}
           terms={terms.data}
+          sourceName={SOURCE_NAME[flow.req?.source ?? "adsense"]}
           onAction={(action) => onFailureAction(action, flow.failure, flow.req, flow.during)}
         />
       </Centered>

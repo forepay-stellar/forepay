@@ -57,7 +57,7 @@ test("prove, see the offer with its derivation, accept, and receive the USDC", a
   // The Reclaim session, then the check on Stellar
   await expect(heading(page, "Sign in with Google in the new window")).toBeVisible();
   await expect(page.getByRole("button", { name: "Open the window again" })).toBeVisible();
-  await expect(heading(page, "Reading your revenue")).toBeVisible();
+  await expect(heading(page, "Reading your AdSense revenue")).toBeVisible();
   await expect(heading(page, "Checking your proof")).toBeVisible();
 
   // 2b: the contract's figure and how it was reached

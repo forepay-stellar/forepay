@@ -254,7 +254,9 @@ export type AdvanceRequest = {
  * AdMob's micros are truncated to cents, never rounded up, as the contract will (#94).
  */
 export function provenUsd(req: Pick<AdvanceRequest, "revenueUsd" | "source" | "revenueMicros">): string {
-  if (req.source !== "admob" || !req.revenueMicros || !/^\d+$/.test(req.revenueMicros)) return req.revenueUsd;
+  if (req.source !== "admob") return req.revenueUsd;
+  // Without micros, the exact decimal cut to cents: `quote` refuses a third decimal place.
+  if (!req.revenueMicros || !/^\d+$/.test(req.revenueMicros)) return req.revenueUsd.replace(/^(\d+\.\d{2})\d+$/, "$1");
   const cents = BigInt(req.revenueMicros) / 10_000n;
   return `${cents / 100n}.${(cents % 100n).toString().padStart(2, "0")}`;
 }

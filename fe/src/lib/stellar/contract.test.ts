@@ -20,5 +20,7 @@ describe("provenUsd", () => {
     expect(provenUsd({ revenueUsd: "12.345678", source: "admob", revenueMicros: "12345678" })).toBe("12.34");
     expect(provenUsd({ revenueUsd: "0.999999", source: "admob", revenueMicros: "999999" })).toBe("0.99");
     expect(provenUsd({ revenueUsd: "4", source: "admob", revenueMicros: "4000000" })).toBe("4.00");
+    // Without micros, the exact decimal is cut to cents rather than handed to `quote` as it is.
+    expect(provenUsd({ revenueUsd: "12.345678", source: "admob" })).toBe("12.34");
   });
 });

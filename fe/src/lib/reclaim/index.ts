@@ -38,9 +38,13 @@ export function proveRevenue(borrower: string, source: RevenueSource, onStage: (
   });
 }
 
-/** A proof the relay is still making for this wallet, started from this tab before the creator left. */
-export function proofRunning(borrower: string): boolean {
-  return !!RELAY_URL && !!GOOGLE_CLIENT_ID && sessionJobs.load(borrower) !== null;
+/**
+ * A proof the relay is still making for this wallet, started from this tab before the creator left: the
+ * source it proves, or null when there is none.
+ */
+export function proofRunning(borrower: string): RevenueSource | null {
+  if (!RELAY_URL || !GOOGLE_CLIENT_ID) return null;
+  return sessionJobs.load(borrower)?.source ?? null;
 }
 
 /** Load Google's sign-in ahead of "Prove my revenue", so the popup opens inside the press. */

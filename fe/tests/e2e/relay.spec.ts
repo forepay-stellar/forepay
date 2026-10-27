@@ -118,7 +118,7 @@ test("signs in with Google, the relay proves, and the offer follows", async ({ p
   await connect(page, relay, "ok");
   await prove(page);
   await expect(heading(page, "Sign in with Google in the new window")).toBeVisible();
-  await expect(heading(page, "Reading your revenue")).toBeVisible();
+  await expect(heading(page, "Reading your AdSense revenue")).toBeVisible();
   await expect(page.getByText("This takes about a minute, longer when others are proving too.", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "Accept 90.00 USDC" })).toBeVisible();
   expect(relay.posts).toEqual([{ borrower: E2E_ADDRESS, accessToken: "ya29.e2e" }]);
@@ -174,7 +174,7 @@ test("leaving while the relay proves and coming back waits on the same job, with
   relay.hold = true;
   await connect(page, relay, "ok");
   await prove(page);
-  await expect(heading(page, "Reading your revenue")).toBeVisible();
+  await expect(heading(page, "Reading your AdSense revenue")).toBeVisible();
   // The top nav on desktop, the tab bar on a phone: whichever is shown.
   await page.getByRole("link", { name: "History", exact: true }).filter({ visible: true }).click();
   await expect(page).toHaveURL(/\/history$/);
@@ -249,7 +249,7 @@ test("coming back with a proof still running shows it at once, never 2a's button
   relay.hold = true;
   await connect(page, relay, "ok");
   await prove(page);
-  await expect(heading(page, "Reading your revenue")).toBeVisible();
+  await expect(heading(page, "Reading your AdSense revenue")).toBeVisible();
   await page.getByRole("link", { name: "History", exact: true }).filter({ visible: true }).click();
   await expect(page).toHaveURL(/\/history$/);
   // Watch every change to the page from here on: 2a's button must never be put on it.
@@ -261,7 +261,7 @@ test("coming back with a proof still running shows it at once, never 2a's button
     }).observe(document.body, { childList: true, subtree: true });
   });
   await page.getByRole("link", { name: "Advance", exact: true }).filter({ visible: true }).click();
-  await expect(heading(page, "Reading your revenue")).toBeVisible();
+  await expect(heading(page, "Reading your AdSense revenue")).toBeVisible();
   expect(await page.evaluate(() => (window as unknown as { __sawProve: boolean }).__sawProve)).toBe(false);
 });
 
@@ -337,3 +337,27 @@ test("a Google account with no AdMob is named as AdMob, and Prove again stays on
   expect(relay.posts.map((p) => p.source)).toEqual(["admob", "admob"]);
 });
 
+
+test("an AdMob proof resumed after leaving stays AdMob: its reading, its failure, Prove again and Back", async ({ page }) => {
+  const relay = relayFor({ j1: [{ id: "j1", stage: "failed", error: { code: "account", message: "no AdMob account" } }] });
+  relay.hold = true;
+  await connect(page, relay, "ok");
+  await chooseAdmob(page);
+  await prove(page);
+  await expect(heading(page, "Reading your AdMob revenue")).toBeVisible();
+  await page.getByRole("link", { name: "History", exact: true }).filter({ visible: true }).click();
+  await expect(page).toHaveURL(/\/history$/);
+  await page.getByRole("link", { name: "Advance", exact: true }).filter({ visible: true }).click();
+  // Back on a fresh mount, whose choice would start as AdSense: the kept job names AdMob.
+  await expect(heading(page, "Reading your AdMob revenue")).toBeVisible();
+  relay.hold = false;
+  await expect(heading(page, "We could not use your AdMob account")).toBeVisible();
+  relay.post = { status: 202, body: { id: "j2", stage: "queued" } };
+  relay.jobs.j2 = [{ id: "j2", stage: "failed", error: { code: "account", message: "no AdMob account" } }];
+  await proveAgain(page);
+  await expect(heading(page, "We could not use your AdMob account")).toBeVisible();
+  expect(relay.posts.map((p) => p.source)).toEqual(["admob", "admob"]);
+  expect(await page.evaluate(() => window.__gis.scopes)).toEqual([ADMOB_SCOPE, ADMOB_SCOPE]);
+  await page.getByRole("button", { name: "Back" }).click();
+  await expect(page.getByRole("radio", { name: /AdMob/ })).toBeChecked();
+});
