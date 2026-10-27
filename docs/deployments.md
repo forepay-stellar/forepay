@@ -890,6 +890,24 @@ The node process stayed under 500 MB.
 > OPTIONS /proofs, any other origin                 no Access-Control-Allow-Origin
 > ```
 
+> **Updated 2026-10-27: the host runs `feat/admob-relay` at `3102f64` (#100, not merged yet).**
+> @Lin1er's call, so the AdMob path (#95) and the `empty` code (#104) can be tried against the real
+> relay before #100 merges. `main` is an ancestor of it, so nothing on `main` is missing. The AdSense
+> request is byte for byte what it was. The lockfile did not change. The host is on a detached
+> `HEAD`, and goes back to `main` when #100 merges. Checked from outside after the restart:
+>
+> ```
+> GET /health                                   200 {"status":"ok"}
+> GET /config                                   relay: true, advance CCQFL2…I2HS
+> GET /ready                                    {"status":"ok","latestLedger":5415910}
+> POST /proofs, source "nope"                   400 source, when given, must be "adsense" or "admob"
+> POST /proofs, source "admob", fake token      202, then failed with code token, naming admob.readonly
+> GET /health, Origin https://app.forepay.xyz   Access-Control-Allow-Origin: https://app.forepay.xyz
+> ```
+>
+> An AdMob proof made here cannot become an advance yet. The deployed contract has no AdMob template
+> (#94).
+
 ---
 
 ## #76 executed, the dev template re-pinned, and a fee worth writing down (2026-10-25)
