@@ -16,9 +16,19 @@
  * ends the session as `gone`, so the sign-in it needs starts from a press.
  */
 import type { AdvanceRequest } from "@/lib/stellar/contract";
-import { ReclaimCancelledError, RelayError, type ProveSession, type ProveStage, type RelayErrorCode } from "./session";
+import {
+  ReclaimCancelledError,
+  RelayError,
+  type ProveSession,
+  type ProveStage,
+  type RelayErrorCode,
+  type RevenueSource,
+} from "./session";
 
 export const ADSENSE_SCOPE = "https://www.googleapis.com/auth/adsense.readonly";
+export const ADMOB_SCOPE = "https://www.googleapis.com/auth/admob.readonly";
+/** One read-only scope per source, never both (#97). */
+const SCOPES: Record<RevenueSource, string> = { adsense: ADSENSE_SCOPE, admob: ADMOB_SCOPE };
 const GIS_SRC = "https://accounts.google.com/gsi/client";
 
 /** The slice of Google Identity Services' token client used here. */
@@ -73,19 +83,23 @@ export function preloadGoogleSignIn(): void {
   });
 }
 
-/** Opens the popup each time it is called; resolves with the token, or rejects when the popup closes. */
-export type SignIn = () => Promise<string>;
+/**
+ * Opens the popup each time it is called, asking for the source's scope; resolves with the token, or
+ * rejects when the popup closes.
+ */
+export type SignIn = (source: RevenueSource) => Promise<string>;
 
 export function googleSignIn(clientId: string): SignIn {
-  return async () => {
+  return async (source) => {
     const gis = await loadGis();
+    const scope = SCOPES[source];
     return new Promise<string>((resolve, reject) => {
       const client = gis.initTokenClient({
         client_id: clientId,
-        scope: ADSENSE_SCOPE,
+        scope,
         callback: (r) => {
-          if (r.access_token && (r.scope ?? "").split(" ").includes(ADSENSE_SCOPE)) resolve(r.access_token);
-          // Denied, or allowed without the AdSense box ticked: the creator stopped, nothing was read.
+          if (r.access_token && (r.scope ?? "").split(" ").includes(scope)) resolve(r.access_token);
+          // Denied, or allowed without the reports box ticked: the creator stopped, nothing was read.
           else reject(new ReclaimCancelledError());
         },
         error_callback: (e) =>
@@ -108,10 +122,13 @@ type Job = {
   error?: { code: RelayErrorCode; message: string };
 };
 
+/** A job this tab started, and which source it proves. */
+export type KeptJob = { id: string; source: RevenueSource };
+
 /** Where the running job's id waits while the creator is away from /advance. */
 export type JobStore = {
-  load: (borrower: string) => string | null;
-  save: (borrower: string, id: string) => void;
+  load: (borrower: string) => KeptJob | null;
+  save: (borrower: string, job: KeptJob) => void;
   clear: () => void;
 };
 
@@ -126,15 +143,18 @@ const JOB_KEY = "forepay.proof.job";
 export const sessionJobs: JobStore = {
   load: (borrower) => {
     try {
-      const s = JSON.parse(window.sessionStorage.getItem(JOB_KEY) ?? "null") as { borrower: string; id: string } | null;
-      return s?.borrower === borrower ? s.id : null;
+      const s = JSON.parse(window.sessionStorage.getItem(JOB_KEY) ?? "null") as
+        | { borrower: string; id: string; source?: RevenueSource }
+        | null;
+      // Kept before #97 named the source: those were AdSense.
+      return s?.borrower === borrower ? { id: s.id, source: s.source === "admob" ? "admob" : "adsense" } : null;
     } catch {
       return null;
     }
   },
-  save: (borrower, id) => {
+  save: (borrower, { id, source }) => {
     try {
-      window.sessionStorage.setItem(JOB_KEY, JSON.stringify({ borrower, id }));
+      window.sessionStorage.setItem(JOB_KEY, JSON.stringify({ borrower, id, source }));
     } catch {
       // Storage unavailable: leaving the page while proving loses the job, as before.
     }
@@ -150,6 +170,8 @@ export const sessionJobs: JobStore = {
 
 export type RelayOptions = {
   relayUrl: string;
+  /** What a new proof proves, AdSense by default. A kept job proves what it was started for. */
+  source?: RevenueSource;
   signIn: SignIn;
   fetch?: typeof fetch;
   jobs?: JobStore;
@@ -173,6 +195,9 @@ export function relayProveRevenue(borrower: string, onStage: (stage: ProveStage)
   const pollMs = o.pollMs ?? 5000;
   const timeoutMs = o.timeoutMs ?? 60 * 60_000;
   const sleep = o.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+  // A kept job proves the source it was started for, whatever this press chose.
+  const kept = jobs.load(borrower);
+  const source = kept?.source ?? o.source ?? "adsense";
   let abandoned = false;
   let reading = false;
   let attempt = 0;
@@ -192,7 +217,7 @@ export function relayProveRevenue(borrower: string, onStage: (stage: ProveStage)
   function signIn() {
     const mine = ++attempt;
     onStage("waiting");
-    o.signIn().then(settleToken.resolve, (e) => {
+    o.signIn(source).then(settleToken.resolve, (e) => {
       if (mine === attempt) settleToken.reject(e);
     });
   }
@@ -212,7 +237,7 @@ export function relayProveRevenue(borrower: string, onStage: (stage: ProveStage)
       const message = typeof body.error === "string" ? body.error : `the relay answered ${res.status}`;
       // The relay names the refusal in `code` (docs/api.md); the status is the fallback.
       const code = CODES.find((c) => c === body.code) ?? (res.status === 409 ? "running" : res.status === 503 ? "busy" : "internal");
-      throw new RelayError(code, message);
+      throw new RelayError(code, message, source);
     }
     return body;
   }
@@ -234,17 +259,16 @@ export function relayProveRevenue(borrower: string, onStage: (stage: ProveStage)
 
   async function prove(): Promise<Job> {
     // A job this tab started before the creator left: wait on it rather than sign in again.
-    const kept = jobs.load(borrower);
     if (kept) {
       reading = true;
       onStage("reading");
-      const job = await follow(kept);
+      const job = await follow(kept.id);
       if (job) return job;
       // The relay no longer has it (it restarted, or the hour passed). Signing in again here would open
       // Google's popup outside any press, on mount or after an await, and the browser would block it
       // (review on #75). The creator's next press opens it instead.
       jobs.clear();
-      throw new RelayError("gone", "the relay no longer has this proof job");
+      throw new RelayError("gone", "the relay no longer has this proof job", source);
     }
     signIn();
     const accessToken = await token;
@@ -255,12 +279,13 @@ export function relayProveRevenue(borrower: string, onStage: (stage: ProveStage)
       await call(`${base}/proofs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ borrower, accessToken }),
+        // `source` only for AdMob: an AdSense request stays what it was before #97, for relays without it.
+        body: JSON.stringify(source === "admob" ? { borrower, accessToken, source } : { borrower, accessToken }),
       }),
     );
-    jobs.save(borrower, started.id);
+    jobs.save(borrower, { id: started.id, source });
     const job = await follow(started.id, started);
-    if (!job) throw new RelayError("internal", "the relay lost the proof job");
+    if (!job) throw new RelayError("internal", "the relay lost the proof job", source);
     return job;
   }
 
@@ -271,7 +296,7 @@ export function relayProveRevenue(borrower: string, onStage: (stage: ProveStage)
     // finds the result.
     jobs.clear();
     if (job.stage === "failed" || !job.request) {
-      throw new RelayError(job.error?.code ?? "internal", job.error?.message ?? "the proof failed");
+      throw new RelayError(job.error?.code ?? "internal", job.error?.message ?? "the proof failed", source);
     }
     return { ...job.request, timestampS: BigInt(job.request.timestampS), epoch: BigInt(job.request.epoch) };
   }

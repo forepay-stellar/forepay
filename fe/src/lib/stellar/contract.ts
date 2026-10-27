@@ -241,12 +241,31 @@ export type AdvanceRequest = {
   /** 64 bytes, hex. */
   signature: string;
   recoveryId: number;
+  /**
+   * An AdMob proof (#97). Its signed figure is `revenueMicros`, millionths of a USD, and `revenueUsd` is
+   * the same figure as an exact decimal (`"12.345678"`), for display only (docs/api.md). Absent for AdSense.
+   */
+  source?: "admob";
+  revenueMicros?: string;
 };
+
+/**
+ * The proven revenue as the contract sizes it: a decimal with at most two places (`quote` refuses more).
+ * AdMob's micros are truncated to cents, never rounded up, as the contract will (#94).
+ */
+export function provenUsd(req: Pick<AdvanceRequest, "revenueUsd" | "source" | "revenueMicros">): string {
+  if (req.source !== "admob" || !req.revenueMicros || !/^\d+$/.test(req.revenueMicros)) return req.revenueUsd;
+  const cents = BigInt(req.revenueMicros) / 10_000n;
+  return `${cents / 100n}.${(cents % 100n).toString().padStart(2, "0")}`;
+}
 
 function advanceArgs(borrower: string, req: AdvanceRequest): xdr.ScVal[] {
   return [
     new Address(borrower).toScVal(),
-    str(req.revenueUsd),
+    // The figure the attestor signed. For AdMob that is the micros string; the contract that reads it,
+    // and whatever else it takes to tell the sources apart, land with #94. The contract deployed before
+    // it has no AdMob template and refuses an AdMob proof at simulation.
+    str(req.source === "admob" && req.revenueMicros ? req.revenueMicros : req.revenueUsd),
     str(req.pubId),
     str(req.windowStart),
     str(req.windowEnd),

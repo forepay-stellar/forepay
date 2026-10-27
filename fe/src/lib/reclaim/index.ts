@@ -1,5 +1,5 @@
 /**
- * Proving AdSense revenue, and getting back the attested values `request_advance` takes
+ * Proving AdSense or AdMob revenue (#97), and getting back the attested values `request_advance` takes
  * (ARCHITECTURE.md §2, `lib/reclaim/`). The seam between the app and the #17 relay.
  *
  * With NEXT_PUBLIC_RELAY_URL and NEXT_PUBLIC_GOOGLE_CLIENT_ID set, the creator signs in with Google's
@@ -9,15 +9,17 @@
  */
 import { mockProveRevenue } from "./mock";
 import { googleSignIn, preloadGoogleSignIn, relayProveRevenue, sessionJobs } from "./relay";
-import { RelayNotReadyError, type ProveSession, type ProveStage } from "./session";
+import { RelayNotReadyError, type ProveSession, type ProveStage, type RevenueSource } from "./session";
 
 export {
   ReclaimCancelledError,
   RelayError,
   RelayNotReadyError,
+  SOURCE_NAME,
   type ProveSession,
   type ProveStage,
   type RelayErrorCode,
+  type RevenueSource,
 } from "./session";
 
 const RELAY_URL = process.env.NEXT_PUBLIC_RELAY_URL ?? "";
@@ -25,10 +27,15 @@ const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 // The e2e relay answers at once, so its jobs are polled faster than a real one's.
 const POLL_MS = process.env.NEXT_PUBLIC_E2E === "1" ? 200 : undefined;
 
-export function proveRevenue(borrower: string, onStage: (stage: ProveStage) => void): ProveSession {
-  if (!RELAY_URL) return mockProveRevenue(borrower, onStage);
+export function proveRevenue(borrower: string, source: RevenueSource, onStage: (stage: ProveStage) => void): ProveSession {
+  if (!RELAY_URL) return mockProveRevenue(borrower, source, onStage);
   if (!GOOGLE_CLIENT_ID) return { result: Promise.reject(new RelayNotReadyError()), reopen: () => {}, abandon: () => {} };
-  return relayProveRevenue(borrower, onStage, { relayUrl: RELAY_URL, signIn: googleSignIn(GOOGLE_CLIENT_ID), pollMs: POLL_MS });
+  return relayProveRevenue(borrower, onStage, {
+    relayUrl: RELAY_URL,
+    source,
+    signIn: googleSignIn(GOOGLE_CLIENT_ID),
+    pollMs: POLL_MS,
+  });
 }
 
 /** A proof the relay is still making for this wallet, started from this tab before the creator left. */

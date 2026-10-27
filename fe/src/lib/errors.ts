@@ -212,6 +212,7 @@ export function contractFailureCopy(code: number): FailureCopy {
  * - `relayNotReady`: proofs are meant to come from the #17 relay, and this build cannot reach it.
  * - `googleSignIn`: Google refused the sign-in the relay was handed, for example an expired one.
  * - `noAdsense`: the Google account has no AdSense account, several, or one that is not approved (relay `account`).
+ * - `googleSignInAdmob`, `noAdmob`: the same two for an AdMob proof (#97).
  * - `relayFailed`: the relay could not make the proof, on its side. Nothing was charged.
  * - `relayBusy`: the relay is proving for others and its queue is full.
  * - `proofRunning`: a proof for this wallet is already running, started from a tab that lost it.
@@ -237,6 +238,8 @@ export type ProveFailure =
   | "relayNotReady"
   | "googleSignIn"
   | "noAdsense"
+  | "googleSignInAdmob"
+  | "noAdmob"
   | "relayFailed"
   | "relayBusy"
   | "proofRunning"
@@ -330,6 +333,16 @@ export function proveFailureCopy(kind: ProveFailure, walletName = "Freighter"): 
       return {
         title: "We could not use your AdSense account",
         body: "We could not find one approved AdSense account on this Google account. Sign in with the account that owns your AdSense, then try again. Nothing was charged.",
+      };
+    case "googleSignInAdmob":
+      return {
+        title: "Google did not let us read AdMob",
+        body: "Sign in again and allow Forepay to see your AdMob reports. Nothing was charged.",
+      };
+    case "noAdmob":
+      return {
+        title: "We could not use your AdMob account",
+        body: "We could not find one AdMob account on this Google account. Sign in with the account that owns your AdMob, then try again. Nothing was charged.",
       };
     case "relayFailed":
       return {

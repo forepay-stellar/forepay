@@ -14,6 +14,7 @@ import { formatUsdc } from "@/lib/format";
  */
 export function ReviewOffer({
   revenue,
+  sourceName = "AdSense",
   windowShort,
   windowLong,
   advance,
@@ -24,6 +25,8 @@ export function ReviewOffer({
 }: {
   /** `$360.00` */
   revenue: string;
+  /** Where it was earned, `AdSense` or `AdMob` (#97). */
+  sourceName?: string;
   /** `Jul to Sep 2026` */
   windowShort: string;
   /** `July to September` */
@@ -71,16 +74,17 @@ export function ReviewOffer({
           </p>
           <p className="relative text-body text-fg-on-brand md:max-w-[480px]">
             {capped
-              ? `The most one advance can be. You earned ${revenue} on AdSense from ${windowLong}.`
+              ? `The most one advance can be. You earned ${revenue} on ${sourceName} from ${windowLong}.`
               : capped === null || !terms
-                ? `You earned ${revenue} on AdSense from ${windowLong}.`
-                : `${shareWords(terms)} of the ${revenue} you earned on AdSense from ${windowLong}.`}
+                ? `You earned ${revenue} on ${sourceName} from ${windowLong}.`
+                : `${shareWords(terms)} of the ${revenue} you earned on ${sourceName} from ${windowLong}.`}
           </p>
         </section>
         <OfferBreakdown
           rate={terms && rateLabel(terms)}
           cap={terms?.capStroops}
           revenue={revenue}
+          sourceName={sourceName}
           windowShort={windowShort}
           advance={advance}
           note={

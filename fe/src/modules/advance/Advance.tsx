@@ -7,7 +7,15 @@ import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { notify } from "@/components/ui/Toaster";
 import { isSignatureDeclined } from "@/lib/errors";
 import { formatUsd, formatWindow } from "@/lib/format";
-import { preloadSignIn, proofRunning, proveRevenue, type ProveSession, type ProveStage } from "@/lib/reclaim";
+import {
+  preloadSignIn,
+  proofRunning,
+  proveRevenue,
+  SOURCE_NAME,
+  type ProveSession,
+  type ProveStage,
+  type RevenueSource,
+} from "@/lib/reclaim";
 import {
   TransactionFailedError,
   awaitAdvance,
@@ -15,6 +23,7 @@ import {
   getAdvance,
   sizing,
   nullifierFor,
+  provenUsd,
   quote,
   requestAdvance,
   type AdvanceRequest,
@@ -85,6 +94,8 @@ export function Advance() {
   const wallet = walletName ?? "your wallet";
 
   const [flow, setFlow] = useState<Flow>({ at: "start" });
+  // The source picked on 2a. A proof resumed from an earlier visit proves what it was started for.
+  const [source, setSource] = useState<RevenueSource>("adsense");
   const [allowing, setAllowing] = useState(false);
   // Every attempt gets a number. An answer for an attempt that is no longer the current one (the
   // creator pressed Cancel, Not now or Back meanwhile) is dropped.
@@ -122,8 +133,8 @@ export function Advance() {
   // The offer on 2b and 2c. Read in `check` before 2b opens, so it is already here.
   const req = "req" in flow ? flow.req : undefined;
   const offer = useQuery({
-    queryKey: quoteKey(address ?? "", req?.revenueUsd ?? ""),
-    queryFn: () => quote(address as string, (req as AdvanceRequest).revenueUsd),
+    queryKey: quoteKey(address ?? "", req ? provenUsd(req) : ""),
+    queryFn: () => quote(address as string, provenUsd(req as AdvanceRequest)),
     enabled: !!address && !!req && (flow.at === "offer" || flow.at === "signing"),
     // `quote` is a pure function of the revenue figure on chain: the same input always sizes the same.
     staleTime: Infinity,
@@ -138,7 +149,7 @@ export function Advance() {
     enabled: !!address,
     staleTime: Infinity,
   });
-  const capped = terms.data && req ? isCapped(terms.data, req.revenueUsd) : null;
+  const capped = terms.data && req ? isCapped(terms.data, provenUsd(req)) : null;
 
   // The advance as the contract stored it, for 2d. Keyed by its nullifier (ARCHITECTURE.md §4).
   const received = flow.at === "received" ? flow : undefined;
@@ -183,7 +194,7 @@ export function Advance() {
     leave();
     const id = attempt.current;
     setFlow({ at: "proving", stage: "waiting" });
-    const s = proveRevenue(me, (stage) => {
+    const s = proveRevenue(me, source, (stage) => {
       if (id === attempt.current) setFlow({ at: "proving", stage });
     });
     session.current = s;
@@ -207,8 +218,8 @@ export function Advance() {
     try {
       const [quoted, checked] = await Promise.allSettled([
         queryClient.fetchQuery({
-          queryKey: quoteKey(me, r.revenueUsd),
-          queryFn: () => quote(me, r.revenueUsd),
+          queryKey: quoteKey(me, provenUsd(r)),
+          queryFn: () => quote(me, provenUsd(r)),
           staleTime: Infinity,
         }),
         checkAdvance(me, r),
@@ -220,7 +231,7 @@ export function Advance() {
       await queryClient.prefetchQuery({ queryKey: sizingKey(me), queryFn: () => sizing(me), staleTime: Infinity });
       if (id === attempt.current) setFlow({ at: "offer", req: r });
     } catch (e) {
-      if (id === attempt.current) setFlow({ at: "failed", failure: proveFailure(e, r.revenueUsd), req: r, during: "prove" });
+      if (id === attempt.current) setFlow({ at: "failed", failure: proveFailure(e, provenUsd(r)), req: r, during: "prove" });
     }
   }
 
@@ -426,6 +437,8 @@ export function Advance() {
           walletName={wallet}
           terms={terms.isPending ? "loading" : terms.data}
           usdc={usdc.isError ? "error" : usdc.data}
+          source={source}
+          onSource={setSource}
           onProve={prove}
         />
       </AdvanceScreen>
@@ -439,12 +452,12 @@ export function Advance() {
           {flow.at === "checking" ? (
             <ProgressPanel
               title="Checking your proof"
-              body="Stellar is confirming that the revenue figure really came from AdSense."
+              body={`Stellar is confirming that the revenue figure really came from ${SOURCE_NAME[flow.req.source ?? "adsense"]}.`}
             />
           ) : flow.stage === "waiting" ? (
             <ProgressPanel
               title="Sign in with Google in the new window"
-              body="Pick the Google account that owns your AdSense, and allow Forepay to see your AdSense reports. We only read your revenue for the last three months."
+              body={`Pick the Google account that owns your ${SOURCE_NAME[source]}, and allow Forepay to see your ${SOURCE_NAME[source]} reports. We only read your revenue for the last three months.`}
               action={
                 <Button variant="outline" onClick={() => session.current?.reopen()}>
                   Open the window again
@@ -463,12 +476,13 @@ export function Advance() {
   if (flow.at === "offer") {
     const period = formatWindow(flow.req.windowStart, flow.req.windowEnd);
     // With the figure, so a quote under 1 USDC reads as "too small" with the creator's own number.
-    const offerFailure = offer.isError ? proveFailure(offer.error, flow.req.revenueUsd) : null;
+    const offerFailure = offer.isError ? proveFailure(offer.error, provenUsd(flow.req)) : null;
     return (
       <AdvanceScreen title="Your offer" step={1} focusKey={focusKey}>
         {offer.data !== undefined ? (
           <ReviewOffer
-            revenue={formatUsd(flow.req.revenueUsd)}
+            revenue={formatUsd(provenUsd(flow.req))}
+            sourceName={SOURCE_NAME[flow.req.source ?? "adsense"]}
             windowShort={period.short}
             windowLong={period.long}
             advance={offer.data}

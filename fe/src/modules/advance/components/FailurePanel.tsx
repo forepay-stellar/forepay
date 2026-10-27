@@ -132,6 +132,8 @@ export function FailurePanel({
       // The relay's failures (#17). Not on the board yet; "Prove again" with "Back", as its pairs are.
       case "googleSignIn":
       case "noAdsense":
+      case "googleSignInAdmob":
+      case "noAdmob":
       case "relayFailed":
       case "relayBusy":
       case "proofRunning":
