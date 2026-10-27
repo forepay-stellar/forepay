@@ -136,6 +136,15 @@ test("source admob proves through AdMob, and the arguments carry the micros as s
   assert.equal(req.windowStart, "2026-07-01");
 });
 
+test("AdSense at zero stops before the attestor, as empty", async () => {
+  const zk = fakeZkFetch();
+  // What AdSense sent for an approved account with no earnings: no totals, no averages, no row count.
+  const { headers, startDate, endDate } = report(Q3);
+  const google = fakeGoogle({ report: { headers, startDate, endDate } });
+  assert.equal(await code(proveRevenue(deps({ google, zkFetch: zk }), { borrower: ALICE, accessToken: TOKEN })), "empty");
+  assert.equal(zk.calls.length, 0);
+});
+
 test("AdMob at zero stops before the attestor", async () => {
   const zk = fakeZkFetch();
   const admob = fakeAdmob({ report: admobReport(Q3) });

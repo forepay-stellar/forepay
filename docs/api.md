@@ -197,7 +197,7 @@ A failed job has `error: { code, message }`. The code says whose move it is:
 | `token` | Google refused the token: expired, or without `adsense.readonly` (`admob.readonly` for AdMob) | Sign in again |
 | `account` | No AdSense or AdMob account, several (pass `publisherId`), or an AdSense one that is not `READY` | Use an approved account |
 | `provider` | Google answered in a shape the provider does not expect | Nothing; ours to fix |
-| `empty` | AdMob reports no earnings in the window (no `row`, #93) | Nothing to prove for these months |
+| `empty` | No earnings in the window: AdMob sends no `row` (#93), AdSense only `headers` and the dates | Nothing to prove for these months |
 | `prove` | The attestor or zkFetch failed | Try again |
 | `audit` | The proof came back but failed the audit, so it was not returned | Nothing; ours to fix |
 | `internal` | Anything else | Try again |
