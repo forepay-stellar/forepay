@@ -15,7 +15,7 @@ test.afterEach(async ({ page }) => {
 /** What Google's popup does when it opens: hand back a token, close, be blocked, or stay open. */
 type Popup = "ok" | "closed" | "blocked" | "open";
 
-type Gis = { mode: Popup; opened: number };
+type Gis = { mode: Popup; opened: number; scopes: string[] };
 declare global {
   interface Window {
     __gis: Gis;
@@ -25,7 +25,7 @@ declare global {
 /** A stand-in for Google Identity Services' token client, counting the popups it opens. */
 async function stubGoogle(page: Page, mode: Popup) {
   await page.addInitScript((m: Popup) => {
-    window.__gis = { mode: m, opened: 0 };
+    window.__gis = { mode: m, opened: 0, scopes: [] };
     type Config = { scope: string; callback: (r: object) => void; error_callback?: (e: object) => void };
     window.google = {
       accounts: {
@@ -33,6 +33,7 @@ async function stubGoogle(page: Page, mode: Popup) {
           initTokenClient: (c: Config) => ({
             requestAccessToken: () => {
               window.__gis.opened++;
+              window.__gis.scopes.push(c.scope);
               const now = window.__gis.mode;
               setTimeout(() => {
                 if (now === "ok") c.callback({ access_token: "ya29.e2e", scope: c.scope });
@@ -67,7 +68,7 @@ type Relay = {
   post: { status: number; body: object };
   jobs: Record<string, object[]>;
   hold?: boolean;
-  posts: { borrower: string; accessToken: string }[];
+  posts: { borrower: string; accessToken: string; source?: string }[];
 };
 
 function relayFor(jobs: Relay["jobs"] = { j1: [{ id: "j1", stage: "proving" }, done("j1")] }): Relay {
@@ -289,3 +290,45 @@ test("Back after a kept job the relay no longer has returns to 2a", async ({ pag
   await expect(page.getByRole("button", { name: "Prove my revenue" })).toBeVisible();
   expect(await opened(page)).toBe(0);
 });
+
+// #97: AdMob, chosen on 2a. The relay answers it as docs/api.md says: the signed micros beside the exact
+// decimal, and `source: "admob"` on the request.
+const ADMOB_SCOPE = "https://www.googleapis.com/auth/admob.readonly";
+
+function doneAdmob(id: string) {
+  const d = done(id);
+  return { ...d, request: { ...d.request, revenueUsd: "360.004567", source: "admob", revenueMicros: "360004567" } };
+}
+
+const chooseAdmob = (page: Page) => page.getByRole("radio", { name: /AdMob/ }).check();
+
+test("AdMob, chosen on 2a, asks Google for AdMob only, and the offer names it", async ({ page }) => {
+  const relay = relayFor({ j1: [{ id: "j1", stage: "proving" }, doneAdmob("j1")] });
+  await connect(page, relay, "ok");
+  const group = page.getByRole("group", { name: "Where you earn" });
+  await expect(group.getByRole("radio", { name: /AdSense/ })).toBeChecked();
+  await chooseAdmob(page);
+  await expect(page.getByText("We read your AdMob revenue for the last three months", { exact: false })).toBeVisible();
+  await prove(page);
+  await expect(page.getByText("Pick the Google account that owns your AdMob, and allow Forepay to see your AdMob reports.", { exact: false })).toBeVisible();
+  // Sized from the micros truncated to cents: $360.00, so 90 USDC at 25%.
+  await expect(page.getByRole("button", { name: "Accept 90.00 USDC" })).toBeVisible();
+  await expect(page.getByText("you earned on AdMob from", { exact: false })).toBeVisible();
+  await expect(page.getByText("$360.00", { exact: true }).first()).toBeVisible();
+  expect(relay.posts).toEqual([{ borrower: E2E_ADDRESS, accessToken: "ya29.e2e", source: "admob" }]);
+  expect(await page.evaluate(() => window.__gis.scopes)).toEqual([ADMOB_SCOPE]);
+});
+
+test("a Google account with no AdMob is named as AdMob, and Prove again stays on AdMob", async ({ page }) => {
+  const relay = relayFor({ j1: [{ id: "j1", stage: "failed", error: { code: "account", message: "no AdMob account" } }] });
+  await connect(page, relay, "ok");
+  await chooseAdmob(page);
+  await prove(page);
+  await expect(heading(page, "We could not use your AdMob account")).toBeVisible();
+  relay.post = { status: 202, body: { id: "j2", stage: "queued" } };
+  relay.jobs.j2 = [doneAdmob("j2")];
+  await proveAgain(page);
+  await expect(page.getByRole("button", { name: "Accept 90.00 USDC" })).toBeVisible();
+  expect(relay.posts.map((p) => p.source)).toEqual(["admob", "admob"]);
+});
+

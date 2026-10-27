@@ -125,7 +125,9 @@ function SourcePicker({ source, onSource }: { source: RevenueSource; onSource: (
   return (
     <fieldset className="flex flex-col gap-2.5">
       <legend className="mb-2.5 text-small font-medium text-fg-muted">Where you earn</legend>
-      <div className="grid grid-cols-2 gap-2.5">
+      {/* Side by side once each tile keeps "AdSense" beside its radio (about 19rem of card); stacked
+          on the narrowest phones (section 08). */}
+      <div className="grid grid-cols-1 gap-2.5 @[19rem]:grid-cols-2">
         {SOURCES.map((s) => (
           <label
             key={s.source}
