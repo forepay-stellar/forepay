@@ -337,7 +337,6 @@ test("a Google account with no AdMob is named as AdMob, and Prove again stays on
   expect(relay.posts.map((p) => p.source)).toEqual(["admob", "admob"]);
 });
 
-
 test("an AdMob proof resumed after leaving stays AdMob: its reading, its failure, Prove again and Back", async ({ page }) => {
   const relay = relayFor({ j1: [{ id: "j1", stage: "failed", error: { code: "account", message: "no AdMob account" } }] });
   relay.hold = true;
@@ -355,6 +354,7 @@ test("an AdMob proof resumed after leaving stays AdMob: its reading, its failure
   relay.post = { status: 202, body: { id: "j2", stage: "queued" } };
   relay.jobs.j2 = [{ id: "j2", stage: "failed", error: { code: "account", message: "no AdMob account" } }];
   await proveAgain(page);
+  await expect.poll(() => relay.posts.length).toBe(2);
   await expect(heading(page, "We could not use your AdMob account")).toBeVisible();
   expect(relay.posts.map((p) => p.source)).toEqual(["admob", "admob"]);
   expect(await page.evaluate(() => window.__gis.scopes)).toEqual([ADMOB_SCOPE, ADMOB_SCOPE]);
