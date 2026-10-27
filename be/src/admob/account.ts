@@ -66,13 +66,10 @@ export async function checkLiveReport(fetchAdmob: AdmobFetch, accessToken: strin
   const raw = await fetchAdmob(request.url, accessToken, request.options.body);
   for (const m of request.secretOptions.responseMatches) {
     if (new RegExp(m.value).test(raw)) continue;
-    const zero = !raw.includes('"row"');
-    throw new ProveError(
-      "provider",
-      zero
-        ? "AdMob reports no earnings for this window: the report has no row, which is how AdMob says zero."
-        : `the live AdMob response does not match ${m.value}\nResponse keys: ${elementKeys(raw)}`,
-    );
+    if (!raw.includes('"row"')) {
+      throw new ProveError("empty", "AdMob reports no earnings for this window: the report has no row, which is how AdMob says zero.");
+    }
+    throw new ProveError("provider", `the live AdMob response does not match ${m.value}\nResponse keys: ${elementKeys(raw)}`);
   }
 }
 

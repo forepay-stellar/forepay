@@ -19,6 +19,8 @@ export type ProveErrorCode =
   | "account"
   /** AdSense answered with a shape the provider does not match. Ours to fix. */
   | "provider"
+  /** The account earned nothing in the window (AdMob sends no row, #93). Nothing to prove. */
+  | "empty"
   /** The attestor or zkFetch failed. Worth retrying. */
   | "prove"
   /** The proof came back but failed the audit. Ours to fix; nothing was returned. */

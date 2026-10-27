@@ -139,7 +139,7 @@ test("source admob proves through AdMob, and the arguments carry the micros as s
 test("AdMob at zero stops before the attestor", async () => {
   const zk = fakeZkFetch();
   const admob = fakeAdmob({ report: admobReport(Q3) });
-  assert.equal(await code(proveRevenue(admobDeps({ admob, zkFetch: zk }), { borrower: ALICE, accessToken: TOKEN, source: "admob" })), "provider");
+  assert.equal(await code(proveRevenue(admobDeps({ admob, zkFetch: zk }), { borrower: ALICE, accessToken: TOKEN, source: "admob" })), "empty");
   assert.equal(zk.calls.length, 0);
 });
 
