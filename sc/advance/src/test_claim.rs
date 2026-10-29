@@ -39,6 +39,11 @@ pub(crate) const TIMESTAMP_S: u64 = 1_760_000_000;
 pub(crate) const EPOCH: u64 = 1;
 const SIGNATURE_HEX: &str = "0a1607562845069dcd91874ae32ffc55d2ce799078af623b8300c1765137ca0f577ba3ed8dc8895867e717734d9535536384718e77126229ed28327c54cf202f";
 pub(crate) const RECOVERY_ID: u32 = 1;
+/// The same claim, signed the way a real attestor signs it: with `owner` set to the
+/// requesting Reclaim app rather than the borrower (#102). From the fixture's `appOwner*`.
+const APP_OWNER: &str = "0x6415200c713135e77157e1536d488df4f2bb7d04";
+const APP_SIGNATURE_HEX: &str = "be04cabf370de372ce48726350419d76169f5b35fa64ba03ffb5db5b1a5a4a6a773196501dcfd7a42b94a1a510c9aaa0ff5536cb37ed0ada1f917415da9e96c7";
+const APP_RECOVERY_ID: u32 = 0;
 /// The address the fixture's signature recovers to.
 const SIGNER: [u8; 20] = [
     0x19, 0xe7, 0xe3, 0x76, 0xe7, 0xc2, 0x13, 0xb7, 0xe7, 0xe7, 0xe4, 0x6c, 0xc7, 0x0a, 0x5d, 0xd0,
@@ -160,10 +165,14 @@ fn setup() -> Fixture {
 }
 
 pub(crate) fn signature(env: &Env) -> BytesN<64> {
+    signature_from(env, SIGNATURE_HEX)
+}
+
+fn signature_from(env: &Env, hex: &str) -> BytesN<64> {
     let mut raw = [0u8; 64];
     for (i, b) in raw.iter_mut().enumerate() {
-        let hi = SIGNATURE_HEX.as_bytes()[i * 2];
-        let lo = SIGNATURE_HEX.as_bytes()[i * 2 + 1];
+        let hi = hex.as_bytes()[i * 2];
+        let lo = hex.as_bytes()[i * 2 + 1];
         let v = |c: u8| if c >= b'a' { c - b'a' + 10 } else { c - b'0' };
         *b = (v(hi) << 4) | v(lo);
     }
@@ -411,6 +420,120 @@ fn a_template_with_the_wrong_number_of_parts_is_refused() {
         client.try_set_claim_template(&parts, &Bytes::from_slice(&env, b"0x00")),
         Err(Ok(Error::ClaimMismatch))
     );
+}
+
+// --- #102: the attestor's owner is the app, pinned, not the borrower ---
+
+/// `verify_claim` on the fixture signed with the app as owner.
+fn verify_app_signed(f: &Fixture) -> Result<VerifiedClaim, Error> {
+    match f.client.try_verify_claim(
+        &f.borrower,
+        &String::from_str(&f.env, REVENUE),
+        &String::from_str(&f.env, PUB_ID),
+        &String::from_str(&f.env, WINDOW_START),
+        &String::from_str(&f.env, WINDOW_END),
+        &TIMESTAMP_S,
+        &EPOCH,
+        &signature_from(&f.env, APP_SIGNATURE_HEX),
+        &APP_RECOVERY_ID,
+    ) {
+        Ok(Ok(claim)) => Ok(claim),
+        Err(Ok(e)) => Err(e),
+        other => panic!("unexpected host-level result: {other:?}"),
+    }
+}
+
+#[test]
+fn without_a_pinned_owner_a_claim_signed_as_a_real_attestor_signs_is_refused() {
+    // The #102 bug, kept as a test: rebuilding the owner from the borrower cannot match a
+    // claim whose owner is the requesting app, which is every real attestor claim.
+    let f = setup();
+    assert_eq!(verify_app_signed(&f), Err(Error::VerifierRejected));
+}
+
+#[test]
+fn with_the_app_pinned_as_owner_that_claim_verifies() {
+    let f = setup();
+    f.client
+        .set_claim_owner(&Bytes::from_slice(&f.env, APP_OWNER.as_bytes()));
+    let claim = verify_app_signed(&f).expect("a claim signed for the pinned app must verify");
+    assert_eq!(claim.borrower, f.borrower);
+}
+
+#[test]
+fn with_the_app_pinned_a_claim_signed_for_the_borrower_is_refused() {
+    let f = setup();
+    f.client
+        .set_claim_owner(&Bytes::from_slice(&f.env, APP_OWNER.as_bytes()));
+    assert!(verify(&f, REVENUE, PUB_ID, &f.borrower).is_err());
+}
+
+#[test]
+fn the_borrower_binding_survives_the_pinned_owner() {
+    // The owner is the app for everyone, so it cannot be what binds the borrower. The
+    // context still does: another address changes the identifier.
+    let f = setup();
+    f.client
+        .set_claim_owner(&Bytes::from_slice(&f.env, APP_OWNER.as_bytes()));
+    let attacker = Address::generate(&f.env);
+    let out = f.client.try_verify_claim(
+        &attacker,
+        &String::from_str(&f.env, REVENUE),
+        &String::from_str(&f.env, PUB_ID),
+        &String::from_str(&f.env, WINDOW_START),
+        &String::from_str(&f.env, WINDOW_END),
+        &TIMESTAMP_S,
+        &EPOCH,
+        &signature_from(&f.env, APP_SIGNATURE_HEX),
+        &APP_RECOVERY_ID,
+    );
+    assert_eq!(out, Err(Ok(Error::VerifierRejected)));
+}
+
+#[test]
+fn the_owner_is_stored_lowercase_and_must_look_like_one() {
+    let f = setup();
+    let upper = APP_OWNER.to_uppercase().replacen("0X", "0x", 1);
+    f.client
+        .set_claim_owner(&Bytes::from_slice(&f.env, upper.as_bytes()));
+    assert_eq!(
+        f.client.claim_owner(),
+        Some(Bytes::from_slice(&f.env, APP_OWNER.as_bytes()))
+    );
+    assert!(verify_app_signed(&f).is_ok());
+
+    for bad in [
+        "6415200c713135e77157e1536d488df4f2bb7d04",
+        "0x6415200c713135e77157e1536d488df4f2bb7d0",
+        "0x6415200c713135e77157e1536d488df4f2bb7d0g",
+        "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2",
+    ] {
+        assert_eq!(
+            f.client
+                .try_set_claim_owner(&Bytes::from_slice(&f.env, bad.as_bytes())),
+            Err(Ok(Error::ClaimMismatch)),
+            "{bad}"
+        );
+    }
+}
+
+#[test]
+fn only_the_admin_can_pin_the_owner() {
+    let env = Env::default();
+    let id = env.register(
+        AdvanceContract,
+        (
+            Address::generate(&env),
+            Address::generate(&env),
+            Address::generate(&env),
+        ),
+    );
+    let client = AdvanceContractClient::new(&env, &id);
+    // No auth mocked: require_auth must bite.
+    assert!(client
+        .try_set_claim_owner(&Bytes::from_slice(&env, APP_OWNER.as_bytes()))
+        .is_err());
+    assert_eq!(client.claim_owner(), None);
 }
 
 // --- #10: the nullifier registry ---

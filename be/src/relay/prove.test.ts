@@ -110,3 +110,9 @@ test("a C… or malformed borrower is refused before anything is read", async ()
   await assert.rejects(proveRevenue(deps({ google }), { borrower: "GABC", accessToken: TOKEN }), /not a Stellar account/);
   assert.equal(google.calls.length, 0);
 });
+
+test("a proof whose owner is not this relay's Reclaim app is refused by the audit (#102)", async () => {
+  const other = "0x6415200c713135e77157e1536d488df4f2bb7d04";
+  assert.equal(await code(proveRevenue(deps({ owner: other }), { borrower: ALICE, accessToken: TOKEN })), "audit");
+  await proveRevenue(deps({ owner: "0x96faf173bb7171a530b3e44f35f32d1307bda4fa" }), { borrower: ALICE, accessToken: TOKEN });
+});

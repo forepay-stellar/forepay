@@ -56,6 +56,7 @@ function relay(): Prover | undefined {
   }
   const client = new ReclaimClient(appId, appSecret, false, 2);
   const deps = {
+    owner: appId,
     google: googleGet,
     zkFetch: ((url, options, secretOptions) => client.zkFetch(url, { ...options, zkEngine: ZK_ENGINE }, secretOptions)) as Parameters<
       typeof proveRevenue
