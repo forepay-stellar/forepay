@@ -908,6 +908,22 @@ The node process stayed under 500 MB.
 > An AdMob proof made here cannot become an advance yet. The deployed contract has no AdMob template
 > (#94).
 
+> **Updated 2026-10-29 23:35 UTC: `feat/admob-relay` rebased onto `main` and redeployed, at `1095ba6`.**
+> `main` now carries #103's relay half, so the audit refuses a proof whose `owner` is not this relay's
+> Reclaim app, for AdSense and AdMob alike. The lockfile did not change. Checked from outside after the
+> restart:
+>
+> ```
+> GET /health                                   200 {"status":"ok"}
+> GET /config                                   recorded: true, relay: true, advance CCQFL2…I2HS
+> GET /ready                                    {"status":"ok","latestLedger":5458654}
+> POST /proofs, source "admob", fake token      202, then failed with code token
+> OPTIONS /proofs, Origin https://app.forepay.xyz   Access-Control-Allow-Origin: https://app.forepay.xyz
+> ```
+>
+> #107 (history after #94's leading `source`) is not on the host yet. It has to be there before #106's
+> `execute_upgrade`.
+
 ---
 
 ## #76 executed, the dev template re-pinned, and a fee worth writing down (2026-10-25)
