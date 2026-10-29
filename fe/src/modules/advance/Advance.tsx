@@ -156,8 +156,11 @@ export function Advance() {
   // The advance as the contract stored it, for 2d. Keyed by its nullifier (ARCHITECTURE.md §4).
   const received = flow.at === "received" ? flow : undefined;
   const nullifier = useQuery({
-    queryKey: ["nullifier", address, received?.req.pubId, received?.req.windowStart, received?.req.windowEnd],
-    queryFn: () => nullifierFor(address as string, received!.req.pubId, received!.req.windowStart, received!.req.windowEnd),
+    queryKey: ["nullifier", address, received?.req.source, received?.req.pubId, received?.req.windowStart, received?.req.windowEnd],
+    queryFn: () => {
+      const r = received!.req;
+      return nullifierFor(address as string, r.pubId, r.windowStart, r.windowEnd, r.source);
+    },
     enabled: !!address && !!received,
     staleTime: Infinity,
   });

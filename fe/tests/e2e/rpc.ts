@@ -35,6 +35,11 @@ export type Chain = {
   send?: "ok" | "refused" | "failed";
   /** How the advance contract answers (#20). Leave it out and it accepts every proof. */
   advance?: AdvanceChain;
+  /**
+   * Every `request_advance` and `nullifier_for`, simulated or sent, with the revenue source it led with
+   * (`"AdSense"`, `"AdMob"`), or null when it had none, as before #94 (NEXT_PUBLIC_CONTRACT_TAKES_SOURCE).
+   */
+  sourced?: { fn: string; source: string | null }[];
   /** The USDC the wallet holds, in stroops, once it has a trustline. Defaults to none (#21). */
   usdc?: bigint;
   /**
@@ -154,6 +159,13 @@ function size(revenueUsd: string): bigint {
   return stroops > CAP_STROOPS ? CAP_STROOPS : stroops;
 }
 
+/** The figure a `request_advance` signed, as dollars: #94's AdMob takes micros, truncated to cents. */
+function signedUsd(revenue: string, revenueSource: string | null): string {
+  if (revenueSource !== "AdMob") return revenue;
+  const cents = BigInt(revenue) / 10_000n;
+  return `${cents / 100n}.${(cents % 100n).toString().padStart(2, "0")}`;
+}
+
 function i128(v: bigint) {
   return nativeToScVal(v, { type: "i128" });
 }
@@ -174,14 +186,26 @@ function storedAdvance(borrower: string, revenueUsd: string) {
   ]);
 }
 
-/** The contract call inside a transaction, or null for a classic one (changeTrust). */
-function contractCall(envelope: string): { fn: string; args: xdr.ScVal[]; source: string } | null {
+/** The contract's `Source` (#94) when `arg` is one: a vector holding just the variant's name. */
+function revenueSource(arg: xdr.ScVal | undefined): string | null {
+  if (arg?.switch() !== xdr.ScValType.scvVec()) return null;
+  const items = arg.vec() ?? [];
+  return items.length === 1 && items[0].switch() === xdr.ScValType.scvSymbol() ? items[0].sym().toString() : null;
+}
+
+/**
+ * The contract call inside a transaction, or null for a classic one (changeTrust). A leading revenue
+ * source (#94) is taken off `args` and given as `revenueSource`, so the arguments after it keep their places.
+ */
+function contractCall(envelope: string): { fn: string; args: xdr.ScVal[]; source: string; revenueSource: string | null } | null {
   const tx = TransactionBuilder.fromXDR(envelope, Networks.TESTNET);
   if (tx instanceof FeeBumpTransaction) return null;
   const op = tx.operations[0] as Operation.InvokeHostFunction;
   if (op.type !== "invokeHostFunction") return null;
   const call = op.func.invokeContract();
-  return { fn: call.functionName().toString(), args: call.args(), source: tx.source };
+  const args = call.args();
+  const revenue = revenueSource(args[0]);
+  return { fn: call.functionName().toString(), args: revenue ? args.slice(1) : args, source: tx.source, revenueSource: revenue };
 }
 
 function contractError(code: number) {
@@ -267,6 +291,9 @@ export async function mockRpc(page: Page, chain: Chain) {
         const call = contractCall(body.params.transaction as string);
         const adv = chain.advance ?? {};
         if (!call) return route.fulfill({ status: 400, body: "not a contract call" });
+        if (call.fn === "request_advance" || call.fn === "nullifier_for") {
+          (chain.sourced ??= []).push({ fn: call.fn, source: call.revenueSource });
+        }
         if (!ADVANCE_CALLS.has(call.fn)) {
           if (!chain.contract) return route.fulfill({ status: 400, body: `unexpected contract call ${call.fn}` });
           if (chain.contract.refuse !== undefined) return reply(contractError(chain.contract.refuse));
@@ -279,7 +306,7 @@ export async function mockRpc(page: Page, chain: Chain) {
           }
           case "request_advance": {
             checks += 1;
-            const revenueUsd = scValToNative(call.args[1]) as string;
+            const revenueUsd = signedUsd(scValToNative(call.args[1]) as string, call.revenueSource);
             const stroops = size(revenueUsd);
             if (checks > 1 && adv.acceptDelayMs) await new Promise((r) => setTimeout(r, adv.acceptDelayMs));
             if (stroops < MIN_STROOPS) return reply(contractError(31));
@@ -330,7 +357,7 @@ export async function mockRpc(page: Page, chain: Chain) {
             return reply({ status: "ERROR", hash: adv.hash, latestLedger: 100, latestLedgerCloseTime: "0" });
           }
           if (adv.send !== "failed" && adv.send !== "pending") {
-            sentAdvance = { revenueUsd: scValToNative(call.args[1]) as string, source: call.source };
+            sentAdvance = { revenueUsd: signedUsd(scValToNative(call.args[1]) as string, call.revenueSource), source: call.source };
           }
           if (adv.loseSendAnswer) {
             adv.loseSendAnswer = false;

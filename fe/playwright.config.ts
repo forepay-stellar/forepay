@@ -23,6 +23,8 @@ function server(port: number, distDir: string, proving: Record<string, string>) 
       NEXT_PUBLIC_E2E: "1",
       // The Reclaim mock or the stubbed relay, whatever .env.local says.
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: "",
+      // The contract before #94, whatever .env.local says; the relay build sets it.
+      NEXT_PUBLIC_CONTRACT_TAKES_SOURCE: "",
       ...proving,
       NEXT_PUBLIC_STELLAR_RPC_URL: "https://rpc.e2e.invalid",
       NEXT_PUBLIC_API_URL: "https://api.e2e.invalid",
@@ -63,6 +65,8 @@ export default defineConfig({
           server(RELAY_PORT, ".next-e2e-relay", {
             NEXT_PUBLIC_RELAY_URL: "https://relay.e2e.invalid",
             NEXT_PUBLIC_GOOGLE_CLIENT_ID: "e2e.apps.googleusercontent.com",
+            // As against #94's contract, whose calls lead with the revenue source; the mock build runs as before it.
+            NEXT_PUBLIC_CONTRACT_TAKES_SOURCE: "1",
           }),
         ]
       : []),

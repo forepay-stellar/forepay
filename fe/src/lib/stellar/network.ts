@@ -22,6 +22,13 @@ export const USDC = (() => {
 /** The advance contract (`docs/deployments.md`). */
 export const ADVANCE_CONTRACT_ID = process.env.NEXT_PUBLIC_ADVANCE_CONTRACT_ID ?? "";
 
+/**
+ * `"1"` once the deployed contract runs #94, whose `request_advance` and `nullifier_for` take the revenue
+ * source as their first argument. Set it when that upgrade executes, not before: the contract before it
+ * refuses the extra argument, and the one after refuses its absence.
+ */
+export const CONTRACT_TAKES_SOURCE = process.env.NEXT_PUBLIC_CONTRACT_TAKES_SOURCE === "1";
+
 const EXPLORER = "https://stellar.expert/explorer/testnet";
 
 /** stellar.expert, the "View on Stellar Expert" link in the wallet menu. */

@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { E2E_ADDRESS } from "../../src/lib/stellar/wallet-e2e";
 import { frameLedger, mockApi } from "./api";
-import { mockRpc } from "./rpc";
+import { mockRpc, type Chain } from "./rpc";
 
 // #17: proving through the relay, on the build whose NEXT_PUBLIC_RELAY_URL and Google client id are set
 // (the relay-* projects in playwright.config.ts). Google's sign-in is a stub on `window.google`, which
@@ -97,16 +97,18 @@ async function mockRelay(page: Page, relay: Relay) {
 }
 
 /** `popup` null leaves `window.google` unset, so the app loads Google's script itself (routed by the test). */
-async function connect(page: Page, relay: Relay, popup: Popup | null) {
+async function connect(page: Page, relay: Relay, popup: Popup | null): Promise<Chain> {
   if (popup) await stubGoogle(page, popup);
   await mockRelay(page, relay);
-  await mockRpc(page, { account: true, trustline: true });
+  const chain: Chain = { account: true, trustline: true };
+  await mockRpc(page, chain);
   await mockApi(page, frameLedger());
   await page.goto("/start");
   await page.getByRole("button", { name: "Get started" }).click();
   await page.getByRole("button", { name: "Connect wallet" }).click();
   await page.getByRole("dialog", { name: "Connect wallet" }).getByRole("button").first().click();
   await expect(page).toHaveURL(/\/advance$/);
+  return chain;
 }
 
 const heading = (page: Page, name: string) => page.getByRole("heading", { name, exact: true });
@@ -115,13 +117,15 @@ const proveAgain = (page: Page) => page.getByRole("button", { name: "Prove again
 
 test("signs in with Google, the relay proves, and the offer follows", async ({ page }) => {
   const relay = relayFor();
-  await connect(page, relay, "ok");
+  const chain = await connect(page, relay, "ok");
   await prove(page);
   await expect(heading(page, "Sign in with Google in the new window")).toBeVisible();
   await expect(heading(page, "Reading your AdSense revenue")).toBeVisible();
   await expect(page.getByText("This takes about a minute, longer when others are proving too.", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "Accept 90.00 USDC" })).toBeVisible();
   expect(relay.posts).toEqual([{ borrower: E2E_ADDRESS, accessToken: "ya29.e2e" }]);
+  // This build runs as against #94's contract (playwright.config.ts): the check led with the source.
+  expect(chain.sourced).toContainEqual({ fn: "request_advance", source: "AdSense" });
   expect(await opened(page)).toBe(1);
 });
 
@@ -304,7 +308,7 @@ const chooseAdmob = (page: Page) => page.getByRole("radio", { name: /AdMob/ }).c
 
 test("AdMob, chosen on 2a, asks Google for AdMob only, and the offer names it", async ({ page }) => {
   const relay = relayFor({ j1: [{ id: "j1", stage: "proving" }, doneAdmob("j1")] });
-  await connect(page, relay, "ok");
+  const chain = await connect(page, relay, "ok");
   const group = page.getByRole("group", { name: "Where you earn" });
   await expect(group.getByRole("radio", { name: /AdSense/ })).toBeChecked();
   await chooseAdmob(page);
@@ -322,6 +326,13 @@ test("AdMob, chosen on 2a, asks Google for AdMob only, and the offer names it", 
   await expect(page.getByText("$360.00", { exact: true }).first()).toBeVisible();
   expect(relay.posts).toEqual([{ borrower: E2E_ADDRESS, accessToken: "ya29.e2e", source: "admob" }]);
   expect(await page.evaluate(() => window.__gis.scopes)).toEqual([ADMOB_SCOPE]);
+  // Accepted: 2d reads the advance back under its AdMob nullifier, sized from the micros like the offer.
+  await page.getByRole("button", { name: "Accept 90.00 USDC" }).click();
+  await expect(heading(page, "Advance received")).toBeVisible();
+  await expect(page.getByText("90.00 USDC", { exact: true })).toBeVisible();
+  expect(chain.sourced).toContainEqual({ fn: "request_advance", source: "AdMob" });
+  expect(chain.sourced).toContainEqual({ fn: "nullifier_for", source: "AdMob" });
+  expect(chain.sourced?.some((c) => c.source !== "AdMob")).toBe(false);
 });
 
 test("a Google account with no AdMob is named as AdMob, and Prove again stays on AdMob", async ({ page }) => {

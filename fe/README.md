@@ -63,11 +63,14 @@ browser. Never put a secret in one.
   uses. If they differ from yours, one of you is on an old deployment.
 - **`NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID`** is only needed for mobile wallets. Without it,
   desktop browser wallets still work.
+- **`NEXT_PUBLIC_CONTRACT_TAKES_SOURCE`** is `1` once the advance contract runs #94, whose
+  `request_advance` and `nullifier_for` take the revenue source first. Flip it when that upgrade
+  executes: the contract before it refuses the extra argument, the one after refuses its absence.
 
 ## Proving revenue: the relay, or a mock
 
 With `NEXT_PUBLIC_RELAY_URL` and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` set, the creator signs in with Google's
-own popup (`adsense.readonly` only) and the #17 relay makes the proof, which takes about a minute, more
+own popup (`adsense.readonly`, or `admob.readonly` for AdMob) and the #17 relay makes the proof, which takes about a minute, more
 behind a queue (`src/lib/reclaim/relay.ts`, `docs/api.md`). No Reclaim SDK runs in the browser. The job
 id is kept in `sessionStorage`, so leaving /advance or reloading while it proves comes back to the same
 job without a second sign-in.
