@@ -124,6 +124,24 @@ export function FailurePanel({
         illustration = <IlloSessionCancelled data-illo="session-cancelled" />;
         actions = <Button onClick={a.onProve}>Prove my revenue</Button>;
         break;
+      case "proofGone":
+        illustration = <IlloProofExpired data-illo="proof-expired" />;
+        actions = <>{proveAgain}{back}</>;
+        row = true;
+        break;
+      // The relay's failures (#17). Not on the board yet; "Prove again" with "Back", as its pairs are.
+      case "googleSignIn":
+      case "noAdsense":
+      case "relayFailed":
+      case "relayBusy":
+      case "proofRunning":
+      case "relayUnreachable":
+      case "googleUnavailable":
+      case "popupBlocked":
+        illustration = <IlloSessionCancelled data-illo="session-cancelled" />;
+        actions = <>{proveAgain}{back}</>;
+        row = true;
+        break;
       case "declined":
         illustration = <IlloSessionCancelled data-illo="session-cancelled" />;
         actions = <Button onClick={a.onReviewOffer}>Review offer again</Button>;

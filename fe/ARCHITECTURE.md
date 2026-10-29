@@ -113,8 +113,8 @@ Deliberately left out:
 - **Animation libraries.** CSS transitions cover what the design needs (§7).
 - **vaul.** Mobile sheets start as a Base UI dialog styled as a sheet. Add vaul only if swipe to
   dismiss turns out to matter, after checking it is still maintained.
-- **A Reclaim browser SDK, for now.** Which one depends on how the #17 relay is built. Ask
-  @Lin1er before installing anything.
+- **A Reclaim browser SDK.** The #17 relay makes the proof with zkFetch; the browser only signs in
+  with Google Identity Services, loaded as Google's script, not a package (`lib/reclaim/relay.ts`).
 
 ## 4. State
 

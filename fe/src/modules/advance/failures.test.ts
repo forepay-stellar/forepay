@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ReclaimCancelledError, RelayNotReadyError } from "@/lib/reclaim";
+import { ReclaimCancelledError, RelayError, RelayNotReadyError } from "@/lib/reclaim";
 import { ContractError, MissingConfigError, SimulationError, TransactionFailedError } from "@/lib/stellar/contract";
 import { WalletError } from "@/lib/stellar/wallet-error";
 import { WalletSignError } from "@/lib/stellar/wallet-error";
@@ -9,6 +9,18 @@ describe("proveFailure", () => {
   it("names each cause on its own", () => {
     expect(proveFailure(new ReclaimCancelledError())).toEqual({ kind: "cancelled" });
     expect(proveFailure(new RelayNotReadyError())).toEqual({ kind: "relayNotReady" });
+    expect(proveFailure(new RelayError("token", "x"))).toEqual({ kind: "googleSignIn" });
+    expect(proveFailure(new RelayError("account", "x"))).toEqual({ kind: "noAdsense" });
+    expect(proveFailure(new RelayError("running", "x"))).toEqual({ kind: "proofRunning" });
+    expect(proveFailure(new RelayError("gone", "x"))).toEqual({ kind: "proofGone" });
+    expect(proveFailure(new RelayError("unconfigured", "x"))).toEqual({ kind: "relayNotReady" });
+    expect(proveFailure(new RelayError("unreachable", "x"))).toEqual({ kind: "relayUnreachable" });
+    expect(proveFailure(new RelayError("googleUnavailable", "x"))).toEqual({ kind: "googleUnavailable" });
+    expect(proveFailure(new RelayError("popupBlocked", "x"))).toEqual({ kind: "popupBlocked" });
+    expect(proveFailure(new RelayError("busy", "x"))).toEqual({ kind: "relayBusy" });
+    for (const code of ["provider", "prove", "audit", "internal"] as const) {
+      expect(proveFailure(new RelayError(code, "x"))).toEqual({ kind: "relayFailed" });
+    }
     expect(proveFailure(new ContractError(14, "x"))).toEqual({ code: 14 });
     expect(proveFailure(new SimulationError("HostError: Error(Auth, InvalidAction)"))).toEqual({ kind: "simulationFailed" });
     expect(proveFailure(new MissingConfigError("NEXT_PUBLIC_ADVANCE_CONTRACT_ID"))).toEqual({ kind: "notConfigured" });

@@ -7,7 +7,7 @@ import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { notify } from "@/components/ui/Toaster";
 import { isSignatureDeclined } from "@/lib/errors";
 import { formatUsd, formatWindow } from "@/lib/format";
-import { proveRevenue, type ProveSession, type ProveStage } from "@/lib/reclaim";
+import { preloadSignIn, proofRunning, proveRevenue, type ProveSession, type ProveStage } from "@/lib/reclaim";
 import {
   TransactionFailedError,
   awaitAdvance,
@@ -57,6 +57,20 @@ const quoteKey = (address: string, revenueUsd: string) => ["quote", address, rev
 const sizingKey = (address: string) => ["sizing", address] as const;
 
 /**
+ * "Reading your revenue". The words describe the relay (#17): about a minute, more behind a queue, and
+ * the job id is kept for the tab, so other pages are safe and a closed tab loses it (lib/reclaim/relay.ts).
+ * The mock (no relay) does not resume after leaving, which is acceptable for a build without proofs.
+ */
+function ReadingRevenue() {
+  return (
+    <ProgressPanel
+      title="Reading your revenue"
+      body="This takes about a minute, longer when others are proving too. You can use other pages meanwhile. Closing this tab means proving again."
+    />
+  );
+}
+
+/**
  * 02 Prove and accept (#20): 2a Prove revenue, 2b Review offer, 2c Sign, 2d Receive, and every state on
  * the "Prove and accept / States and interactions" board.
  *
@@ -87,15 +101,23 @@ export function Advance() {
     [],
   );
 
-  // Back on /advance with a `request_advance` still out from an earlier visit: wait on that one. Each
+  // Back on /advance with a `request_advance` still out from an earlier visit: wait on that one. Or with
+  // a proof the relay is still making for this wallet: wait on that, without signing in again. Each
   // mount waits afresh; the unmount above drops the answer of the one before.
   useEffect(() => {
     if (!address) return;
     const pending = loadPending(address);
     if (pending) void pickUp(pending);
-    // `pickUp` only reads refs and setters; it runs per mount and per wallet.
+    else if (proofRunning(address)) void prove();
+    // `pickUp` and `prove` only read refs and setters; they run per mount and per wallet.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address]);
+
+  // Google's sign-in script, loaded while 2a is open, so "Prove my revenue" opens the popup inside the
+  // press. Loaded only on the press, the popup opens after an await and browsers may block it.
+  useEffect(() => {
+    if (flow.at === "start" || flow.at === "failed") preloadSignIn();
+  }, [flow.at]);
 
   // The offer on 2b and 2c. Read in `check` before 2b opens, so it is already here.
   const req = "req" in flow ? flow.req : undefined;
@@ -146,6 +168,9 @@ export function Advance() {
     // While an advance sent earlier is still being waited on, the start is that wait, not 2a.
     const pending = loadPending(me);
     if (pending) return void pickUp(pending);
+    // Likewise a proof the relay may still be making (a poll that failed kept its id): wait on it, so
+    // "Reading your revenue" on the start is always backed by a running session.
+    if (proofRunning(me)) return void prove();
     setFlow({ at: "start" });
   }
 
@@ -200,6 +225,9 @@ export function Advance() {
   }
 
   async function accept(r: AdvanceRequest) {
+    // No clock check on the proof's age here: `requestAdvance` simulates before it asks the wallet, and the
+    // contract refuses a proof over an hour old with 12 ("This proof expired"), so no signature is asked
+    // for a stale proof (e2e "a proof that expires while the offer is open…").
     leave();
     const id = attempt.current;
     let signed = false;
@@ -370,6 +398,16 @@ export function Advance() {
   if (flow.at === "start") {
     // A transaction left waiting from an earlier visit is picked up by the effect above, after this
     // first render. Show it as sending from the start, so 2a and its "Prove my revenue" never flash.
+    // Likewise a proof the relay is still making for this wallet: the effect waits on it.
+    if (proofRunning(me)) {
+      return (
+        <AdvanceScreen title="Get an advance" step={0} focusKey="resuming-proof">
+          <Centered>
+            <ReadingRevenue />
+          </Centered>
+        </AdvanceScreen>
+      );
+    }
     if (loadPending(me)) {
       return (
         <AdvanceScreen title="Approve the advance" step={2} focusKey="resuming">
@@ -405,8 +443,8 @@ export function Advance() {
             />
           ) : flow.stage === "waiting" ? (
             <ProgressPanel
-              title="Log in to AdSense in the new window"
-              body="We only read your revenue for the last three months. Your password never reaches us."
+              title="Sign in with Google in the new window"
+              body="Pick the Google account that owns your AdSense, and allow Forepay to see your AdSense reports. We only read your revenue for the last three months."
               action={
                 <Button variant="outline" onClick={() => session.current?.reopen()}>
                   Open the window again
@@ -414,7 +452,7 @@ export function Advance() {
               }
             />
           ) : (
-            <ProgressPanel title="Reading your revenue" body="This takes a few seconds. Keep this page open." />
+            <ReadingRevenue />
           )}
         </Centered>
       </AdvanceScreen>

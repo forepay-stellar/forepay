@@ -123,6 +123,15 @@ describe("proveFailureCopy", () => {
     "walletWrongNetwork",
     "walletNoAnswer",
     "relayNotReady",
+    "googleSignIn",
+    "noAdsense",
+    "relayFailed",
+    "relayBusy",
+    "proofRunning",
+    "proofGone",
+    "relayUnreachable",
+    "googleUnavailable",
+    "popupBlocked",
   ];
 
   it("keeps every failure inside the copy rules, and never says Something went wrong", () => {
@@ -134,6 +143,13 @@ describe("proveFailureCopy", () => {
 
   it("says nothing was charged only when that is true", () => {
     expect(proveFailureCopy("refused").body).toMatch(/Nothing was charged/);
+    // The relay's failures happen before anything reaches Stellar.
+    for (const k of ["googleSignIn", "noAdsense", "relayFailed", "proofRunning", "proofGone", "relayUnreachable"] as const) {
+      expect(proveFailureCopy(k).body).toMatch(/Nothing was charged/);
+    }
+    for (const k of ["relayBusy", "googleUnavailable", "popupBlocked"] as const) {
+      expect(proveFailureCopy(k).body).toMatch(/Nothing was read or charged/);
+    }
     expect(proveFailureCopy("charged").body).not.toMatch(/Nothing was charged/);
     expect(proveFailureCopy("unconfirmed").body).not.toMatch(/Nothing was charged/);
   });

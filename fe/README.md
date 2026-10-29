@@ -42,11 +42,15 @@ pnpm test:e2e                     # Playwright, tests/e2e
 It uses Playwright's own Chromium. Google Chrome works too (`PW_CHANNEL=chrome`), but on a Mac with
 a Chrome update pending, Chrome's updater can keep a finished run from exiting. It starts its own
 `next dev` on port 3219 (or `PW_PORT`), built into `.next-e2e` (`NEXT_DIST_DIR`), so it runs
-alongside your own `next dev`. Any other `NEXT_DIST_DIR` makes Next add its type folder to
-`tsconfig.json`; do not commit that. It sets its own environment (`playwright.config.ts`): the test
-wallet (`NEXT_PUBLIC_E2E=1`), a fake RPC URL and a fake #16 API URL whose answers each spec decides
-(`tests/e2e/rpc.ts`, `tests/e2e/api.ts`), so a run never touches testnet or a real API and needs no
-browser extension.
+alongside your own `next dev`. A second one, on the port after it and built into `.next-e2e-relay`,
+has the relay and the Google client id set, for `tests/e2e/relay.spec.ts`: there Google's sign-in is
+a stub and the spec answers the relay. Every run starts both, which takes longer and needs both
+ports free; `PW_RELAY=0` leaves the relay build and its specs out. Both folders' types are in
+`tsconfig.json`; any other `NEXT_DIST_DIR` makes Next add its own, so do not commit that.
+
+It sets its own environment (`playwright.config.ts`): the test wallet (`NEXT_PUBLIC_E2E=1`), a fake
+RPC URL and a fake #16 API URL whose answers each spec decides (`tests/e2e/rpc.ts`,
+`tests/e2e/api.ts`), so a run never touches testnet or a real API and needs no browser extension.
 
 ## Environment
 
@@ -60,10 +64,15 @@ browser. Never put a secret in one.
 - **`NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID`** is only needed for mobile wallets. Without it,
   desktop browser wallets still work.
 
-## Proving revenue is mocked until #17
+## Proving revenue: the relay, or a mock
 
-The Reclaim session and the proof relay (#17) do not exist yet, so `src/lib/reclaim/` answers from a
-mock while `NEXT_PUBLIC_RELAY_URL` is empty. It walks through the session (window open, reading) and
+With `NEXT_PUBLIC_RELAY_URL` and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` set, the creator signs in with Google's
+own popup (`adsense.readonly` only) and the #17 relay makes the proof, which takes about a minute, more
+behind a queue (`src/lib/reclaim/relay.ts`, `docs/api.md`). No Reclaim SDK runs in the browser. The job
+id is kept in `sessionStorage`, so leaving /advance or reloading while it proves comes back to the same
+job without a second sign-in.
+
+`src/lib/reclaim/` answers from a mock while `NEXT_PUBLIC_RELAY_URL` is empty. It walks through the session (window open, reading) and
 returns fixed values. Everything after it, the offer from `quote`, the proof check, `request_advance`
 and the receipt, is the real contract client. On testnet the contract refuses the mock's proof, so the
 whole flow only completes in the e2e run, against the stubbed RPC.
