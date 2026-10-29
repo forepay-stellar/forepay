@@ -152,6 +152,11 @@ test("AdMob at zero stops before the attestor", async () => {
   assert.equal(zk.calls.length, 0);
 });
 
+test("an AdMob proof whose owner is not this relay's Reclaim app is refused by the audit (#102)", async () => {
+  const other = "0x6415200c713135e77157e1536d488df4f2bb7d04";
+  assert.equal(await code(proveRevenue(admobDeps({ owner: other }), { borrower: ALICE, accessToken: TOKEN, source: "admob" })), "audit");
+});
+
 test("no AdMob account is the creator's to resolve", async () => {
   const admob = fakeAdmob({ accounts: [] });
   assert.equal(await code(proveRevenue(admobDeps({ admob }), { borrower: ALICE, accessToken: TOKEN, source: "admob" })), "account");
