@@ -39,5 +39,35 @@
   "appOwner": "0x6415200c713135e77157e1536d488df4f2bb7d04",
   "appOwnerSignData": "0x18303a91f81e35d749d26b04a60e1ae95974128afd7ca66b3950547527480dee\n0x6415200c713135e77157e1536d488df4f2bb7d04\n1760000000\n1",
   "appOwnerSignature64": "be04cabf370de372ce48726350419d76169f5b35fa64ba03ffb5db5b1a5a4a6a773196501dcfd7a42b94a1a510c9aaa0ff5536cb37ed0ada1f917415da9e96c7",
-  "appOwnerRecoveryId": 0
+  "appOwnerRecoveryId": 0,
+  "admob": {
+    "pubId": "pub-1234567890123456",
+    "revenueMicros": "12345678",
+    "providerHash": "0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+    "templateParts": [
+      "{\"body\":\"{\\\"reportSpec\\\":{\\\"dateRange\\\":{\\\"startDate\\\":{\\\"year\\\":",
+      ",\\\"month\\\":",
+      ",\\\"day\\\":",
+      "},\\\"endDate\\\":{\\\"year\\\":",
+      ",\\\"month\\\":",
+      ",\\\"day\\\":",
+      "}},\\\"metrics\\\":[\\\"ESTIMATED_EARNINGS\\\"],\\\"localizationSettings\\\":{\\\"currencyCode\\\":\\\"USD\\\"}}}\",\"headers\":{\"User-Agent\":\"reclaim/0.0.1\",\"accept\":\"application/json\",\"content-type\":\"application/json\"},\"method\":\"POST\",\"responseMatches\":[{\"type\":\"regex\",\"value\":\"\\\"localizationSettings\\\":\\\\s*\\\\{\\\\s*\\\"currencyCode\\\":\\\\s*\\\"USD\\\"\\\\s*\\\\}\"},{\"type\":\"regex\",\"value\":\"\\\"row\\\":\\\\s*\\\\{\\\\s*\\\"metricValues\\\":\\\\s*\\\\{\\\\s*\\\"ESTIMATED_EARNINGS\\\":\\\\s*\\\\{\\\\s*\\\"microsValue\\\":\\\\s*\\\"(?<revenueMicros>\\\\d+)\\\"\\\\s*\\\\}\\\\s*\\\\}\\\\s*\\\\}\"}],\"responseRedactions\":[{\"regex\":\"\\\"localizationSettings\\\":\\\\s*\\\\{\\\\s*\\\"currencyCode\\\":\\\\s*\\\"USD\\\"\\\\s*\\\\}\"},{\"regex\":\"\\\"row\\\":\\\\s*\\\\{\\\\s*\\\"metricValues\\\":\\\\s*\\\\{\\\\s*\\\"ESTIMATED_EARNINGS\\\":\\\\s*\\\\{\\\\s*\\\"microsValue\\\":\\\\s*\\\"(?<revenueMicros>\\\\d+)\\\"\\\\s*\\\\}\\\\s*\\\\}\\\\s*\\\\}\"}],\"url\":\"https://admob.googleapis.com/v1/accounts/",
+      "/networkReport:generate\"}"
+    ],
+    "values": [
+      "2026",
+      "7",
+      "1",
+      "2026",
+      "9",
+      "30",
+      "pub-1234567890123456"
+    ],
+    "parameters": "{\"body\":\"{\\\"reportSpec\\\":{\\\"dateRange\\\":{\\\"startDate\\\":{\\\"year\\\":2026,\\\"month\\\":7,\\\"day\\\":1},\\\"endDate\\\":{\\\"year\\\":2026,\\\"month\\\":9,\\\"day\\\":30}},\\\"metrics\\\":[\\\"ESTIMATED_EARNINGS\\\"],\\\"localizationSettings\\\":{\\\"currencyCode\\\":\\\"USD\\\"}}}\",\"headers\":{\"User-Agent\":\"reclaim/0.0.1\",\"accept\":\"application/json\",\"content-type\":\"application/json\"},\"method\":\"POST\",\"responseMatches\":[{\"type\":\"regex\",\"value\":\"\\\"localizationSettings\\\":\\\\s*\\\\{\\\\s*\\\"currencyCode\\\":\\\\s*\\\"USD\\\"\\\\s*\\\\}\"},{\"type\":\"regex\",\"value\":\"\\\"row\\\":\\\\s*\\\\{\\\\s*\\\"metricValues\\\":\\\\s*\\\\{\\\\s*\\\"ESTIMATED_EARNINGS\\\":\\\\s*\\\\{\\\\s*\\\"microsValue\\\":\\\\s*\\\"(?<revenueMicros>\\\\d+)\\\"\\\\s*\\\\}\\\\s*\\\\}\\\\s*\\\\}\"}],\"responseRedactions\":[{\"regex\":\"\\\"localizationSettings\\\":\\\\s*\\\\{\\\\s*\\\"currencyCode\\\":\\\\s*\\\"USD\\\"\\\\s*\\\\}\"},{\"regex\":\"\\\"row\\\":\\\\s*\\\\{\\\\s*\\\"metricValues\\\":\\\\s*\\\\{\\\\s*\\\"ESTIMATED_EARNINGS\\\":\\\\s*\\\\{\\\\s*\\\"microsValue\\\":\\\\s*\\\"(?<revenueMicros>\\\\d+)\\\"\\\\s*\\\\}\\\\s*\\\\}\\\\s*\\\\}\"}],\"url\":\"https://admob.googleapis.com/v1/accounts/pub-1234567890123456/networkReport:generate\"}",
+    "context": "{\"contextAddress\":\"GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2\",\"contextMessage\":\"Forepay advance request\",\"extractedParameters\":{\"revenueMicros\":\"12345678\"},\"providerHash\":\"0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd\"}",
+    "identifier": "0x4f3b53c4ab1ee8f71e6827166cda154d4a5fc22cb2df30d58c69b15977d8aba6",
+    "signData": "0x4f3b53c4ab1ee8f71e6827166cda154d4a5fc22cb2df30d58c69b15977d8aba6\n0x6415200c713135e77157e1536d488df4f2bb7d04\n1760000000\n1",
+    "signature64": "b7695d7a14d6de5fb0d1ebb2a0858e8f773247dca9e76b87c1482e9a8fe250996d9ca44151a1cc24001f62a8d568a0d218e573a03fb19a7ad638b3ea024045ce",
+    "recoveryId": 0
+  }
 }

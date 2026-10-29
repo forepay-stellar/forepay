@@ -15,8 +15,8 @@ use soroban_sdk::{
 };
 
 use crate::test_claim::{
-    signature, BORROWER, EPOCH, PROVIDER_HASH, PUB_ID, RECOVERY_ID, REVENUE, TEMPLATE, TIMESTAMP_S,
-    WINDOW_END, WINDOW_START,
+    signature, APP_OWNER, BORROWER, EPOCH, PROVIDER_HASH, PUB_ID, RECOVERY_ID, REVENUE, TEMPLATE,
+    TIMESTAMP_S, WINDOW_END, WINDOW_START,
 };
 
 struct Fx {
@@ -46,7 +46,15 @@ fn fx(fund_stroops: i128) -> Fx {
     for p in TEMPLATE.iter() {
         parts.push_back(Bytes::from_slice(&env, p));
     }
-    client.set_claim_template(&parts, &Bytes::from_slice(&env, PROVIDER_HASH.as_bytes()));
+    client.set_claim_template(
+        &Source::AdSense,
+        &parts,
+        &Bytes::from_slice(&env, PROVIDER_HASH.as_bytes()),
+    );
+    // The owner has to be pinned here too, even though these tests use a verifier that
+    // accepts any signature: `verify_claim` refuses an unpinned contract before it ever
+    // reaches the verifier (#102). That is the point of refusing rather than defaulting.
+    client.set_claim_owner(&Bytes::from_slice(&env, APP_OWNER.as_bytes()));
 
     let usdc_admin = StellarAssetClient::new(&env, &usdc);
     if fund_stroops > 0 {
@@ -70,6 +78,7 @@ fn fx(fund_stroops: i128) -> Fx {
 
 fn request(f: &Fx) -> Result<i128, Error> {
     match f.client.try_request_advance(
+        &Source::AdSense,
         &f.borrower,
         &String::from_str(&f.env, REVENUE),
         &String::from_str(&f.env, PUB_ID),
@@ -261,6 +270,7 @@ fn nobody_can_take_an_advance_in_someone_elses_name() {
     let f = fx(ADVANCE_CAP_STROOPS * 2);
     f.env.set_auths(&[]);
     f.client.request_advance(
+        &Source::AdSense,
         &f.borrower,
         &String::from_str(&f.env, REVENUE),
         &String::from_str(&f.env, PUB_ID),
@@ -282,6 +292,7 @@ fn nobody_can_burn_someone_elses_nullifier_for_free() {
     let f = fx(ADVANCE_CAP_STROOPS * 2);
     f.env.set_auths(&[]);
     f.client.verify_and_reserve(
+        &Source::AdSense,
         &f.borrower,
         &String::from_str(&f.env, REVENUE),
         &String::from_str(&f.env, PUB_ID),
@@ -300,6 +311,7 @@ fn an_underfunded_contract_refuses_before_spending_the_nullifier() {
     assert_eq!(request(&f), Err(Error::InsufficientLiquidity));
 
     let n = f.client.nullifier_for(
+        &Source::AdSense,
         &String::from_str(&f.env, PUB_ID),
         &String::from_str(&f.env, WINDOW_START),
         &String::from_str(&f.env, WINDOW_END),
@@ -331,6 +343,7 @@ fn a_full_cycle_leaves_nothing_outstanding() {
     let f = fx(ADVANCE_CAP_STROOPS * 2);
     let principal = request(&f).unwrap();
     let n = f.client.nullifier_for(
+        &Source::AdSense,
         &String::from_str(&f.env, PUB_ID),
         &String::from_str(&f.env, WINDOW_START),
         &String::from_str(&f.env, WINDOW_END),
@@ -353,6 +366,7 @@ fn overpaying_is_refused() {
     let f = fx(ADVANCE_CAP_STROOPS * 2);
     let principal = request(&f).unwrap();
     let n = f.client.nullifier_for(
+        &Source::AdSense,
         &String::from_str(&f.env, PUB_ID),
         &String::from_str(&f.env, WINDOW_START),
         &String::from_str(&f.env, WINDOW_END),
@@ -370,6 +384,7 @@ fn overpaying_is_refused() {
 fn repaying_something_that_was_never_advanced_is_refused() {
     let f = fx(0);
     let n = f.client.nullifier_for(
+        &Source::AdSense,
         &String::from_str(&f.env, PUB_ID),
         &String::from_str(&f.env, WINDOW_START),
         &String::from_str(&f.env, WINDOW_END),
@@ -385,6 +400,7 @@ fn a_zero_or_negative_repayment_is_refused() {
     let f = fx(ADVANCE_CAP_STROOPS * 2);
     request(&f).unwrap();
     let n = f.client.nullifier_for(
+        &Source::AdSense,
         &String::from_str(&f.env, PUB_ID),
         &String::from_str(&f.env, WINDOW_START),
         &String::from_str(&f.env, WINDOW_END),
@@ -421,7 +437,12 @@ fn a_borrower_without_a_trustline_gets_a_named_error_not_a_panic() {
     for p in TEMPLATE.iter() {
         parts.push_back(Bytes::from_slice(&env, p));
     }
-    client.set_claim_template(&parts, &Bytes::from_slice(&env, PROVIDER_HASH.as_bytes()));
+    client.set_claim_template(
+        &Source::AdSense,
+        &parts,
+        &Bytes::from_slice(&env, PROVIDER_HASH.as_bytes()),
+    );
+    client.set_claim_owner(&Bytes::from_slice(&env, APP_OWNER.as_bytes()));
     StellarAssetClient::new(&env, &usdc).mint(&id, &(ADVANCE_CAP_STROOPS * 2));
 
     // A literal `G…` with nothing behind it in the test ledger. `Address::generate`
@@ -429,6 +450,7 @@ fn a_borrower_without_a_trustline_gets_a_named_error_not_a_panic() {
     // a transfer to one succeeds and the path under test never runs.
     let borrower = Address::from_string(&String::from_str(&env, BORROWER));
     let out = client.try_request_advance(
+        &Source::AdSense,
         &borrower,
         &String::from_str(&env, REVENUE),
         &String::from_str(&env, PUB_ID),
@@ -443,6 +465,7 @@ fn a_borrower_without_a_trustline_gets_a_named_error_not_a_panic() {
 
     // And it must not have burned the period on a payment that could not land.
     let n = client.nullifier_for(
+        &Source::AdSense,
         &String::from_str(&env, PUB_ID),
         &String::from_str(&env, WINDOW_START),
         &String::from_str(&env, WINDOW_END),
@@ -455,6 +478,7 @@ fn the_ledger_records_what_was_proven_not_what_was_claimed() {
     let f = fx(ADVANCE_CAP_STROOPS * 2);
     request(&f).unwrap();
     let n = f.client.nullifier_for(
+        &Source::AdSense,
         &String::from_str(&f.env, PUB_ID),
         &String::from_str(&f.env, WINDOW_START),
         &String::from_str(&f.env, WINDOW_END),

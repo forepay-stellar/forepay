@@ -39,6 +39,13 @@
                 {
                   "vec": [
                     {
+                      "symbol": "AdSense"
+                    }
+                  ]
+                },
+                {
+                  "vec": [
+                    {
                       "bytes": "7b226d6574686f64223a22474554222c2275726c223a2268747470733a2f2f616473656e73652e676f6f676c65617069732e636f6d2f76322f6163636f756e74732f"
                     },
                     {
@@ -66,6 +73,25 @@
                 },
                 {
                   "bytes": "307835363962393332333331383563303534656439666461363862356165663866646131383062366432393131383034353062663735376231316262353266376466"
+                }
+              ]
+            }
+          },
+          "sub_invocations": []
+        }
+      ]
+    ],
+    [
+      [
+        "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4",
+        {
+          "function": {
+            "contract_fn": {
+              "contract_address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK3IM",
+              "function_name": "set_claim_owner",
+              "args": [
+                {
+                  "bytes": "307836343135323030633731333133356537373135376531353336643438386466346632626237643034"
                 }
               ]
             }
@@ -107,6 +133,13 @@
               "function_name": "request_advance",
               "args": [
                 {
+                  "vec": [
+                    {
+                      "symbol": "AdSense"
+                    }
+                  ]
+                },
+                {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4"
                 },
                 {
@@ -128,10 +161,10 @@
                   "u64": "1"
                 },
                 {
-                  "bytes": "0a1607562845069dcd91874ae32ffc55d2ce799078af623b8300c1765137ca0f577ba3ed8dc8895867e717734d9535536384718e77126229ed28327c54cf202f"
+                  "bytes": "be04cabf370de372ce48726350419d76169f5b35fa64ba03ffb5db5b1a5a4a6a773196501dcfd7a42b94a1a510c9aaa0ff5536cb37ed0ada1f917415da9e96c7"
                 },
                 {
-                  "u32": 1
+                  "u32": 0
                 }
               ]
             }
@@ -249,7 +282,7 @@
               "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
               "key": {
                 "ledger_key_nonce": {
-                  "nonce": "1033654523790656264"
+                  "nonce": "4270020994084947596"
                 }
               },
               "durability": "temporary",
@@ -269,7 +302,27 @@
               "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
               "key": {
                 "ledger_key_nonce": {
-                  "nonce": "2032731177588607455"
+                  "nonce": "4837995959683129791"
+                }
+              },
+              "durability": "temporary",
+              "val": "void"
+            }
+          },
+          "ext": "v0"
+        },
+        "live_until": 6311999
+      },
+      {
+        "entry": {
+          "last_modified_ledger_seq": 0,
+          "data": {
+            "contract_data": {
+              "ext": "v0",
+              "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4",
+              "key": {
+                "ledger_key_nonce": {
+                  "nonce": "1033654523790656264"
                 }
               },
               "durability": "temporary",
@@ -450,7 +503,26 @@
                       "key": {
                         "vec": [
                           {
-                            "symbol": "ParamsTemplate"
+                            "symbol": "ClaimOwner"
+                          }
+                        ]
+                      },
+                      "val": {
+                        "bytes": "307836343135323030633731333133356537373135376531353336643438386466346632626237643034"
+                      }
+                    },
+                    {
+                      "key": {
+                        "vec": [
+                          {
+                            "symbol": "ParamsTemplateFor"
+                          },
+                          {
+                            "vec": [
+                              {
+                                "symbol": "AdSense"
+                              }
+                            ]
                           }
                         ]
                       },
@@ -487,7 +559,14 @@
                       "key": {
                         "vec": [
                           {
-                            "symbol": "ProviderHash"
+                            "symbol": "ProviderHashFor"
+                          },
+                          {
+                            "vec": [
+                              {
+                                "symbol": "AdSense"
+                              }
+                            ]
                           }
                         ]
                       },
@@ -537,7 +616,7 @@
               "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4",
               "key": {
                 "ledger_key_nonce": {
-                  "nonce": "4837995959683129791"
+                  "nonce": "2032731177588607455"
                 }
               },
               "durability": "temporary",
