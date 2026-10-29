@@ -169,6 +169,7 @@ test("/advances: the contract's record of each advance, newest first, amounts as
   assert.deepEqual(await res.json(), [
     {
       nullifier: "1d124817f351c4a88ed2fe92a2f79812f2bfa41e0610a5bbb84f7a5e892e68f5",
+      source: "AdSense",
       borrower: BORROWER,
       windowStart: "2026-07-01",
       windowEnd: "2026-09-30",
@@ -180,6 +181,7 @@ test("/advances: the contract's record of each advance, newest first, amounts as
     },
     {
       nullifier: "d0cd01df330362b23508edf7e386950549da634b756d1c29aa242cfc9c88c839",
+      source: "AdSense",
       borrower: BORROWER,
       windowStart: "2026-07-01",
       windowEnd: "2026-09-30",

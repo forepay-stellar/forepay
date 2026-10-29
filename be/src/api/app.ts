@@ -27,7 +27,7 @@ import { StrKey } from "@stellar/stellar-sdk";
 
 import { ProveError } from "../adsense/account.js";
 import type { AdvanceRecord } from "../chain/advance.js";
-import { advanceCalls, ledgerTransactions, type HorizonOperation } from "../chain/history.js";
+import { advanceCalls, ledgerTransactions, type HorizonOperation, type Source } from "../chain/history.js";
 import { BorrowerBusyError, ProofJobs, QueueFullError } from "../relay/jobs.js";
 import type { AdvanceRequestJson, ProveInput, ProveStep } from "../relay/prove.js";
 import type { LoadedConfig } from "./config.js";
@@ -120,21 +120,22 @@ export function createApp({ loaded, rpc, chain, prover, jobs = new ProofJobs(), 
     const { borrower, contract } = scope;
     const ops = await upstream(() => chain.operations(borrower));
     // Newest first, so the first call per nullifier is the one that funded it.
-    const funded = new Map<string, string>();
+    const funded = new Map<string, { txHash: string; source: Source }>();
     for (const call of advanceCalls(ops, borrower, contract)) {
-      if (call.successful && !funded.has(call.nullifier)) funded.set(call.nullifier, call.hash);
+      if (call.successful && !funded.has(call.nullifier)) funded.set(call.nullifier, { txHash: call.hash, source: call.source });
     }
     const records = await upstream(() =>
       Promise.all([...funded.keys()].map((n) => chain.readAdvance(contract, n))),
     );
     const rows = [...funded.entries()]
-      .map(([nullifier, txHash], i) => ({ nullifier, txHash, record: records[i] }))
+      .map(([nullifier, { txHash, source }], i) => ({ nullifier, txHash, source, record: records[i] }))
       // The contract's record is the authority: no record, or someone else's, is not listed.
-      .filter((r): r is { nullifier: string; txHash: string; record: AdvanceRecord } => r.record?.borrower === borrower)
+      .filter((r): r is { nullifier: string; txHash: string; source: Source; record: AdvanceRecord } => r.record?.borrower === borrower)
       .sort((a, b) => (a.record.openedAt === b.record.openedAt ? 0 : a.record.openedAt > b.record.openedAt ? -1 : 1));
     return c.json(
-      rows.map(({ nullifier, txHash, record }) => ({
+      rows.map(({ nullifier, txHash, source, record }) => ({
         nullifier,
+        source,
         borrower: record.borrower,
         windowStart: record.windowStart,
         windowEnd: record.windowEnd,

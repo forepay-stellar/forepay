@@ -33,6 +33,7 @@ Every route returns JSON. All are `GET` except `POST /proofs`.
 ```json
 [{
   "nullifier": "1d1248…68f5",
+  "source": "AdSense",
   "borrower": "GA2C…WWH2",
   "windowStart": "2026-07-01",
   "windowEnd": "2026-09-30",
@@ -48,7 +49,10 @@ Every route returns JSON. All are `GET` except `POST /proofs`.
   rebuild it from history, so the balance shown is always the balance the contract holds.
 - `nullifier` is what `repay(from, nullifier, amount)` takes. It is
   `sha256(len ‖ pub_id ‖ len ‖ window_start ‖ len ‖ window_end)`, where each length is a 4-byte big-endian
-  u32. That is the same derivation as the contract's `nullifier_for`.
+  u32. That is the same derivation as the contract's `nullifier_for`. For AdMob (#94), `len ‖ "admob"` is
+  appended. AdSense appends nothing, so advances taken before #94 keep their nullifier.
+- `source` is `"AdSense"` or `"AdMob"`, read from the `request_advance` call. Calls made before #94 carry no
+  source, and are AdSense. It is the contract's `advance_source(nullifier)`, without a second read.
 - `txHash` is the disbursement transaction.
 - Outstanding is `principal − repaid`.
 

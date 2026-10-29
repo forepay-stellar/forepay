@@ -8,6 +8,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 
+import { xdr } from "@stellar/stellar-sdk";
+
 import {
   advanceCalls,
   fetchOperations,
@@ -54,6 +56,7 @@ test("request_advance calls are read with their arguments, nullifier and the USD
     at: 1792084442n,
     successful: true,
     nullifier: "d0cd01df330362b23508edf7e386950549da634b756d1c29aa242cfc9c88c839",
+    source: "AdSense",
     borrower: BORROWER,
     pubId: "pub-h1792084434",
     windowStart: "2026-07-01",
@@ -139,4 +142,50 @@ test("fetchOperations pages through Horizon, and an unknown account has no histo
 
   const down = (async () => new Response("{}", { status: 503 })) as unknown as typeof fetch;
   await assert.rejects(fetchOperations(BORROWER, { horizonUrl: "https://h.example", fetch: down }), /Horizon answered 503/);
+});
+
+// #94 puts a `Source` first in `request_advance`. The same real call, rewritten into that
+// shape, must read the same, and a call already on chain (the five-argument shape above)
+// must keep reading as it does.
+function withSource(op: HorizonOperation, source: "AdSense" | "AdMob"): HorizonOperation {
+  const params = op.parameters ?? [];
+  const tag = { type: "Vec", value: xdr.ScVal.scvVec([xdr.ScVal.scvSymbol(source)]).toXDR("base64") };
+  return { ...op, parameters: [params[0], params[1], tag, ...params.slice(2)] };
+}
+
+const FUNDED = "9a94cf083543b58d79b60431de305f3912099ca9337ada4793ef1e38546f8ad0";
+
+function funded(): HorizonOperation {
+  const op = OPS.find((o) => o.transaction_hash === FUNDED);
+  assert.ok(op, "the fixture holds the funded call");
+  return op;
+}
+
+test("after #94 an AdSense call with its source reads exactly as before, nullifier included", () => {
+  const op = funded();
+  const [before] = advanceCalls([op], BORROWER, DEV);
+  const [after] = advanceCalls([withSource(op, "AdSense")], BORROWER, DEV);
+  assert.deepEqual(after, before);
+  assert.equal(ledgerTransactions([withSource(op, "AdSense")], BORROWER, DEV)[0].nullifier, before.nullifier);
+});
+
+test("after #94 an AdMob call is the borrower's, with the tagged nullifier", () => {
+  const op = withSource(funded(), "AdMob");
+  const [call] = advanceCalls([op], BORROWER, DEV);
+  assert.equal(call.source, "AdMob");
+  assert.equal(call.borrower, BORROWER);
+  assert.equal(call.pubId, "pub-h1792084434");
+  assert.equal(call.nullifier, nullifierFor("pub-h1792084434", "2026-07-01", "2026-09-30", "AdMob"));
+  assert.notEqual(call.nullifier, nullifierFor("pub-h1792084434", "2026-07-01", "2026-09-30"));
+  assert.equal(ledgerTransactions([op], BORROWER, DEV)[0].nullifier, call.nullifier);
+});
+
+test("the AdMob nullifier is the one #94's contract computes", () => {
+  // `nullifier_for(AdMob, …)` on #106's contract for its fixture publisher and window.
+  assert.equal(nullifierFor("pub-1234567890123456", "2026-07-01", "2026-09-30", "AdMob"), "b4e9944247251fa09409c71406da72d4f03dc9e7a374a708bd92459521d93a58");
+  // And AdSense is the literal #106 pins as unchanged (`the_adsense_nullifier_bytes_did_not_change`).
+  assert.equal(
+    nullifierFor("pub-1234567890123456", "2026-07-01", "2026-09-30"),
+    "3140b7a01c306d98cfed42ae54092856f38808a69e15ef94ce26d57a734ba31a",
+  );
 });
