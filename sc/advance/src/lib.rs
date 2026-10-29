@@ -889,6 +889,11 @@ impl AdvanceContract {
     /// is the answer for every advance recorded before a second source existed, and for
     /// every AdSense advance since. A front end reading this gets the source from a
     /// contract read rather than reconstructing it from event history (#66).
+    /// `unwrap_or` is safe here only because the entry is **persistent**. A persistent
+    /// entry whose TTL lapses is archived, not deleted, and the host makes the caller
+    /// restore it before the read — so an AdMob advance can never quietly read back as
+    /// AdSense once its TTL runs out. In `temporary` storage this same line would do
+    /// exactly that, silently, and relabel a debt. Same reasoning the nullifier rests on.
     pub fn advance_source(env: Env, nullifier: BytesN<32>) -> Source {
         env.storage()
             .persistent()
