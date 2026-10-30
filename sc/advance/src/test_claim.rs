@@ -37,13 +37,18 @@ pub(crate) const PROVIDER_HASH: &str =
     "0x569b93233185c054ed9fda68b5aef8fda180b6d291180450bf757b11bb52f7df";
 pub(crate) const TIMESTAMP_S: u64 = 1_760_000_000;
 pub(crate) const EPOCH: u64 = 1;
-const SIGNATURE_HEX: &str = "0a1607562845069dcd91874ae32ffc55d2ce799078af623b8300c1765137ca0f577ba3ed8dc8895867e717734d9535536384718e77126229ed28327c54cf202f";
-pub(crate) const RECOVERY_ID: u32 = 1;
-/// The same claim, signed the way a real attestor signs it: with `owner` set to the
-/// requesting Reclaim app rather than the borrower (#102). From the fixture's `appOwner*`.
-const APP_OWNER: &str = "0x6415200c713135e77157e1536d488df4f2bb7d04";
+/// The claim signed the way a real attestor signs it: `owner` set to the requesting
+/// Reclaim app (#102). This is the **default** these tests run through, because it is the
+/// only shape that exists in the wild. From the fixture's `appOwner*`.
+pub(crate) const APP_OWNER: &str = "0x6415200c713135e77157e1536d488df4f2bb7d04";
 const APP_SIGNATURE_HEX: &str = "be04cabf370de372ce48726350419d76169f5b35fa64ba03ffb5db5b1a5a4a6a773196501dcfd7a42b94a1a510c9aaa0ff5536cb37ed0ada1f917415da9e96c7";
-const APP_RECOVERY_ID: u32 = 0;
+pub(crate) const RECOVERY_ID: u32 = 0;
+
+/// The same claim signed with `owner = borrower`, the form this harness used before #102.
+/// No attestor has ever produced it. Kept only so the tests that prove it is refused can
+/// still construct it.
+const BORROWER_SIGNATURE_HEX: &str = "0a1607562845069dcd91874ae32ffc55d2ce799078af623b8300c1765137ca0f577ba3ed8dc8895867e717734d9535536384718e77126229ed28327c54cf202f";
+const BORROWER_RECOVERY_ID: u32 = 1;
 /// The address the fixture's signature recovers to.
 const SIGNER: [u8; 20] = [
     0x19, 0xe7, 0xe3, 0x76, 0xe7, 0xc2, 0x13, 0xb7, 0xe7, 0xe7, 0xe4, 0x6c, 0xc7, 0x0a, 0x5d, 0xd0,
@@ -139,7 +144,9 @@ struct Fixture {
     borrower: Address,
 }
 
-fn setup() -> Fixture {
+/// Template pinned, claim owner **not** pinned. Only for the tests that are about the
+/// owner itself; everything else uses `setup`.
+fn setup_unpinned() -> Fixture {
     let env = Env::default();
     env.mock_all_auths();
     env.ledger().set_timestamp(TIMESTAMP_S + 10);
@@ -154,7 +161,11 @@ fn setup() -> Fixture {
     for p in TEMPLATE.iter() {
         parts.push_back(Bytes::from_slice(&env, p));
     }
-    client.set_claim_template(&parts, &Bytes::from_slice(&env, PROVIDER_HASH.as_bytes()));
+    client.set_claim_template(
+        &Source::AdSense,
+        &parts,
+        &Bytes::from_slice(&env, PROVIDER_HASH.as_bytes()),
+    );
 
     let borrower = Address::from_string(&String::from_str(&env, BORROWER));
     Fixture {
@@ -164,11 +175,34 @@ fn setup() -> Fixture {
     }
 }
 
-pub(crate) fn signature(env: &Env) -> BytesN<64> {
-    signature_from(env, SIGNATURE_HEX)
+/// The default fixture: template pinned **and** the claim owner pinned to the app.
+///
+/// Pinning the owner is not a detail of these tests, it is the shape every real claim
+/// has (#102). The harness used to sign with `owner = borrower`, which no attestor has
+/// ever produced, and that is precisely why the suite could be green while the contract
+/// could not verify anything real. A `G…` address cannot even be pinned — `set_claim_owner`
+/// takes `0x` and 40 hex digits — so there is no way to write that old shape here by
+/// accident any more.
+fn setup() -> Fixture {
+    let f = setup_unpinned();
+    f.client
+        .set_claim_owner(&Bytes::from_slice(&f.env, APP_OWNER.as_bytes()));
+    f
 }
 
-fn signature_from(env: &Env, hex: &str) -> BytesN<64> {
+/// The app-signed signature: the form a real attestor produces, and therefore the default
+/// every test runs through. `SIGNATURE_HEX` (owner = borrower) survives only in the tests
+/// that prove that shape is refused.
+pub(crate) fn signature(env: &Env) -> BytesN<64> {
+    signature_from(env, APP_SIGNATURE_HEX)
+}
+
+/// The pre-#102 shape: `owner = borrower`. Pairs with `BORROWER_RECOVERY_ID`.
+fn borrower_signature(env: &Env) -> BytesN<64> {
+    signature_from(env, BORROWER_SIGNATURE_HEX)
+}
+
+pub(crate) fn signature_from(env: &Env, hex: &str) -> BytesN<64> {
     let mut raw = [0u8; 64];
     for (i, b) in raw.iter_mut().enumerate() {
         let hi = hex.as_bytes()[i * 2];
@@ -188,6 +222,7 @@ fn verify(
     borrower: &Address,
 ) -> Result<VerifiedClaim, ()> {
     match f.client.try_verify_claim(
+        &Source::AdSense,
         borrower,
         &String::from_str(&f.env, revenue),
         &String::from_str(&f.env, pub_id),
@@ -252,6 +287,7 @@ fn verification_is_refused_until_the_template_is_pinned() {
 
     // The contract deploys with no template, and must refuse rather than accept anything.
     let out = client.try_verify_claim(
+        &Source::AdSense,
         &borrower,
         &String::from_str(&env, REVENUE),
         &String::from_str(&env, PUB_ID),
@@ -340,7 +376,13 @@ fn the_context_carries_only_the_figure() {
     // hashes, and is simply never what an attestor signed.
     let env = Env::default();
     let b = |s: &str| Bytes::from_slice(&env, s.as_bytes());
-    let got = crate::claim::rebuild_context(&env, &b(BORROWER), &b(REVENUE), &b(PROVIDER_HASH));
+    let got = crate::claim::rebuild_context(
+        &env,
+        &b(BORROWER),
+        b"revenueUsd",
+        &b(REVENUE),
+        &b(PROVIDER_HASH),
+    );
     let want = b(concat!(
         r#"{"contextAddress":"GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2","#,
         r#""contextMessage":"Forepay advance request","#,
@@ -377,7 +419,7 @@ fn the_template_the_contract_used_to_accept_is_refused_now() {
         parts.push_back(Bytes::from_slice(&env, p));
     }
     assert_eq!(
-        client.try_set_claim_template(&parts, &Bytes::from_slice(&env, b"0x00")),
+        client.try_set_claim_template(&Source::AdSense, &parts, &Bytes::from_slice(&env, b"0x00")),
         Err(Ok(Error::ClaimMismatch))
     );
 }
@@ -397,7 +439,11 @@ fn only_the_admin_can_pin_the_template() {
     }
     // No auth mocked: require_auth must bite.
     assert!(client
-        .try_set_claim_template(&parts, &Bytes::from_slice(&env, PROVIDER_HASH.as_bytes()))
+        .try_set_claim_template(
+            &Source::AdSense,
+            &parts,
+            &Bytes::from_slice(&env, PROVIDER_HASH.as_bytes())
+        )
         .is_err());
 }
 
@@ -417,7 +463,7 @@ fn a_template_with_the_wrong_number_of_parts_is_refused() {
     let mut parts = Vec::new(&env);
     parts.push_back(Bytes::from_slice(&env, b"only-one-part"));
     assert_eq!(
-        client.try_set_claim_template(&parts, &Bytes::from_slice(&env, b"0x00")),
+        client.try_set_claim_template(&Source::AdSense, &parts, &Bytes::from_slice(&env, b"0x00")),
         Err(Ok(Error::ClaimMismatch))
     );
 }
@@ -427,6 +473,7 @@ fn a_template_with_the_wrong_number_of_parts_is_refused() {
 /// `verify_claim` on the fixture signed with the app as owner.
 fn verify_app_signed(f: &Fixture) -> Result<VerifiedClaim, Error> {
     match f.client.try_verify_claim(
+        &Source::AdSense,
         &f.borrower,
         &String::from_str(&f.env, REVENUE),
         &String::from_str(&f.env, PUB_ID),
@@ -435,7 +482,7 @@ fn verify_app_signed(f: &Fixture) -> Result<VerifiedClaim, Error> {
         &TIMESTAMP_S,
         &EPOCH,
         &signature_from(&f.env, APP_SIGNATURE_HEX),
-        &APP_RECOVERY_ID,
+        &RECOVERY_ID,
     ) {
         Ok(Ok(claim)) => Ok(claim),
         Err(Ok(e)) => Err(e),
@@ -444,28 +491,43 @@ fn verify_app_signed(f: &Fixture) -> Result<VerifiedClaim, Error> {
 }
 
 #[test]
-fn without_a_pinned_owner_a_claim_signed_as_a_real_attestor_signs_is_refused() {
-    // The #102 bug, kept as a test: rebuilding the owner from the borrower cannot match a
-    // claim whose owner is the requesting app, which is every real attestor claim.
-    let f = setup();
-    assert_eq!(verify_app_signed(&f), Err(Error::VerifierRejected));
+fn an_unpinned_contract_refuses_rather_than_guessing_the_owner() {
+    // #102, as a refusal instead of a silent wrong answer. Before the fix the contract
+    // rebuilt the owner from the borrower, a form no real attestor claim carries, and the
+    // symptom was a bare VerifierRejected that took a real proof to diagnose. Defaulting
+    // to that form when nothing is pinned would leave every contract in exactly that
+    // state for the window between execute_upgrade and set_claim_owner.
+    let f = setup_unpinned();
+    assert_eq!(verify_app_signed(&f), Err(Error::ClaimOwnerNotSet));
+    assert_eq!(f.client.claim_owner(), None);
 }
 
 #[test]
 fn with_the_app_pinned_as_owner_that_claim_verifies() {
     let f = setup();
-    f.client
-        .set_claim_owner(&Bytes::from_slice(&f.env, APP_OWNER.as_bytes()));
     let claim = verify_app_signed(&f).expect("a claim signed for the pinned app must verify");
     assert_eq!(claim.borrower, f.borrower);
 }
 
 #[test]
 fn with_the_app_pinned_a_claim_signed_for_the_borrower_is_refused() {
+    // The pre-#102 shape, refused on a contract configured the way a real one is. This is
+    // what proves pinning actually changes the bytes being hashed rather than being
+    // recorded and ignored.
     let f = setup();
-    f.client
-        .set_claim_owner(&Bytes::from_slice(&f.env, APP_OWNER.as_bytes()));
-    assert!(verify(&f, REVENUE, PUB_ID, &f.borrower).is_err());
+    let out = f.client.try_verify_claim(
+        &Source::AdSense,
+        &f.borrower,
+        &String::from_str(&f.env, REVENUE),
+        &String::from_str(&f.env, PUB_ID),
+        &String::from_str(&f.env, WINDOW_START),
+        &String::from_str(&f.env, WINDOW_END),
+        &TIMESTAMP_S,
+        &EPOCH,
+        &borrower_signature(&f.env),
+        &BORROWER_RECOVERY_ID,
+    );
+    assert_eq!(out, Err(Ok(Error::VerifierRejected)));
 }
 
 #[test]
@@ -473,10 +535,9 @@ fn the_borrower_binding_survives_the_pinned_owner() {
     // The owner is the app for everyone, so it cannot be what binds the borrower. The
     // context still does: another address changes the identifier.
     let f = setup();
-    f.client
-        .set_claim_owner(&Bytes::from_slice(&f.env, APP_OWNER.as_bytes()));
     let attacker = Address::generate(&f.env);
     let out = f.client.try_verify_claim(
+        &Source::AdSense,
         &attacker,
         &String::from_str(&f.env, REVENUE),
         &String::from_str(&f.env, PUB_ID),
@@ -485,7 +546,7 @@ fn the_borrower_binding_survives_the_pinned_owner() {
         &TIMESTAMP_S,
         &EPOCH,
         &signature_from(&f.env, APP_SIGNATURE_HEX),
-        &APP_RECOVERY_ID,
+        &RECOVERY_ID,
     );
     assert_eq!(out, Err(Ok(Error::VerifierRejected)));
 }
@@ -511,7 +572,7 @@ fn the_owner_is_stored_lowercase_and_must_look_like_one() {
         assert_eq!(
             f.client
                 .try_set_claim_owner(&Bytes::from_slice(&f.env, bad.as_bytes())),
-            Err(Ok(Error::ClaimMismatch)),
+            Err(Ok(Error::ClaimOwnerMalformed)),
             "{bad}"
         );
     }
@@ -540,6 +601,7 @@ fn only_the_admin_can_pin_the_owner() {
 
 fn reserve(f: &Fixture, borrower: &Address) -> Result<VerifiedClaim, ()> {
     match f.client.try_verify_and_reserve(
+        &Source::AdSense,
         borrower,
         &String::from_str(&f.env, REVENUE),
         &String::from_str(&f.env, PUB_ID),
@@ -569,6 +631,7 @@ fn the_same_proof_cannot_fund_two_advances() {
 fn the_nullifier_is_recorded_as_spent_and_was_not_before() {
     let f = setup();
     let n = f.client.nullifier_for(
+        &Source::AdSense,
         &String::from_str(&f.env, PUB_ID),
         &String::from_str(&f.env, WINDOW_START),
         &String::from_str(&f.env, WINDOW_END),
@@ -590,6 +653,7 @@ fn a_refused_claim_does_not_burn_the_nullifier() {
     assert!(reserve(&f, &attacker).is_err());
 
     let n = f.client.nullifier_for(
+        &Source::AdSense,
         &String::from_str(&f.env, PUB_ID),
         &String::from_str(&f.env, WINDOW_START),
         &String::from_str(&f.env, WINDOW_END),
@@ -608,11 +672,13 @@ fn a_refused_claim_does_not_burn_the_nullifier() {
 fn a_different_window_is_a_different_nullifier() {
     let f = setup();
     let a = f.client.nullifier_for(
+        &Source::AdSense,
         &String::from_str(&f.env, PUB_ID),
         &String::from_str(&f.env, WINDOW_START),
         &String::from_str(&f.env, WINDOW_END),
     );
     let b = f.client.nullifier_for(
+        &Source::AdSense,
         &String::from_str(&f.env, PUB_ID),
         &String::from_str(&f.env, "2026-04-01"),
         &String::from_str(&f.env, "2026-06-30"),
@@ -627,11 +693,13 @@ fn field_boundaries_cannot_be_shifted_between_publisher_and_window() {
     // moving characters across a boundary must change the hash.
     let f = setup();
     let a = f.client.nullifier_for(
+        &Source::AdSense,
         &String::from_str(&f.env, "pub-12"),
         &String::from_str(&f.env, "34"),
         &String::from_str(&f.env, WINDOW_END),
     );
     let b = f.client.nullifier_for(
+        &Source::AdSense,
         &String::from_str(&f.env, "pub-1"),
         &String::from_str(&f.env, "234"),
         &String::from_str(&f.env, WINDOW_END),

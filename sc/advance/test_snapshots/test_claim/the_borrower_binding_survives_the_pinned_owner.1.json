@@ -19,6 +19,13 @@
                 {
                   "vec": [
                     {
+                      "symbol": "AdSense"
+                    }
+                  ]
+                },
+                {
+                  "vec": [
+                    {
                       "bytes": "7b226d6574686f64223a22474554222c2275726c223a2268747470733a2f2f616473656e73652e676f6f676c65617069732e636f6d2f76322f6163636f756e74732f"
                     },
                     {
@@ -191,7 +198,14 @@
                       "key": {
                         "vec": [
                           {
-                            "symbol": "ParamsTemplate"
+                            "symbol": "ParamsTemplateFor"
+                          },
+                          {
+                            "vec": [
+                              {
+                                "symbol": "AdSense"
+                              }
+                            ]
                           }
                         ]
                       },
@@ -228,7 +242,14 @@
                       "key": {
                         "vec": [
                           {
-                            "symbol": "ProviderHash"
+                            "symbol": "ProviderHashFor"
+                          },
+                          {
+                            "vec": [
+                              {
+                                "symbol": "AdSense"
+                              }
+                            ]
                           }
                         ]
                       },

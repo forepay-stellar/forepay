@@ -94,3 +94,50 @@ pub fn advance_stroops(cents: i128) -> Option<i128> {
         sized
     })
 }
+
+/// Micros per cent. AdMob reports `ESTIMATED_EARNINGS` as `microsValue`: millionths of a
+/// currency unit, so `"123450000"` is $123.45 and one cent is 10,000 micros.
+pub const MICROS_PER_CENT: i128 = 10_000;
+
+/// Parse an AdMob `microsValue` string into cents, **truncating**.
+///
+/// The figure arrives as an integer string of micros, with no decimal point — that is the
+/// shape of the field, and the provider's regex captures it as `\d+`. So this refuses a
+/// `.` rather than accepting a decimal it was not given, for the same reason
+/// `parse_usd_cents` refuses a third decimal place: a figure nobody can re-derive is
+/// indistinguishable from one we made up.
+///
+/// **Truncation is deliberate and one-directional.** `1_239_999` micros is $1.239999, and
+/// this returns 123 cents, not 124. The advance is never sized from more than was
+/// attested, and the lost fraction is at most one cent — below the 1 USDC floor by four
+/// orders of magnitude, so it can never be the difference between an advance and a
+/// refusal.
+///
+/// Returns `None` for anything that is not a plain non-negative integer.
+pub fn parse_micros_cents(env: &Env, micros: &String) -> Option<i128> {
+    let len = micros.len() as usize;
+    if len == 0 || len > 32 {
+        return None;
+    }
+    let mut buf = [0u8; 32];
+    micros.copy_into_slice(&mut buf[..len]);
+    let _ = env;
+
+    let mut total: i128 = 0;
+    for &c in &buf[..len] {
+        match c {
+            b'0'..=b'9' => {
+                total = total.checked_mul(10)?.checked_add((c - b'0') as i128)?;
+                // Stop well before the multiply in `advance_stroops` can overflow, the
+                // same guard `parse_usd_cents` applies to its whole part.
+                if total > i128::MAX / 1_000_000 {
+                    return None;
+                }
+            }
+            // No '.' arm on purpose: a micros field has no fractional part, and silently
+            // accepting one would mean accepting a figure in a unit we were not given.
+            _ => return None,
+        }
+    }
+    Some(total / MICROS_PER_CENT)
+}

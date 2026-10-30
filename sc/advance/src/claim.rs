@@ -139,18 +139,34 @@ fn unpadded(env: &Env, digits: &[u8]) -> Bytes {
 ///
 /// `parameters` is pinned in this contract and rebuilt here, so both are as strongly held
 /// as they were in the context. Nothing moved outside the signature.
+/// # Why the figure's key is passed in (#94)
+///
+/// AdSense attests dollars (`"123.45"`) and AdMob attests micros (`"123450000"`), so the
+/// relay extracts them under different names: `revenueUsd` and `revenueMicros`. The key
+/// is inside the context, so it is inside the identifier, so it is signed — it cannot be
+/// renamed after the fact or inferred at verification time.
+///
+/// They never share a name, and the reason is that the two mistakes are not symmetric.
+/// Dollars read as micros truncate to zero cents and are refused. **Micros read as
+/// dollars neither overflow nor error: they return the cap.** `quote("123450000")` on the
+/// deployed contract is `1_000_000_000` stroops — the 100 USDC maximum — so every advance
+/// would silently be the largest one allowed, for any revenue at all. Checked against
+/// `CCQFL2Q6…I2HS` on 2026-10-29 rather than reasoned about.
 pub fn rebuild_context(
     env: &Env,
     borrower: &Bytes,
-    revenue_usd: &Bytes,
+    revenue_key: &[u8],
+    revenue: &Bytes,
     provider_hash: &Bytes,
 ) -> Bytes {
     let mut out = Bytes::from_slice(env, br#"{"contextAddress":""#);
     out.append(borrower);
     out.extend_from_slice(br#"","contextMessage":""#);
     out.extend_from_slice(CONTEXT_MESSAGE);
-    out.extend_from_slice(br#"","extractedParameters":{"revenueUsd":""#);
-    out.append(revenue_usd);
+    out.extend_from_slice(br#"","extractedParameters":{""#);
+    out.extend_from_slice(revenue_key);
+    out.extend_from_slice(br#"":""#);
+    out.append(revenue);
     out.extend_from_slice(br#""},"providerHash":""#);
     out.append(provider_hash);
     out.extend_from_slice(br#""}"#);
@@ -288,11 +304,36 @@ pub fn lowercase(env: &Env, b: &Bytes) -> Bytes {
 /// parameters="b\nc"` hashes identically to `provider="a\nb", parameters="c"`, which #3
 /// pinned with a test. Length prefixes cost four bytes each and remove the question, so
 /// no caller can shift a boundary between the publisher id and the window.
-pub fn nullifier_of(env: &Env, pub_id: &Bytes, window_start: &Bytes, window_end: &Bytes) -> Bytes {
+/// # Why `tag` is `Option` rather than always present (#94)
+///
+/// A second revenue source needs its own nullifier space: one Google account's AdSense
+/// and AdMob publisher ids are **the same `pub-` id** — confirmed on a real account in
+/// #93, not assumed — so without a tag an AdMob proof would spend the AdSense nullifier
+/// for the same window, or be blocked by it. The two are different money and each should
+/// be borrowable once.
+///
+/// AdSense passes `None` and therefore hashes exactly the bytes it always has. That
+/// asymmetry is **forced, not chosen**: advances already on chain are keyed on the
+/// untagged hash, and tagging AdSense now would orphan them. Every source added after
+/// AdSense is tagged. `source_tag` in `lib.rs` is the one place that mapping lives.
+pub fn nullifier_of(
+    env: &Env,
+    pub_id: &Bytes,
+    window_start: &Bytes,
+    window_end: &Bytes,
+    tag: Option<&[u8]>,
+) -> Bytes {
     let mut buf = Bytes::new(env);
     for field in [pub_id, window_start, window_end] {
         buf.extend_from_slice(&field.len().to_be_bytes());
         buf.append(field);
+    }
+    // Length-prefixed like the others, so a tag can never be confused with a longer
+    // window, and absent is not the same as empty: `None` appends nothing at all, while
+    // a zero-length tag would append four zero bytes and change the hash.
+    if let Some(tag) = tag {
+        buf.extend_from_slice(&(tag.len() as u32).to_be_bytes());
+        buf.extend_from_slice(tag);
     }
     env.crypto().sha256(&buf).to_bytes().into()
 }

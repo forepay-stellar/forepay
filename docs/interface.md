@@ -239,8 +239,10 @@ Assigned once, **never renumbered**. Blocks reserved in #8; this freeze fills 10
 | **12** | `ProofStale` | #9 |
 | **13** | `ProofFromTheFuture` | #9 |
 | **14** | `VerifierRejected` — Reclaim's `verify_proof` refused | #9 |
+| **15** | `ClaimOwnerNotSet` — no owner pinned, so the digest cannot be rebuilt | #102 |
+| **16** | `ClaimOwnerMalformed` — `set_claim_owner` not given `0x` + 40 hex digits | #102 |
 | **20** | `NullifierSpent` | #10 |
-| **30** | `RevenueUnparseable` — not `\d+(\.\d+)?`, or more than two decimals | #11 |
+| **30** | `RevenueUnparseable` — not parseable in the unit its source attests | #11, #94 |
 | **31** | `AdvanceTooSmall` — below `MIN_ADVANCE_STROOPS` | #11 |
 | **40** | `InsufficientLiquidity` — the contract cannot cover the advance | #12 |
 | **41** | `NoTrustline` — the borrower holds no USDC trustline | #12 |
@@ -255,10 +257,11 @@ The front end checks first (#19), but the contract does not assume it did.
 
 ```rust
 request_advance(
+    source: Source,           // AdSense | AdMob — selects the template, which pins the host (§10)
     borrower: Address,        // must equal contextAddress inside the signed claim
-    revenue_usd: String,      // decimal string from extractedParameters
-    pub_id: String,           // AdSense publisher id
-    window_start: String,     // YYYY-MM-DD; split into year/month/day for the URL (§2)
+    revenue_usd: String,      // the figure from extractedParameters, in that source's unit
+    pub_id: String,           // AdSense or AdMob publisher id
+    window_start: String,     // YYYY-MM-DD; split into year/month/day for the request (§2)
     window_end: String,
     timestamp_s: u64,
     epoch: u64,
@@ -267,18 +270,23 @@ request_advance(
 ) -> Result<i128, Error>       // stroops disbursed
 ```
 
+`revenue_usd` keeps its name for AdMob, where it carries micros. Renaming a parameter changes the
+contract's public interface for every caller, and the unit is already named unambiguously where it
+matters — inside the signed context, as `revenueUsd` or `revenueMicros` (§10).
+
 Order is the security property, and it does not change:
 
 0. **`borrower.require_auth()`** — before anything else, including the hashing
-1. template is set, else `TemplateNotSet`
-2. split each window date into unpadded year/month/day, else `ClaimMismatch`; rebuild `context` and
-   `parameters`; rebuild `identifier`; build the digest
+1. that source's template is set, else `TemplateNotSet`
+2. split each window date into unpadded year/month/day, else `ClaimMismatch`; interleave the seven
+   values **in that source's order**; rebuild `context` with that source's figure key; rebuild
+   `identifier`; the claim owner is pinned, else `ClaimOwnerNotSet`; build the digest
 3. freshness
 4. **cross-contract `verify_proof`** — everything after this point is attested
-5. nullifier not spent → **write the nullifier**
-6. size
+5. nullifier not spent → **write the nullifier**, tagged for anything but AdSense
+6. size, in that source's unit
 7. disburse
-8. record the advance
+8. record the advance, and its source beside it if it is not AdSense
 
 Verify before trusting any field, and write the nullifier before moving money. Check-then-act with a
 transfer in between is the classic race.
@@ -325,3 +333,107 @@ only way it could have been found before the first proof arrived.
 The lesson worth keeping is narrow: **the part of a freeze that describes someone else's API is a
 guess until it is checked against that API.** Checking it did not need a live account — the
 reference page was enough, and nobody read it.
+
+---
+
+## 10. A second revenue source: AdMob (#94)
+
+Added after the freeze, labelled `out-of-sow` (SOW §4.1 names AdSense). It changes the shape of the
+call, so it belongs in this document rather than in a changelog.
+
+### What a source selects
+
+`Source` is `AdSense` or `AdMob`, and it is a parameter on `set_claim_template`, `verify_claim`,
+`verify_and_reserve`, `request_advance` and `nullifier_for`.
+
+**The caller's `source` does not choose the host.** It chooses which template to rebuild against,
+and the template *contains* the host. So an AdMob claim checked as `AdSense` is rebuilt into a
+request to `adsense.googleapis.com`, produces a different identifier, and the signature recovers to
+nobody. That refusal is tested in both directions. It is the property that makes a second source
+safe to add at all: no argument a caller supplies can make a claim verify against the wrong API.
+
+| | AdSense | AdMob |
+| --- | --- | --- |
+| Host, in the template | `adsense.googleapis.com/v2` | `admob.googleapis.com/v1` |
+| Method | `GET`, window in the query string | `POST`, window inside the signed `body` |
+| Figure | `revenueUsd`, decimal dollars (`"123.45"`) | `revenueMicros`, integer micros (`"123450000"`) |
+| Value order | `pub_id, sy, sm, sd, ey, em, ed` | `sy, sm, sd, ey, em, ed, pub_id` |
+| Separators end with | `=` (and `/` before `pub_id`) | `\"year\":`, `\"month\":`, `\"day\":`, `/accounts/` |
+| Nullifier tag | none | `admob` |
+| `DataKey::AdvanceSource` | absent | written |
+
+### The value order is not in the template
+
+`rebuild_parameters` interleaves N parts with N−1 values **positionally**, so the order is part of
+the source's shape and lives in `claim_values` in `lib.rs`, not in the pinned bytes.
+
+AdMob needs the reverse of AdSense's order because the attestor canonicalises `parameters` with
+its keys sorted — `body, headers, method, responseMatches, responseRedactions, url` — so the window,
+which lives in `body`, comes before the publisher id, which lives in `url` (#93).
+
+Getting it wrong does not fail safe into a wrong template: the identifier simply would not match
+and it would surface as `ClaimMismatch` with nothing pointing at the cause. Three places check the
+same ordering, independently and without deriving it from each other:
+
+- the contract, in `sc/advance/src/test_admob.rs`;
+- `tools/pin_template.py --self-test`, which also refuses the other source's order;
+- `be/src/admob/request.test.ts`.
+
+### Micros, and why the key names the unit
+
+AdMob reports `ESTIMATED_EARNINGS` as `microsValue`: millionths, so 10,000 micros is one cent.
+`parse_micros_cents` **truncates** — `1239999` micros is 123 cents, never 124 — so the advance is
+never sized from more than was attested.
+
+The key is inside `extractedParameters`, therefore inside the context, therefore inside the
+identifier, therefore signed. It cannot be renamed afterwards or inferred at verification time, and
+the two sources never share it, because **the two mistakes are not symmetric**:
+
+| Mistake | What happens |
+| --- | --- |
+| Dollars read as micros | `123.45` has a `.`, refused; even as `12345` it truncates to 1 cent and fails `AdvanceTooSmall` — **loud** |
+| **Micros read as dollars** | `"123450000"` is a valid decimal. `quote()` returns `1000000000` stroops — the 100 USDC cap — for **any** revenue. No error, no clue — **silent** |
+
+Measured on the deployed contract on 2026-10-29, not reasoned about:
+`quote("123.45") = 308625000`, `quote("123450000") = 1000000000`.
+
+### The nullifier is tagged for AdMob only
+
+`sha256(pub_id ‖ window_start ‖ window_end ‖ "admob")`, each field length-prefixed. AdSense hashes
+exactly the bytes §4 describes, with nothing appended.
+
+The asymmetry is **forced, not chosen**: advances already on chain are keyed on the untagged hash,
+and tagging AdSense now would compute a different key and orphan records that represent debts. One
+`source_tag` function holds the exception, with the reason attached. Every source added after
+AdSense is tagged.
+
+A tag is needed because one Google account's AdSense and AdMob publisher ids are **the same `pub-`
+id** — confirmed on a real account in #93, not assumed. Untagged, an AdMob proof would spend the
+AdSense nullifier for the same window.
+
+> **Consequence worth stating: the tag permits two advances, it does not deduplicate.** One creator
+> can borrow against Jul–Sep AdSense *and* Jul–Sep AdMob for the same publisher id. That is correct
+> — website and in-app ad revenue are different money — but the exposure per creator per window is
+> **2× the cap**, not the cap. Harmless at 100 USDC on testnet; a real limit question beyond it.
+
+### The source of an advance is a parallel key, not a field
+
+`DataKey::AdvanceSource(BytesN<32>) -> Source`, written beside the `Advance` at disbursement, and
+**absent means `AdSense`**.
+
+Not a field on `Advance`: that struct encodes as a map with symbol keys, so a required field would
+change the type of the value stored under an existing key, and every advance recorded before the
+upgrade would fail to decode. Those entries are debts. `advance_source` returns `Source` rather than
+`Option<Source>`, because absent is not missing data — it is the answer.
+
+Event-only was the other option and is weaker: the front end would have to reconstruct the source
+from history, and #66 deliberately reads figures from the contract's own record rather than summing
+Horizon.
+
+### Reading templates back
+
+`claim_template()` and `provider_hash()` keep their argument-free form and answer for AdSense, so
+anything built before #94 keeps working. `claim_template_for(source)` and `provider_hash_for(source)`
+are the general form. For `AdSense` both fall back to the pre-#94 singleton keys, so a contract
+pinned before sources existed verifies without being re-pinned. **No other source falls back to
+anything** — an unpinned source refuses with `TemplateNotSet`.
