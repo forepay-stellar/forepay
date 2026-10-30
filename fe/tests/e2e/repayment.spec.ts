@@ -506,6 +506,25 @@ test("advance details say how it was sized, from the contract's own rate", async
   await expect(details.getByText("How it was sized").locator("..")).toContainText("25% of $360.00");
 });
 
+test("advance details name where the revenue was earned, from the API's source", async ({ page, isMobile }) => {
+  test.skip(isMobile, "advance details are the desktop layout's");
+  const ledger = frameLedger();
+  ledger.advances[0].source = "AdMob";
+  await open(page, "/repayment", ledger);
+  const details = page.getByRole("heading", { name: "Advance details" }).locator("..");
+  await expect(details.getByText("AdMob revenue, Jul to Sep 2026")).toBeVisible();
+  await expect(details).not.toContainText("AdSense");
+});
+
+test("advance details read an advance without a source, from an API before #107, as AdSense", async ({ page, isMobile }) => {
+  test.skip(isMobile, "advance details are the desktop layout's");
+  const ledger = frameLedger();
+  delete (ledger.advances[0] as Partial<(typeof ledger.advances)[0]>).source;
+  await open(page, "/repayment", ledger);
+  const details = page.getByRole("heading", { name: "Advance details" }).locator("..");
+  await expect(details.getByText("AdSense revenue, Jul to Sep 2026")).toBeVisible();
+});
+
 test("the sizing row holds its place while the contract's sizing loads", async ({ page, isMobile }) => {
   test.skip(isMobile, "advance details are the desktop layout's");
   await open(page, "/repayment", frameLedger(), { advance: { sizingDelayMs: 1500 } });

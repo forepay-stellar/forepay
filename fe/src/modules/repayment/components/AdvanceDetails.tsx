@@ -29,7 +29,7 @@ export function AdvanceDetails({
   const rows: { label: string; value: ReactNode }[] = [
     { label: "Advanced", value: formatUsdc(advance.principal) },
     {
-      label: `AdSense revenue, ${formatWindow(advance.windowStart, advance.windowEnd).short}`,
+      label: `${advance.source} revenue, ${formatWindow(advance.windowStart, advance.windowEnd).short}`,
       value: formatUsdCents(advance.revenueCents),
     },
     ...(sized ? [{ label: "How it was sized", value: sized }] : []),
