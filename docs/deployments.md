@@ -1029,3 +1029,84 @@ only stops you going faster.
 stops every real proof verifying — and its fix needs the same timelock. Those three days were the
 slack that would have let #102 and #94 go as separate upgrades. They now have to share one, with
 submission on 2026-11-08.
+
+---
+
+## v0.5.0 proposed on both contracts: #102's gate fix and #94's AdMob (2026-10-30)
+
+One upgrade carries two things, because #81's three-day delay spent the slack that would have
+let them go separately: **#103**, which makes `verify_claim` rebuild the attestor's `owner` from
+an admin-pinned app id instead of the borrower, and **#94**, which adds AdMob as a second
+revenue source. Until this executes, no real Reclaim proof can verify on either contract.
+
+### The release, and which hash is the one that counts
+
+`v0.5.0` was tagged from `ee05add` and built by `.github/workflows/release.yml`
+(`stellar-expert/soroban-build-workflow`), which is the only build whose hash StellarExpert
+attests against the commit.
+
+| Build | sha256 | What it is |
+| --- | --- | --- |
+| Release artifact, `forepay-advance_v0.1.0.wasm`, 39,956 bytes | `ff6a16e988d8c31f27695efff60172764eefae9b19e2b95914c010c509e4f22e` | **the bytes on chain** |
+| `x86_64-unknown-linux-gnu`, stellar-cli 28.1.0 | `f4fd10d646307bd4f204a26be3b64c35141587b9e12aca0f41b48c049d3a5a36` | rebuilt and compared by CI on every push |
+| `aarch64-apple-darwin`, stellar-cli 27.0.0 | `0c5c70c9607676f1f69ff0bfa2cd6ec761b6aca2e555324b839c6a10dce1acdd` | developer reference, checked by nothing |
+
+Three different numbers for one source tree, which is the trap `sc/wasm-hashes.txt` exists to
+document. **The procedure was validated before being trusted**: the v0.4.0 release artifact was
+re-downloaded and hashed, and it is `481e7f163ba3867b0e9bf48a36a983650a28a216f45c314fb21c94e9c4186696`
+— byte for byte the wasm currently live on both contracts. So the artifact's sha256 is the
+on-chain wasm hash, demonstrated rather than assumed.
+
+### On chain
+
+| Step | Transaction |
+| --- | --- |
+| `stellar contract upload` | [`eb636b2782d2d31fb4a13d61fbd0e0c538b564d73607e7ba118b2f6f0e18ea7c`](https://stellar.expert/explorer/testnet/tx/eb636b2782d2d31fb4a13d61fbd0e0c538b564d73607e7ba118b2f6f0e18ea7c) |
+| `propose_upgrade` on production `CCQFL2Q66DHFAZU2KPRWNHU4FTZJW75N5XLNXECFFGMW3PROIXJPI2HS` | [`e64318b02e14bc44928325e7911c98b47d8250e03c6b750bdc4a9bcdecdf7366`](https://stellar.expert/explorer/testnet/tx/e64318b02e14bc44928325e7911c98b47d8250e03c6b750bdc4a9bcdecdf7366) |
+| `propose_upgrade` on dev `CD25Q4TDGDY6CI3LUIWUOH6SXCH6ETIUCI6FUOBI322GCJL5G3EIHQN4` | [`b7e04e52416f7f6e701407b325e463097090e9fccea9946981f0ff71bc97eb66`](https://stellar.expert/explorer/testnet/tx/b7e04e52416f7f6e701407b325e463097090e9fccea9946981f0ff71bc97eb66) |
+
+Read back from both contracts afterwards, not taken from the submit output:
+
+```
+CCQFL2Q6  {"executable_at":1793454550,"wasm_hash":"ff6a16e9…e4f22e"}   2026-10-31 13:49:10 UTC
+CD25Q4TD  {"executable_at":1793454560,"wasm_hash":"ff6a16e9…e4f22e"}   2026-10-31 13:49:20 UTC
+```
+
+Both were `null` immediately before, so nothing was half-proposed. The delay is exactly 86,400
+seconds, as `UPGRADE_DELAY_SECONDS` requires — it cannot be shortened, by design, because an
+admin who can shorten the delay has no delay.
+
+### State immediately before, for comparison afterwards
+
+| Contract | `liquidity()` | `claim_template()` |
+| --- | --- | --- |
+| `CCQFL2Q6…I2HS` production | `1050000000` stroops = 105 USDC, untouched | **`null`** |
+| `CD25Q4TD…HQN4` dev | `20000000` = 2 USDC | the 8-part AdSense template (#76) |
+
+Production's `claim_template()` being `null` is still the reason no advance has ever been paid
+there: `request_advance` cannot reach the sizing without a template to rebuild the claim from.
+
+Deployer and admin `GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2`, 29,433.56 XLM
+after the three transactions.
+
+### What has to happen in order, and the one part that is a human handoff
+
+1. The relay host back onto a recorded `main` at `ee05add` (#99, #100). **Before** step 2, so a
+   failure is debugged against one tree and not two.
+2. `execute_upgrade` on both, not before 2026-10-31 13:49:10 UTC.
+3. **Immediately after:** `NEXT_PUBLIC_CONTRACT_TAKES_SOURCE=1` on `forepay-vue5` **and a
+   rebuild**. `NEXT_PUBLIC_*` is inlined at build time, so setting the variable alone does
+   nothing and looks identical to not setting it. Between steps 2 and 3 the live app cannot
+   accept **any** advance, AdSense included: the deployed bundle sends nine arguments to a
+   ten-argument `request_advance` and fails at simulation. No funds move and no proof is spent;
+   the app is simply down for the length of that build.
+4. `set_claim_owner 0x6415200c713135e77157e1536d488df4f2bb7d04` — the Reclaim app id the
+   production attestor actually signs for, which is the whole of #102.
+5. `set_claim_template` for AdSense (#61) and AdMob (#96), each derived by
+   `tools/pin_template.py --source …` from a real signed proof. **The fee is to be read at
+   simulation on each**, not estimated: #76's `set_claim_template` wanted 21,370 XLM, and that
+   was rent on bytes × ledgers, not computation. It cannot be measured before step 2, because
+   the two-argument signature does not exist on the deployed wasm yet.
+6. Read back an `Advance` written by v0.4.0, proving `#[contracttype]` enum storage keys survive
+   by name across the upgrade rather than by position.
+7. A real proof verifying on chain, which is what #5 and #102 are actually waiting for.
