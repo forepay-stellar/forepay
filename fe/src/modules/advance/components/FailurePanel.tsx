@@ -127,6 +127,14 @@ export function FailurePanel({
         illustration = <IlloSessionCancelled data-illo="session-cancelled" />;
         actions = <Button onClick={a.onProve}>Prove my revenue</Button>;
         break;
+      // The relay found no earnings in the window (#97). Not on the board yet. Proving again would read the
+      // same months, so only Back: from 2a the creator can pick the other source. The picture and single
+      // Back of "Not enough revenue yet", on 2a's step since there is no offer.
+      case "noRevenue":
+      case "noRevenueAdmob":
+        illustration = <IlloNoAdvanceYet data-illo="no-advance-yet" />;
+        actions = back;
+        break;
       case "proofGone":
         illustration = <IlloProofExpired data-illo="proof-expired" />;
         actions = <>{proveAgain}{back}</>;

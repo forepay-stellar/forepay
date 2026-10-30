@@ -139,6 +139,21 @@ test("a Google account with no AdSense the relay can read is named", async ({ pa
   await expect(page.getByRole("button", { name: "Back" })).toBeVisible();
 });
 
+test("an AdSense account that earned nothing is named, and only Back is offered", async ({ page }) => {
+  const relay = relayFor({ j1: [{ id: "j1", stage: "failed", error: { code: "empty", message: "no AdSense earnings" } }] });
+  await connect(page, relay, "ok");
+  await prove(page);
+  await expect(heading(page, "No AdSense revenue to prove")).toBeVisible();
+  await expect(page.getByText("We found no AdSense revenue in the last three complete months", { exact: false })).toBeVisible();
+  await expect(page.getByText("If you earn with AdMob, go back and prove that instead.", { exact: false })).toBeVisible();
+  await expect(page.locator('[data-illo="no-advance-yet"]')).toBeVisible();
+  // Proving again would read the same months.
+  await expect(page.getByRole("button", { name: "Prove again" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Back" }).click();
+  await expect(page.getByRole("radio", { name: /AdSense/ })).toBeChecked();
+  await expect(page.getByRole("button", { name: "Prove my revenue" })).toBeVisible();
+});
+
 test("closing Google's window is named, and proving can start again", async ({ page }) => {
   const relay = relayFor();
   await connect(page, relay, "closed");
@@ -346,6 +361,21 @@ test("a Google account with no AdMob is named as AdMob, and Prove again stays on
   await proveAgain(page);
   await expect(page.getByRole("button", { name: "Accept 90.00 USDC" })).toBeVisible();
   expect(relay.posts.map((p) => p.source)).toEqual(["admob", "admob"]);
+});
+
+test("an AdMob account that earned nothing is named as AdMob, and Back stays on AdMob", async ({ page }) => {
+  const relay = relayFor({ j1: [{ id: "j1", stage: "failed", error: { code: "empty", message: "no AdMob earnings" } }] });
+  await connect(page, relay, "ok");
+  await chooseAdmob(page);
+  await prove(page);
+  await expect(heading(page, "No AdMob revenue to prove")).toBeVisible();
+  await expect(page.getByText("We found no AdMob revenue in the last three complete months", { exact: false })).toBeVisible();
+  await expect(page.getByText("If you earn with AdSense, go back and prove that instead.", { exact: false })).toBeVisible();
+  await expect(page.locator('[data-illo="no-advance-yet"]')).toBeVisible();
+  await expect(page.getByRole("button", { name: "Prove again" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Back" }).click();
+  await expect(page.getByRole("radio", { name: /AdMob/ })).toBeChecked();
+  expect(relay.posts.map((p) => p.source)).toEqual(["admob"]);
 });
 
 test("an AdMob proof resumed after leaving stays AdMob: its reading, its failure, Prove again and Back", async ({ page }) => {

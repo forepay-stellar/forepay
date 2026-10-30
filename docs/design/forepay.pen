@@ -22858,6 +22858,250 @@
                       "fontWeight": "normal"
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "jrEiT",
+                  "name": "No AdSense revenue",
+                  "width": 460,
+                  "layout": "vertical",
+                  "gap": 14,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "P60TZR",
+                      "name": "Preview",
+                      "width": "fill_container",
+                      "height": 520,
+                      "fill": "$canvas",
+                      "cornerRadius": "$radius-tile",
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 24,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "wrgY2",
+                          "name": "Panel",
+                          "width": 400,
+                          "fill": "$surface",
+                          "cornerRadius": "$radius-card",
+                          "layout": "vertical",
+                          "gap": 14,
+                          "padding": 24,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "rmbo9",
+                              "name": "Illustration wrap",
+                              "width": "fill_container",
+                              "justifyContent": "center",
+                              "children": [
+                                {
+                                  "id": "u8zle8",
+                                  "type": "ref",
+                                  "ref": "mrLSL",
+                                  "name": "Illustration"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "i8o7B",
+                              "name": "Title",
+                              "fill": "$fg",
+                              "content": "No AdSense revenue to prove",
+                              "fontFamily": "$font-sans",
+                              "fontSize": 19,
+                              "fontWeight": "600",
+                              "letterSpacing": -0.3
+                            },
+                            {
+                              "type": "text",
+                              "id": "GY5KL",
+                              "name": "Body",
+                              "fill": "$fg-muted",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "We found no AdSense revenue in the last three complete months. If you earn with AdMob, go back and prove that instead. Nothing was charged.",
+                              "lineHeight": 1.5,
+                              "fontFamily": "$font-sans",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "wt6or",
+                              "name": "Actions",
+                              "width": "fill_container",
+                              "gap": 10,
+                              "children": [
+                                {
+                                  "id": "gLatR",
+                                  "type": "ref",
+                                  "ref": "kBlXW",
+                                  "name": "Secondary",
+                                  "width": "fill_container",
+                                  "descendants": {
+                                    "StVcP": {
+                                      "content": "Back"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "lyEFL",
+                      "name": "Title",
+                      "fill": "$fg",
+                      "content": "No AdSense revenue",
+                      "fontFamily": "$font-sans",
+                      "fontSize": 16,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ZVpOk",
+                      "name": "Desc",
+                      "fill": "$fg-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "No AdSense earnings in the three months, so nothing to prove. Back keeps AdSense chosen, to switch to AdMob.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-sans",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "c9ynR",
+                  "name": "No AdMob revenue",
+                  "width": 460,
+                  "layout": "vertical",
+                  "gap": 14,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Qst2N",
+                      "name": "Preview",
+                      "width": "fill_container",
+                      "height": 520,
+                      "fill": "$canvas",
+                      "cornerRadius": "$radius-tile",
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 24,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "v2TgOt",
+                          "name": "Panel",
+                          "width": 400,
+                          "fill": "$surface",
+                          "cornerRadius": "$radius-card",
+                          "layout": "vertical",
+                          "gap": 14,
+                          "padding": 24,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "xUHGe",
+                              "name": "Illustration wrap",
+                              "width": "fill_container",
+                              "justifyContent": "center",
+                              "children": [
+                                {
+                                  "id": "Wn3Zs",
+                                  "type": "ref",
+                                  "ref": "mrLSL",
+                                  "name": "Illustration"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "TPxHJ",
+                              "name": "Title",
+                              "fill": "$fg",
+                              "content": "No AdMob revenue to prove",
+                              "fontFamily": "$font-sans",
+                              "fontSize": 19,
+                              "fontWeight": "600",
+                              "letterSpacing": -0.3
+                            },
+                            {
+                              "type": "text",
+                              "id": "BrFyL",
+                              "name": "Body",
+                              "fill": "$fg-muted",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "We found no AdMob revenue in the last three complete months. If you earn with AdSense, go back and prove that instead. Nothing was charged.",
+                              "lineHeight": 1.5,
+                              "fontFamily": "$font-sans",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "oaWG4",
+                              "name": "Actions",
+                              "width": "fill_container",
+                              "gap": 10,
+                              "children": [
+                                {
+                                  "id": "BKaed",
+                                  "type": "ref",
+                                  "ref": "kBlXW",
+                                  "name": "Secondary",
+                                  "width": "fill_container",
+                                  "descendants": {
+                                    "StVcP": {
+                                      "content": "Back"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "XodQP",
+                      "name": "Title",
+                      "fill": "$fg",
+                      "content": "No AdMob revenue",
+                      "fontFamily": "$font-sans",
+                      "fontSize": 16,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Xaw77",
+                      "name": "Desc",
+                      "fill": "$fg-muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "No AdMob earnings in the three months, so nothing to prove. Back keeps AdMob chosen, to switch to AdSense.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-sans",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
                 }
               ]
             }
@@ -24177,6 +24421,216 @@
                         {
                           "type": "text",
                           "id": "Era8P",
+                          "name": "Text",
+                          "fill": "$fg-muted",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Back",
+                          "lineHeight": 1.45,
+                          "fontFamily": "$font-sans",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "NZ23L",
+                  "name": "No AdSense revenue to prove",
+                  "width": "fill_container",
+                  "stroke": "$line",
+                  "strokeWidth": {
+                    "bottom": 1
+                  },
+                  "gap": 24,
+                  "padding": [
+                    14,
+                    0
+                  ],
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Ry8xE",
+                      "name": "When",
+                      "width": 340,
+                      "layout": "vertical",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "JIxfP",
+                          "name": "Text",
+                          "fill": "$fg-muted",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "The AdSense account earned nothing in the three months",
+                          "lineHeight": 1.45,
+                          "fontFamily": "$font-sans",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "G0vNf2",
+                      "name": "Title",
+                      "width": 420,
+                      "layout": "vertical",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "w9y8jo",
+                          "name": "Text",
+                          "fill": "$fg",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "No AdSense revenue to prove",
+                          "lineHeight": 1.45,
+                          "fontFamily": "$font-sans",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "IfzjU",
+                      "name": "Body",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "t05t6",
+                          "name": "Text",
+                          "fill": "$fg-muted",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "We found no AdSense revenue in the last three complete months. If you earn with AdMob, go back and prove that instead. Nothing was charged.",
+                          "lineHeight": 1.45,
+                          "fontFamily": "$font-sans",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "uF2FT",
+                      "name": "Buttons",
+                      "width": 360,
+                      "layout": "vertical",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "XDJxs",
+                          "name": "Text",
+                          "fill": "$fg-muted",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Back",
+                          "lineHeight": 1.45,
+                          "fontFamily": "$font-sans",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "l3fCaq",
+                  "name": "No AdMob revenue to prove",
+                  "width": "fill_container",
+                  "stroke": "$line",
+                  "strokeWidth": {
+                    "bottom": 1
+                  },
+                  "gap": 24,
+                  "padding": [
+                    14,
+                    0
+                  ],
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "X8x6XY",
+                      "name": "When",
+                      "width": 340,
+                      "layout": "vertical",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "o0gWjt",
+                          "name": "Text",
+                          "fill": "$fg-muted",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "The AdMob account earned nothing in the three months",
+                          "lineHeight": 1.45,
+                          "fontFamily": "$font-sans",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "UMV80",
+                      "name": "Title",
+                      "width": 420,
+                      "layout": "vertical",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "K1s4mT",
+                          "name": "Text",
+                          "fill": "$fg",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "No AdMob revenue to prove",
+                          "lineHeight": 1.45,
+                          "fontFamily": "$font-sans",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "NaAw8",
+                      "name": "Body",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "sYHPH",
+                          "name": "Text",
+                          "fill": "$fg-muted",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "We found no AdMob revenue in the last three complete months. If you earn with AdSense, go back and prove that instead. Nothing was charged.",
+                          "lineHeight": 1.45,
+                          "fontFamily": "$font-sans",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "UEnai",
+                      "name": "Buttons",
+                      "width": 360,
+                      "layout": "vertical",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "FuzA0",
                           "name": "Text",
                           "fill": "$fg-muted",
                           "textGrowth": "fixed-width",

@@ -135,6 +135,8 @@ describe("proveFailureCopy", () => {
     "noAdsense",
     "googleSignInAdmob",
     "noAdmob",
+    "noRevenue",
+    "noRevenueAdmob",
     "relayFailed",
     "relayBusy",
     "proofRunning",
@@ -154,7 +156,7 @@ describe("proveFailureCopy", () => {
   it("says nothing was charged only when that is true", () => {
     expect(proveFailureCopy("refused").body).toMatch(/Nothing was charged/);
     // The relay's failures happen before anything reaches Stellar.
-    for (const k of ["googleSignIn", "noAdsense", "googleSignInAdmob", "noAdmob", "relayFailed", "proofRunning", "proofGone", "relayUnreachable"] as const) {
+    for (const k of ["googleSignIn", "noAdsense", "googleSignInAdmob", "noAdmob", "noRevenue", "noRevenueAdmob", "relayFailed", "proofRunning", "proofGone", "relayUnreachable"] as const) {
       expect(proveFailureCopy(k).body).toMatch(/Nothing was charged/);
     }
     for (const k of ["relayBusy", "googleUnavailable", "popupBlocked"] as const) {
@@ -167,6 +169,17 @@ describe("proveFailureCopy", () => {
   it("gives every failure its own words", () => {
     const all = kinds.map((k) => JSON.stringify(proveFailureCopy(k)));
     expect(new Set(all).size).toBe(kinds.length);
+  });
+
+  it("points a creator with no revenue at the other source", () => {
+    expect(proveFailureCopy("noRevenue")).toEqual({
+      title: "No AdSense revenue to prove",
+      body: "We found no AdSense revenue in the last three complete months. If you earn with AdMob, go back and prove that instead. Nothing was charged.",
+    });
+    expect(proveFailureCopy("noRevenueAdmob")).toEqual({
+      title: "No AdMob revenue to prove",
+      body: "We found no AdMob revenue in the last three complete months. If you earn with AdSense, go back and prove that instead. Nothing was charged.",
+    });
   });
 
   it("names the wallet that declined", () => {

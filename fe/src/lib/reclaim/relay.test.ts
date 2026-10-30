@@ -82,6 +82,15 @@ describe("relayProveRevenue", () => {
     expect((e as RelayError).code).toBe("account");
   });
 
+  it("a job that found no earnings keeps the code empty, and the source", async () => {
+    const r = relay([{ id: "j1", stage: "failed", error: { code: "empty", message: "no earnings" } }]);
+    const s = relayProveRevenue(BORROWER, () => {}, { relayUrl: "https://r", signIn: signedIn, fetch: r.fetch, sleep: noSleep, jobs: store().jobs, source: "admob" });
+    const e = await s.result.catch((x) => x);
+    expect(e).toBeInstanceOf(RelayError);
+    expect((e as RelayError).code).toBe("empty");
+    expect((e as RelayError).source).toBe("admob");
+  });
+
   it("names the relay's refusal by its code, and by the status when there is none", async () => {
     const cases: [number, object, string][] = [
       [409, { error: "x", code: "running" }, "running"],
