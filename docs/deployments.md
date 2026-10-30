@@ -938,6 +938,20 @@ The node process stayed under 500 MB.
 > OPTIONS /proofs, Origin https://app.forepay.xyz   Access-Control-Allow-Origin: https://app.forepay.xyz
 > ```
 
+> **Updated 2026-10-30 13:45 UTC: the host is back on `main`, at `2ea1e15`.** #100 and #101 merged,
+> so the branch the host ran is now in `main`. Its `be/` differs from `8097128` by one test file only.
+> The host's checkout is `main`, fast-forwarded and no longer detached. Checked from outside after the
+> restart:
+>
+> ```
+> GET /health                                   200 {"status":"ok"}
+> GET /config                                   recorded: true, relay: true, advance CCQFL2…I2HS
+> GET /ready                                    {"status":"ok","latestLedger":5468858}
+> GET /advances?borrower=GA2C…WWH2              200
+> POST /proofs, source "admob", fake token      202, then failed with code token
+> OPTIONS /proofs, Origin https://app.forepay.xyz   Access-Control-Allow-Origin: https://app.forepay.xyz
+> ```
+
 ---
 
 ## #76 executed, the dev template re-pinned, and a fee worth writing down (2026-10-25)
