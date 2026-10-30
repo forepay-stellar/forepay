@@ -351,12 +351,12 @@ export function proveFailureCopy(kind: ProveFailure, walletName = "Freighter"): 
     case "noRevenue":
       return {
         title: "No AdSense revenue to prove",
-        body: "We found no AdSense revenue in the last three complete months. An advance is sized from revenue you have already earned. Nothing was charged.",
+        body: "We found no AdSense revenue in the last three complete months, so there is no advance to size. If you earn with AdMob, go back and prove that instead. Nothing was charged.",
       };
     case "noRevenueAdmob":
       return {
         title: "No AdMob revenue to prove",
-        body: "We found no AdMob revenue in the last three complete months. An advance is sized from revenue you have already earned. Nothing was charged.",
+        body: "We found no AdMob revenue in the last three complete months, so there is no advance to size. If you earn with AdSense, go back and prove that instead. Nothing was charged.",
       };
     case "relayFailed":
       return {
