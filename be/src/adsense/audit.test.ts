@@ -17,7 +17,7 @@ import {
   getIdentifierFromClaimInfo,
   messageDigest,
 } from "../reclaim/claim-digest.js";
-import { AuditError, auditRevenueProof, formatFieldReport, recoverSigner, type RevenueProof } from "./audit.js";
+import { AuditError, auditRevenueProof, formatFieldReport, recoverSigner, type AuditExpectations, type RevenueProof } from "./audit.js";
 import { CONTEXT_MESSAGE, buildRevenueRequest, type RevenueWindow } from "./request.js";
 
 const PUB = "pub-1234567890123456";
@@ -77,7 +77,7 @@ function makeProof(o: Overrides = {}): RevenueProof {
 
 const expectations = { publisherId: PUB, stellarAddress: ALICE, window: Q3, accessToken: TOKEN, now: NOW, attestor: ATTESTOR };
 
-function failuresOf(proof: RevenueProof, expect = expectations): string[] {
+function failuresOf(proof: RevenueProof, expect: AuditExpectations = expectations): string[] {
   try {
     auditRevenueProof(proof, expect);
   } catch (e) {
@@ -187,4 +187,12 @@ test("a stale or future-dated claim fails", () => {
   const nowS = Math.floor(NOW.getTime() / 1000);
   assert.ok(failuresOf(makeProof({ timestampS: nowS - 8 * 86_400 })).some((m) => /older than/.test(m)));
   assert.ok(failuresOf(makeProof({ timestampS: nowS + 3600 })).some((m) => /future/.test(m)));
+});
+
+test("with the app id given, a claim requested through another Reclaim app fails (#102)", () => {
+  const app = "0x96FAF173BB7171A530B3E44F35F32D1307BDA4FA";
+  assert.deepEqual(failuresOf(makeProof(), { ...expectations, owner: app }), []);
+  const other = failuresOf(makeProof(), { ...expectations, owner: "0x6415200c713135e77157e1536d488df4f2bb7d04" });
+  assert.equal(other.length, 1);
+  assert.match(other[0], /not the Reclaim app .* the contract pins/);
 });

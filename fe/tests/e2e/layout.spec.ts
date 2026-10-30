@@ -302,7 +302,7 @@ test("advance in progress: proving, approving in the wallet, sending, and 2d", a
   // The mock's proving stages last under a second each: the walk measures whichever one shows.
   await page.goto("/advance");
   await page.getByRole("button", { name: "Prove my revenue" }).click();
-  await expect(heading(page, "Log in to AdSense in the new window")).toBeVisible();
+  await expect(heading(page, "Sign in with Google in the new window")).toBeVisible();
   await holdsAtEveryWidth(page, "2a proving");
   await page.setViewportSize({ width: 1440, height: 900 });
   await expect(page.getByRole("button", { name: "Accept 90.00 USDC" })).toBeVisible();

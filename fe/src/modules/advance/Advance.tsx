@@ -7,7 +7,15 @@ import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { notify } from "@/components/ui/Toaster";
 import { isSignatureDeclined } from "@/lib/errors";
 import { formatUsd, formatWindow } from "@/lib/format";
-import { proveRevenue, type ProveSession, type ProveStage } from "@/lib/reclaim";
+import {
+  preloadSignIn,
+  proofRunning,
+  proveRevenue,
+  SOURCE_NAME,
+  type ProveSession,
+  type ProveStage,
+  type RevenueSource,
+} from "@/lib/reclaim";
 import {
   TransactionFailedError,
   awaitAdvance,
@@ -15,6 +23,7 @@ import {
   getAdvance,
   sizing,
   nullifierFor,
+  provenUsd,
   quote,
   requestAdvance,
   type AdvanceRequest,
@@ -57,6 +66,21 @@ const quoteKey = (address: string, revenueUsd: string) => ["quote", address, rev
 const sizingKey = (address: string) => ["sizing", address] as const;
 
 /**
+ * "Reading your AdSense revenue", or AdMob's (#97). The words describe the relay (#17): about a minute,
+ * more behind a queue, and the job id is kept for the tab, so other pages are safe and a closed tab loses
+ * it (lib/reclaim/relay.ts). The mock (no relay) does not resume after leaving, which is acceptable for a
+ * build without proofs.
+ */
+function ReadingRevenue({ source }: { source: RevenueSource }) {
+  return (
+    <ProgressPanel
+      title={`Reading your ${SOURCE_NAME[source]} revenue`}
+      body="This takes about a minute, longer when others are proving too. You can use other pages meanwhile. Closing this tab means proving again."
+    />
+  );
+}
+
+/**
  * 02 Prove and accept (#20): 2a Prove revenue, 2b Review offer, 2c Sign, 2d Receive, and every state on
  * the "Prove and accept / States and interactions" board.
  *
@@ -71,6 +95,8 @@ export function Advance() {
   const wallet = walletName ?? "your wallet";
 
   const [flow, setFlow] = useState<Flow>({ at: "start" });
+  // The source picked on 2a. A proof resumed from an earlier visit proves what it was started for.
+  const [source, setSource] = useState<RevenueSource>("adsense");
   const [allowing, setAllowing] = useState(false);
   // Every attempt gets a number. An answer for an attempt that is no longer the current one (the
   // creator pressed Cancel, Not now or Back meanwhile) is dropped.
@@ -87,21 +113,30 @@ export function Advance() {
     [],
   );
 
-  // Back on /advance with a `request_advance` still out from an earlier visit: wait on that one. Each
+  // Back on /advance with a `request_advance` still out from an earlier visit: wait on that one. Or with
+  // a proof the relay is still making for this wallet: wait on that, without signing in again. Each
   // mount waits afresh; the unmount above drops the answer of the one before.
   useEffect(() => {
     if (!address) return;
     const pending = loadPending(address);
+    const kept = proofRunning(address);
     if (pending) void pickUp(pending);
-    // `pickUp` only reads refs and setters; it runs per mount and per wallet.
+    else if (kept) void prove(kept);
+    // `pickUp` and `prove` only read refs and setters; they run per mount and per wallet.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address]);
+
+  // Google's sign-in script, loaded while 2a is open, so "Prove my revenue" opens the popup inside the
+  // press. Loaded only on the press, the popup opens after an await and browsers may block it.
+  useEffect(() => {
+    if (flow.at === "start" || flow.at === "failed") preloadSignIn();
+  }, [flow.at]);
 
   // The offer on 2b and 2c. Read in `check` before 2b opens, so it is already here.
   const req = "req" in flow ? flow.req : undefined;
   const offer = useQuery({
-    queryKey: quoteKey(address ?? "", req?.revenueUsd ?? ""),
-    queryFn: () => quote(address as string, (req as AdvanceRequest).revenueUsd),
+    queryKey: quoteKey(address ?? "", req ? provenUsd(req) : ""),
+    queryFn: () => quote(address as string, provenUsd(req as AdvanceRequest)),
     enabled: !!address && !!req && (flow.at === "offer" || flow.at === "signing"),
     // `quote` is a pure function of the revenue figure on chain: the same input always sizes the same.
     staleTime: Infinity,
@@ -116,13 +151,16 @@ export function Advance() {
     enabled: !!address,
     staleTime: Infinity,
   });
-  const capped = terms.data && req ? isCapped(terms.data, req.revenueUsd) : null;
+  const capped = terms.data && req ? isCapped(terms.data, provenUsd(req)) : null;
 
   // The advance as the contract stored it, for 2d. Keyed by its nullifier (ARCHITECTURE.md §4).
   const received = flow.at === "received" ? flow : undefined;
   const nullifier = useQuery({
-    queryKey: ["nullifier", address, received?.req.pubId, received?.req.windowStart, received?.req.windowEnd],
-    queryFn: () => nullifierFor(address as string, received!.req.pubId, received!.req.windowStart, received!.req.windowEnd),
+    queryKey: ["nullifier", address, received?.req.source, received?.req.pubId, received?.req.windowStart, received?.req.windowEnd],
+    queryFn: () => {
+      const r = received!.req;
+      return nullifierFor(address as string, r.pubId, r.windowStart, r.windowEnd, r.source);
+    },
     enabled: !!address && !!received,
     staleTime: Infinity,
   });
@@ -146,6 +184,10 @@ export function Advance() {
     // While an advance sent earlier is still being waited on, the start is that wait, not 2a.
     const pending = loadPending(me);
     if (pending) return void pickUp(pending);
+    // Likewise a proof the relay may still be making (a poll that failed kept its id): wait on it, so
+    // "Reading your revenue" on the start is always backed by a running session.
+    const kept = proofRunning(me);
+    if (kept) return void prove(kept);
     setFlow({ at: "start" });
   }
 
@@ -154,11 +196,16 @@ export function Advance() {
     setFlow({ at: "offer", req: r });
   }
 
-  async function prove() {
+  /**
+   * Prove `src`, the choice on 2a unless a kept job names its own. That becomes the choice, so Prove
+   * again and Back after a resumed job stay on its source.
+   */
+  async function prove(src: RevenueSource = source) {
     leave();
+    setSource(src);
     const id = attempt.current;
     setFlow({ at: "proving", stage: "waiting" });
-    const s = proveRevenue(me, (stage) => {
+    const s = proveRevenue(me, src, (stage) => {
       if (id === attempt.current) setFlow({ at: "proving", stage });
     });
     session.current = s;
@@ -182,8 +229,8 @@ export function Advance() {
     try {
       const [quoted, checked] = await Promise.allSettled([
         queryClient.fetchQuery({
-          queryKey: quoteKey(me, r.revenueUsd),
-          queryFn: () => quote(me, r.revenueUsd),
+          queryKey: quoteKey(me, provenUsd(r)),
+          queryFn: () => quote(me, provenUsd(r)),
           staleTime: Infinity,
         }),
         checkAdvance(me, r),
@@ -195,11 +242,14 @@ export function Advance() {
       await queryClient.prefetchQuery({ queryKey: sizingKey(me), queryFn: () => sizing(me), staleTime: Infinity });
       if (id === attempt.current) setFlow({ at: "offer", req: r });
     } catch (e) {
-      if (id === attempt.current) setFlow({ at: "failed", failure: proveFailure(e, r.revenueUsd), req: r, during: "prove" });
+      if (id === attempt.current) setFlow({ at: "failed", failure: proveFailure(e, provenUsd(r)), req: r, during: "prove" });
     }
   }
 
   async function accept(r: AdvanceRequest) {
+    // No clock check on the proof's age here: `requestAdvance` simulates before it asks the wallet, and the
+    // contract refuses a proof over an hour old with 12 ("This proof expired"), so no signature is asked
+    // for a stale proof (e2e "a proof that expires while the offer is open…").
     leave();
     const id = attempt.current;
     let signed = false;
@@ -370,6 +420,17 @@ export function Advance() {
   if (flow.at === "start") {
     // A transaction left waiting from an earlier visit is picked up by the effect above, after this
     // first render. Show it as sending from the start, so 2a and its "Prove my revenue" never flash.
+    // Likewise a proof the relay is still making for this wallet: the effect waits on it.
+    const kept = proofRunning(me);
+    if (kept) {
+      return (
+        <AdvanceScreen title="Get an advance" step={0} focusKey="resuming-proof">
+          <Centered>
+            <ReadingRevenue source={kept} />
+          </Centered>
+        </AdvanceScreen>
+      );
+    }
     if (loadPending(me)) {
       return (
         <AdvanceScreen title="Approve the advance" step={2} focusKey="resuming">
@@ -388,7 +449,9 @@ export function Advance() {
           walletName={wallet}
           terms={terms.isPending ? "loading" : terms.data}
           usdc={usdc.isError ? "error" : usdc.data}
-          onProve={prove}
+          source={source}
+          onSource={setSource}
+          onProve={() => void prove()}
         />
       </AdvanceScreen>
     );
@@ -401,12 +464,12 @@ export function Advance() {
           {flow.at === "checking" ? (
             <ProgressPanel
               title="Checking your proof"
-              body="Stellar is confirming that the revenue figure really came from AdSense."
+              body={`Stellar is confirming that the revenue figure really came from ${SOURCE_NAME[flow.req.source ?? "adsense"]}.`}
             />
           ) : flow.stage === "waiting" ? (
             <ProgressPanel
-              title="Log in to AdSense in the new window"
-              body="We only read your revenue for the last three months. Your password never reaches us."
+              title="Sign in with Google in the new window"
+              body={`Pick the Google account that owns your ${SOURCE_NAME[source]}, and allow Forepay to see your ${SOURCE_NAME[source]} reports. We only read your revenue for the last three months.`}
               action={
                 <Button variant="outline" onClick={() => session.current?.reopen()}>
                   Open the window again
@@ -414,7 +477,7 @@ export function Advance() {
               }
             />
           ) : (
-            <ProgressPanel title="Reading your revenue" body="This takes a few seconds. Keep this page open." />
+            <ReadingRevenue source={source} />
           )}
         </Centered>
       </AdvanceScreen>
@@ -425,12 +488,13 @@ export function Advance() {
   if (flow.at === "offer") {
     const period = formatWindow(flow.req.windowStart, flow.req.windowEnd);
     // With the figure, so a quote under 1 USDC reads as "too small" with the creator's own number.
-    const offerFailure = offer.isError ? proveFailure(offer.error, flow.req.revenueUsd) : null;
+    const offerFailure = offer.isError ? proveFailure(offer.error, provenUsd(flow.req)) : null;
     return (
       <AdvanceScreen title="Your offer" step={1} focusKey={focusKey}>
         {offer.data !== undefined ? (
           <ReviewOffer
-            revenue={formatUsd(flow.req.revenueUsd)}
+            revenue={formatUsd(provenUsd(flow.req))}
+            sourceName={SOURCE_NAME[flow.req.source ?? "adsense"]}
             windowShort={period.short}
             windowLong={period.long}
             advance={offer.data}
@@ -447,6 +511,7 @@ export function Advance() {
               beforeOffer
               allowing={allowing}
               terms={terms.data}
+              sourceName={SOURCE_NAME[flow.req.source ?? "adsense"]}
               onAction={(action) => onFailureAction(action, offerFailure, flow.req, "prove")}
             />
           </Centered>
@@ -518,6 +583,7 @@ export function Advance() {
           beforeOffer={flow.during === "prove"}
           allowing={allowing}
           terms={terms.data}
+          sourceName={SOURCE_NAME[flow.req?.source ?? "adsense"]}
           onAction={(action) => onFailureAction(action, flow.failure, flow.req, flow.during)}
         />
       </Centered>

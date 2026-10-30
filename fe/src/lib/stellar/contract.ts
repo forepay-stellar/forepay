@@ -9,7 +9,7 @@ import {
   xdr,
 } from "@stellar/stellar-sdk";
 import { sourceAccount } from "./account";
-import { ADVANCE_CONTRACT_ID as CONTRACT_ID, NETWORK_PASSPHRASE, RPC_URL } from "./network";
+import { ADVANCE_CONTRACT_ID as CONTRACT_ID, CONTRACT_TAKES_SOURCE, NETWORK_PASSPHRASE, RPC_URL } from "./network";
 import { SubmitError, submitSigned, waitFor } from "./submit";
 
 /**
@@ -164,6 +164,16 @@ async function write<T>(
 const str = (v: string) => nativeToScVal(v, { type: "string" });
 const bytes32 = (hex: string) => xdr.ScVal.scvBytes(Buffer.from(hex, "hex"));
 
+/** The contract's `Source` enum (#94): a unit variant is a vector holding its name. */
+export function sourceArg(source: "admob" | undefined): xdr.ScVal {
+  return xdr.ScVal.scvVec([xdr.ScVal.scvSymbol(source === "admob" ? "AdMob" : "AdSense")]);
+}
+
+/** `source` in front of `args` when the contract takes it (`CONTRACT_TAKES_SOURCE`). */
+export function withSource(source: "admob" | undefined, args: xdr.ScVal[], takesSource = CONTRACT_TAKES_SOURCE): xdr.ScVal[] {
+  return takesSource ? [sourceArg(source), ...args] : args;
+}
+
 // ---- Reads ----
 
 /** The advance this attested revenue would size to, in stroops. The figure 2b shows (#20). */
@@ -223,8 +233,10 @@ export async function nullifierFor(
   pubId: string,
   windowStart: string,
   windowEnd: string,
+  revenueSource?: "admob",
 ): Promise<string> {
-  const raw = await read<Uint8Array>(source, "nullifier_for", [str(pubId), str(windowStart), str(windowEnd)]);
+  const args = withSource(revenueSource, [str(pubId), str(windowStart), str(windowEnd)]);
+  const raw = await read<Uint8Array>(source, "nullifier_for", args);
   return Buffer.from(raw).toString("hex");
 }
 
@@ -241,20 +253,44 @@ export type AdvanceRequest = {
   /** 64 bytes, hex. */
   signature: string;
   recoveryId: number;
+  /**
+   * An AdMob proof (#97). Its signed figure is `revenueMicros`, millionths of a USD, and `revenueUsd` is
+   * the same figure as an exact decimal (`"12.345678"`), for display only (docs/api.md). Absent for AdSense.
+   */
+  source?: "admob";
+  revenueMicros?: string;
 };
 
-function advanceArgs(borrower: string, req: AdvanceRequest): xdr.ScVal[] {
-  return [
-    new Address(borrower).toScVal(),
-    str(req.revenueUsd),
-    str(req.pubId),
-    str(req.windowStart),
-    str(req.windowEnd),
-    nativeToScVal(req.timestampS, { type: "u64" }),
-    nativeToScVal(req.epoch, { type: "u64" }),
-    xdr.ScVal.scvBytes(Buffer.from(req.signature, "hex")),
-    nativeToScVal(req.recoveryId, { type: "u32" }),
-  ];
+/**
+ * The proven revenue as the contract sizes it: a decimal with at most two places (`quote` refuses more).
+ * AdMob's micros are truncated to cents, never rounded up, as the contract will (#94).
+ */
+export function provenUsd(req: Pick<AdvanceRequest, "revenueUsd" | "source" | "revenueMicros">): string {
+  if (req.source !== "admob") return req.revenueUsd;
+  // Without micros, the exact decimal cut to cents: `quote` refuses a third decimal place.
+  if (!req.revenueMicros || !/^\d+$/.test(req.revenueMicros)) return req.revenueUsd.replace(/^(\d+\.\d{2})\d+$/, "$1");
+  const cents = BigInt(req.revenueMicros) / 10_000n;
+  return `${cents / 100n}.${(cents % 100n).toString().padStart(2, "0")}`;
+}
+
+export function advanceArgs(borrower: string, req: AdvanceRequest, takesSource = CONTRACT_TAKES_SOURCE): xdr.ScVal[] {
+  return withSource(
+    req.source,
+    [
+      new Address(borrower).toScVal(),
+      // The figure the attestor signed: for AdMob the micros string, which #94 reads as micros because the
+      // source says so. The contract before #94 has no AdMob template and refuses an AdMob proof.
+      str(req.source === "admob" && req.revenueMicros ? req.revenueMicros : req.revenueUsd),
+      str(req.pubId),
+      str(req.windowStart),
+      str(req.windowEnd),
+      nativeToScVal(req.timestampS, { type: "u64" }),
+      nativeToScVal(req.epoch, { type: "u64" }),
+      xdr.ScVal.scvBytes(Buffer.from(req.signature, "hex")),
+      nativeToScVal(req.recoveryId, { type: "u32" }),
+    ],
+    takesSource,
+  );
 }
 
 /**

@@ -14,6 +14,7 @@ import { serve } from "@hono/node-server";
 import { ReclaimClient } from "@reclaimprotocol/zk-fetch";
 import { rpc } from "@stellar/stellar-sdk";
 
+import { admobFetch } from "../admob/account.js";
 import { googleGet } from "../adsense/account.js";
 import { die, keepSecret, loadEnv, optional, scrub } from "../cli/env.js";
 import { readAdvance } from "../chain/advance.js";
@@ -56,7 +57,9 @@ function relay(): Prover | undefined {
   }
   const client = new ReclaimClient(appId, appSecret, false, 2);
   const deps = {
+    owner: appId,
     google: googleGet,
+    admob: admobFetch,
     zkFetch: ((url, options, secretOptions) => client.zkFetch(url, { ...options, zkEngine: ZK_ENGINE }, secretOptions)) as Parameters<
       typeof proveRevenue
     >[0]["zkFetch"],

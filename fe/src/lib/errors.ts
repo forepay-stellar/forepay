@@ -139,17 +139,18 @@ export function isSignatureDeclined(e: unknown): boolean {
 /**
  * The advance contract's refusals (`docs/interface.md` §7), in the brief's words (§3, rule 4, and the
  * "Prove and accept / States and interactions" board, word for word). Shared by #20 and #21. Codes 1 to 6 are admin and upgrade errors a
- * creator can never cause, so they fall to the generic sentence.
+ * creator can never cause, so they fall to the generic sentence. `sourceName` is where the proof came
+ * from, `AdMob` for an AdMob proof (#97).
  */
-export function contractFailureCopy(code: number): FailureCopy {
+export function contractFailureCopy(code: number, sourceName = "AdSense"): FailureCopy {
   switch (code) {
     case 10:
-      return { title: "Advances are not open yet", body: "Forepay is not taking AdSense proofs yet. Try again later." };
+      return { title: "Advances are not open yet", body: `Forepay is not taking ${sourceName} proofs yet. Try again later.` };
     case 11:
     case 14:
       return {
         title: "We could not confirm this proof",
-        body: "The revenue could not be matched to Google's data. Try proving again. If it keeps happening, log out of AdSense and back in first.",
+        body: `The revenue could not be matched to Google's data. Try proving again. If it keeps happening, log out of ${sourceName} and back in first.`,
       };
     case 12:
       return {
@@ -169,7 +170,7 @@ export function contractFailureCopy(code: number): FailureCopy {
     case 30:
       return {
         title: "We could not read your revenue",
-        body: "The figure from AdSense was not a plain amount. Nothing was charged.",
+        body: `The figure from ${sourceName} was not a plain amount. Nothing was charged.`,
       };
     case 31:
       return {
@@ -209,7 +210,17 @@ export function contractFailureCopy(code: number): FailureCopy {
  * - `simulationFailed`: Stellar answered, but could not run the request, with no contract code to say why.
  * - `notConfigured`: this build is missing an address it needs, so nothing reached the network.
  * - `walletLocked`, `walletWrongNetwork`, `walletNoAnswer`: the wallet could not sign, for that reason.
- * - `relayNotReady`: proofs are meant to come from the #17 relay, and its client is not built yet.
+ * - `relayNotReady`: proofs are meant to come from the #17 relay, and this build cannot reach it.
+ * - `googleSignIn`: Google refused the sign-in the relay was handed, for example an expired one.
+ * - `noAdsense`: the Google account has no AdSense account, several, or one that is not approved (relay `account`).
+ * - `googleSignInAdmob`, `noAdmob`: the same two for an AdMob proof (#97).
+ * - `relayFailed`: the relay could not make the proof, on its side. Nothing was charged.
+ * - `relayBusy`: the relay is proving for others and its queue is full.
+ * - `proofRunning`: a proof for this wallet is already running, started from a tab that lost it.
+ * - `proofGone`: the relay no longer has the proof this tab was waiting on (it restarted, or an hour passed).
+ * - `relayUnreachable`: the relay did not answer. Not Stellar: nothing on chain was asked.
+ * - `googleUnavailable`: Google's sign-in did not load.
+ * - `popupBlocked`: the browser blocked Google's sign-in window. The creator closed nothing.
  */
 export type ProveFailure =
   | "cancelled"
@@ -225,13 +236,24 @@ export type ProveFailure =
   | "walletLocked"
   | "walletWrongNetwork"
   | "walletNoAnswer"
-  | "relayNotReady";
+  | "relayNotReady"
+  | "googleSignIn"
+  | "noAdsense"
+  | "googleSignInAdmob"
+  | "noAdmob"
+  | "relayFailed"
+  | "relayBusy"
+  | "proofRunning"
+  | "proofGone"
+  | "relayUnreachable"
+  | "googleUnavailable"
+  | "popupBlocked";
 
 export function proveFailureCopy(kind: ProveFailure, walletName = "Freighter"): FailureCopy {
   switch (kind) {
     case "cancelled":
       return {
-        title: "You closed the AdSense window",
+        title: "You closed the Google window",
         body: "Nothing was read or saved. Start again when you are ready.",
       };
     case "declined":
@@ -302,6 +324,61 @@ export function proveFailureCopy(kind: ProveFailure, walletName = "Freighter"): 
       return {
         title: "Proving revenue is not open yet",
         body: "Forepay cannot read AdSense revenue yet. Try again later.",
+      };
+    case "googleSignIn":
+      return {
+        title: "Google did not let us read AdSense",
+        body: "Sign in again and allow Forepay to see your AdSense reports. Nothing was charged.",
+      };
+    case "noAdsense":
+      return {
+        title: "We could not use your AdSense account",
+        body: "We could not find one approved AdSense account on this Google account. Sign in with the account that owns your AdSense, then try again. Nothing was charged.",
+      };
+    case "googleSignInAdmob":
+      return {
+        title: "Google did not let us read AdMob",
+        body: "Sign in again and allow Forepay to see your AdMob reports. Nothing was charged.",
+      };
+    case "noAdmob":
+      return {
+        title: "We could not use your AdMob account",
+        body: "We could not find one AdMob account on this Google account. Sign in with the account that owns your AdMob, then try again. Nothing was charged.",
+      };
+    case "relayFailed":
+      return {
+        title: "We could not finish your proof",
+        body: "Nothing was charged. Try again in a few minutes.",
+      };
+    case "relayBusy":
+      return {
+        title: "Forepay is busy right now",
+        body: "Many creators are proving at once. Nothing was read or charged. Try again in a few minutes.",
+      };
+    case "proofRunning":
+      return {
+        title: "Your proof is already being made",
+        body: "A proof for this wallet started earlier, in a tab that no longer has it. Wait a few minutes for it to end, then prove again. Nothing was charged.",
+      };
+    case "proofGone":
+      return {
+        title: "Your earlier proof is gone",
+        body: "We no longer have the proof you started earlier. Prove your revenue again, it takes about a minute. Nothing was charged.",
+      };
+    case "relayUnreachable":
+      return {
+        title: "We could not reach Forepay",
+        body: "Nothing was charged. Check your connection, then try again.",
+      };
+    case "googleUnavailable":
+      return {
+        title: "Google sign-in did not load",
+        body: "Nothing was read or charged. Check your connection, then try again.",
+      };
+    case "popupBlocked":
+      return {
+        title: "Your browser blocked the Google window",
+        body: "Allow pop-ups for Forepay, then try again. Nothing was read or charged.",
       };
   }
 }

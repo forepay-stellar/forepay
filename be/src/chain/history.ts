@@ -64,6 +64,8 @@ export interface AdvanceCall {
   at: bigint;
   successful: boolean;
   nullifier: string;
+  /** The revenue source the advance was proven from (#94). Calls before #94 carry none: AdSense. */
+  source: Source;
   borrower: string;
   pubId: string;
   windowStart: string;
@@ -72,13 +74,20 @@ export interface AdvanceCall {
   disbursed: bigint;
 }
 
+export type Source = "AdSense" | "AdMob";
+
 /**
  * `sha256(len ‖ pub_id ‖ len ‖ window_start ‖ len ‖ window_end)`, each length a 4-byte
  * big-endian u32. The same derivation as `claim::nullifier_of` in sc/advance.
+ *
+ * AdMob appends `len ‖ "admob"` (#94): one Google account's AdSense and AdMob publisher ids
+ * are the same `pub-` id, so the two need separate nullifier spaces. AdSense appends
+ * nothing, because advances already on chain are keyed on the untagged hash.
  */
-export function nullifierFor(pubId: string, windowStart: string, windowEnd: string): string {
+export function nullifierFor(pubId: string, windowStart: string, windowEnd: string, source: Source = "AdSense"): string {
   const parts: Buffer[] = [];
-  for (const field of [pubId, windowStart, windowEnd]) {
+  const fields = source === "AdMob" ? [pubId, windowStart, windowEnd, "admob"] : [pubId, windowStart, windowEnd];
+  for (const field of fields) {
     const bytes = Buffer.from(field, "utf8");
     const len = Buffer.alloc(4);
     len.writeUInt32BE(bytes.length);
@@ -112,6 +121,21 @@ function contractCall(op: HorizonOperation, contract: string): { fn: string; arg
   return { fn: String(native[1]), args: native.slice(2) };
 }
 
+/**
+ * `request_advance`'s arguments, before and after #94 put a `Source` first. A call already
+ * on chain keeps the old five, so both shapes are read. The source decodes as `["AdMob"]`
+ * (a unit enum variant is a vec holding its symbol), which no `G…` string can be.
+ */
+function requestArgs(args: unknown[]): { source: Source; borrower: string; pubId: string; windowStart: string; windowEnd: string } {
+  let source: Source = "AdSense";
+  if (Array.isArray(args[0])) {
+    source = args[0][0] === "AdMob" ? "AdMob" : "AdSense";
+    args = args.slice(1);
+  }
+  const [borrower, , pubId, windowStart, windowEnd] = args as string[];
+  return { source, borrower, pubId, windowStart, windowEnd };
+}
+
 /** USDC that moved between `a` and `b`, in either direction, in stroops. */
 function usdcMoved(op: HorizonOperation, a: string, b: string): bigint {
   let total = 0n;
@@ -132,13 +156,14 @@ export function advanceCalls(ops: HorizonOperation[], borrower: string, contract
   for (const op of ops) {
     const call = contractCall(op, contract);
     if (!call || call.fn !== "request_advance") continue;
-    const [callBorrower, , pubId, windowStart, windowEnd] = call.args as string[];
+    const { source, borrower: callBorrower, pubId, windowStart, windowEnd } = requestArgs(call.args);
     if (callBorrower !== borrower) continue;
     out.push({
       hash: op.transaction_hash,
       at: seconds(op.created_at),
       successful: op.transaction_successful,
-      nullifier: nullifierFor(pubId, windowStart, windowEnd),
+      nullifier: nullifierFor(pubId, windowStart, windowEnd, source),
+      source,
       borrower: callBorrower,
       pubId,
       windowStart,
@@ -166,7 +191,7 @@ export function ledgerTransactions(ops: HorizonOperation[], borrower: string, co
     const call = contractCall(op, contract);
     if (!call) continue;
     if (call.fn === "request_advance") {
-      const [callBorrower, , pubId, windowStart, windowEnd] = call.args as string[];
+      const { source, borrower: callBorrower, pubId, windowStart, windowEnd } = requestArgs(call.args);
       if (callBorrower !== borrower) continue;
       out.push({
         hash: op.transaction_hash,
@@ -174,7 +199,7 @@ export function ledgerTransactions(ops: HorizonOperation[], borrower: string, co
         amount: op.transaction_successful ? usdcMoved(op, contract, borrower) : 0n,
         at,
         status,
-        nullifier: nullifierFor(pubId, windowStart, windowEnd),
+        nullifier: nullifierFor(pubId, windowStart, windowEnd, source),
       });
     } else if (call.fn === "repay") {
       const [from, nullifier, amount] = call.args as [string, Buffer, bigint];

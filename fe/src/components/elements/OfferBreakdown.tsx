@@ -9,6 +9,7 @@ import { formatUsdc } from "@/lib/format";
  */
 export function OfferBreakdown({
   revenue,
+  sourceName = "AdSense",
   windowShort,
   advance,
   rate,
@@ -18,6 +19,8 @@ export function OfferBreakdown({
 }: {
   /** The proven figure, `$360.00`. */
   revenue: string;
+  /** Where it was earned, `AdSense` or `AdMob` (#97). */
+  sourceName?: string;
   /** `Jul to Sep 2026`. A phone drops the year, unless the window crosses one. */
   windowShort: string;
   /** What `quote` returned, in stroops. */
@@ -36,8 +39,8 @@ export function OfferBreakdown({
     {
       key: (
         <>
-          <span className="hidden md:inline">Your AdSense revenue, {windowShort}</span>
-          <span className="md:hidden">AdSense revenue, {months}</span>
+          <span className="hidden md:inline">Your {sourceName} revenue, {windowShort}</span>
+          <span className="md:hidden">{sourceName} revenue, {months}</span>
         </>
       ),
       value: revenue,

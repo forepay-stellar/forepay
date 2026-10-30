@@ -160,10 +160,11 @@ jobs:
         run: python3 tools/make_claim_fixture.py --check
 
       # The template-pinning tool runs exactly once, on the most consequential day of the
-      # project (#61), against the first real AdSense proof. A tool like that has to be
-      # known-good before that day, so its self-test derives the template from the signed
-      # fixture and checks that a window the proof was not signed for is refused.
-      - name: The template derivation works and refuses a wrong window
+      # project (#61), against the first real AdSense proof, and once more for AdMob (#96).
+      # A tool like that has to be known-good before that day, so its self-test derives
+      # both templates from their fixtures and checks that a window the proof was not
+      # signed for, or the other source's value order (#94), is refused.
+      - name: The template derivation works and refuses a wrong window or value order
         run: python3 tools/pin_template.py --self-test
 
       # The evidence pack (#27) is what a reviewer reads. A broken relative path or a

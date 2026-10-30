@@ -169,6 +169,7 @@ test("/advances: the contract's record of each advance, newest first, amounts as
   assert.deepEqual(await res.json(), [
     {
       nullifier: "1d124817f351c4a88ed2fe92a2f79812f2bfa41e0610a5bbb84f7a5e892e68f5",
+      source: "AdSense",
       borrower: BORROWER,
       windowStart: "2026-07-01",
       windowEnd: "2026-09-30",
@@ -180,6 +181,7 @@ test("/advances: the contract's record of each advance, newest first, amounts as
     },
     {
       nullifier: "d0cd01df330362b23508edf7e386950549da634b756d1c29aa242cfc9c88c839",
+      source: "AdSense",
       borrower: BORROWER,
       windowStart: "2026-07-01",
       windowEnd: "2026-09-30",
@@ -323,12 +325,31 @@ test("POST /proofs refuses what is not a proof request", async () => {
     [{ borrower: BORROWER, accessToken: "" }, 400],
     [{ borrower: BORROWER, accessToken: "x" }, 400],
     [{ borrower: BORROWER, accessToken: TOKEN, publisherId: "pub-1" }, 400],
+    [{ borrower: BORROWER, accessToken: TOKEN, source: "youtube" }, 400],
     [{ borrower: BORROWER, accessToken: "x".repeat(9000) }, 413],
   ];
   for (const [body, status] of cases) {
     const res = await api.request(post(body));
     assert.equal(res.status, status, JSON.stringify(body).slice(0, 80));
   }
+});
+
+test("source admob reaches the prover; adsense or none leaves the input as before", async () => {
+  const seen: unknown[] = [];
+  const api = relayApp(async (input) => {
+    seen.push(input);
+    return REQUEST;
+  });
+  for (const extra of [{ source: "admob" }, { source: "adsense" }, {}]) {
+    const borrower = BORROWER;
+    const res = await api.request(post({ borrower, accessToken: TOKEN, ...extra }));
+    assert.equal(res.status, 202);
+    await finished(api, ((await res.json()) as { id: string }).id);
+  }
+  assert.deepEqual(
+    seen.map((i) => (i as { source?: string }).source),
+    ["admob", undefined, undefined],
+  );
 });
 
 test("a second proof for the same borrower while one runs is 409 running, without the running job's id", async () => {

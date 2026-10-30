@@ -999,7 +999,7 @@ at a time.
 | Upload the release artifact | [`6f43d8266876…`](https://stellar.expert/explorer/testnet/tx/6f43d8266876a798f1551cdc146b57fb264ac15f901c297814df2bad857a615d) |
 | `propose_upgrade`, production `CCQFL2Q6…I2HS` | [`98403335052b…`](https://stellar.expert/explorer/testnet/tx/98403335052b23d28158db6187f367d63c43bfc5e675aa90cabcf67398ebac02) |
 | `propose_upgrade`, dev `CD25Q4TD…HQN4` | [`3077b27b40f5…`](https://stellar.expert/explorer/testnet/tx/3077b27b40f5bb50b583102c99b86f7512831cf6ef2dc6f52ff977abb3d6a9ed) |
-| `execute_upgrade` | **pending — not before 2026-10-26 11:58 UTC** |
+| `execute_upgrade` | **executed 2026-10-29, three days after it could have been** — [below](#81-executed-three-days-late-and-what-the-delay-cost-2026-10-29) |
 
 `executable_at` is `1793015932` and `1793015937`.
 
@@ -1048,3 +1048,45 @@ The screenshots are in [`docs/evidence/`](evidence/).
   The relay client is #75; a real proof also needs a `READY` AdSense account with revenue (#77).
 - **WalletConnect is off.** Without a project ID, only the browser extensions (Freighter, xBull,
   Rabet) are offered, although "Connect your wallet" mentions mobile wallets through WalletConnect.
+
+---
+
+## #81 executed, three days late, and what the delay cost (2026-10-29)
+
+`execute_upgrade` on both contracts, installing wasm
+`481e7f163ba3867b0e9bf48a36a983650a28a216f45c314fb21c94e9c4186696` (`v0.4.0`), which adds
+`borrower.require_auth()` to `request_advance` and `verify_and_reserve`.
+
+| Step | Transaction |
+| --- | --- |
+| `execute_upgrade`, production `CCQFL2Q6…I2HS` | [`1220778c6f25…`](https://stellar.expert/explorer/testnet/tx/1220778c6f25641aaeedbcb10307461bdc86fc20618888e5be96e884745828ec) |
+| `execute_upgrade`, dev `CD25Q4TD…HQN4` | [`17262af5ea0e…`](https://stellar.expert/explorer/testnet/tx/17262af5ea0e3e5f5e8d74bb6293b3fee269b77d68d12de655fb45ea81a7fe82) |
+
+Both emitted `UpgradeExecuted` with that hash, and `pending_upgrade()` reads `null` on both
+afterwards.
+
+**The artifact was checked against the proposal before sending it.** The release asset for
+`v0.4.0` was downloaded and hashed: `481e7f16…`, byte-identical to the `wasm_hash` sitting in the
+proposal. The `v0.4.0` tag's `sc/advance/src/lib.rs` carries `borrower.require_auth()` at two call
+sites. So what went on chain is the attested artifact, not a local rebuild that happened to agree.
+
+### Verified afterwards, not assumed
+
+`python3 tools/rehearsal.py --contract CD25Q4TD…HQN4` → **7 / 7 GREEN**, recorded in
+[`tools/runs/2026-10-29T115559Z/`](../tools/runs/2026-10-29T115559Z/EVIDENCE.md). 10,000,000
+stroops reached the borrower, the advance was partly then fully repaid, and the three refusals
+(`#14`, `#20`, `#12`) and the borrower binding (`B.1`, `#14`) all held on the upgraded wasm.
+
+### The delay
+
+The timelock expired 2026-10-26 11:58 UTC. It was executed 2026-10-29 11:50 UTC: **2.99 days
+late**. Nobody was harmed — on testnet every proof in existence is signed by a key published in
+this repository, so the only creator exposed by the missing authorisation was us. But the record
+should say plainly that a security fix sat executable and unexecuted for three days because the
+person who proposed it did not come back to it. A 24 h timelock does not schedule anything; it
+only stops you going faster.
+
+**What it cost in schedule, which is the real cost.** #102 landed on 2026-10-27 — a defect that
+stops every real proof verifying — and its fix needs the same timelock. Those three days were the
+slack that would have let #102 and #94 go as separate upgrades. They now have to share one, with
+submission on 2026-11-08.

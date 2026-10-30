@@ -9,8 +9,9 @@
  *                 the contract's current record of each (principal, repaid, window).
  *   GET /transactions?borrower=G…  advances, repayments and the USDC trustline,
  *                 newest first, failed ones included.
- *   POST /proofs  the relay (#17): prove the creator's AdSense revenue, bound to their
- *                 `G…`. Answers 202 with a job id at once; proving takes minutes.
+ *   POST /proofs  the relay (#17): prove the creator's AdSense revenue (or AdMob's, with
+ *                 `source: "admob"`, #95), bound to their `G…`. Answers 202 with a job
+ *                 id at once; proving takes minutes.
  *   GET /proofs/:id  the job's stage, then `request_advance`'s arguments or an error.
  *
  * Amounts are stroops and times are seconds, both as decimal strings: JSON numbers
@@ -27,7 +28,7 @@ import { StrKey } from "@stellar/stellar-sdk";
 
 import { ProveError } from "../adsense/account.js";
 import type { AdvanceRecord } from "../chain/advance.js";
-import { advanceCalls, ledgerTransactions, type HorizonOperation } from "../chain/history.js";
+import { advanceCalls, ledgerTransactions, type HorizonOperation, type Source } from "../chain/history.js";
 import { BorrowerBusyError, ProofJobs, QueueFullError } from "../relay/jobs.js";
 import type { AdvanceRequestJson, ProveInput, ProveStep } from "../relay/prove.js";
 import type { LoadedConfig } from "./config.js";
@@ -120,21 +121,22 @@ export function createApp({ loaded, rpc, chain, prover, jobs = new ProofJobs(), 
     const { borrower, contract } = scope;
     const ops = await upstream(() => chain.operations(borrower));
     // Newest first, so the first call per nullifier is the one that funded it.
-    const funded = new Map<string, string>();
+    const funded = new Map<string, { txHash: string; source: Source }>();
     for (const call of advanceCalls(ops, borrower, contract)) {
-      if (call.successful && !funded.has(call.nullifier)) funded.set(call.nullifier, call.hash);
+      if (call.successful && !funded.has(call.nullifier)) funded.set(call.nullifier, { txHash: call.hash, source: call.source });
     }
     const records = await upstream(() =>
       Promise.all([...funded.keys()].map((n) => chain.readAdvance(contract, n))),
     );
     const rows = [...funded.entries()]
-      .map(([nullifier, txHash], i) => ({ nullifier, txHash, record: records[i] }))
+      .map(([nullifier, { txHash, source }], i) => ({ nullifier, txHash, source, record: records[i] }))
       // The contract's record is the authority: no record, or someone else's, is not listed.
-      .filter((r): r is { nullifier: string; txHash: string; record: AdvanceRecord } => r.record?.borrower === borrower)
+      .filter((r): r is { nullifier: string; txHash: string; source: Source; record: AdvanceRecord } => r.record?.borrower === borrower)
       .sort((a, b) => (a.record.openedAt === b.record.openedAt ? 0 : a.record.openedAt > b.record.openedAt ? -1 : 1));
     return c.json(
-      rows.map(({ nullifier, txHash, record }) => ({
+      rows.map(({ nullifier, txHash, source, record }) => ({
         nullifier,
+        source,
         borrower: record.borrower,
         windowStart: record.windowStart,
         windowEnd: record.windowEnd,
@@ -167,27 +169,31 @@ export function createApp({ loaded, rpc, chain, prover, jobs = new ProofJobs(), 
     async (c) => {
       c.header("Cache-Control", "no-store");
       if (!prover) return c.json({ error: "the proof relay is not configured on this server", code: "unconfigured" }, 503);
-      let body: { borrower?: unknown; accessToken?: unknown; publisherId?: unknown };
+      let body: { borrower?: unknown; accessToken?: unknown; publisherId?: unknown; source?: unknown };
       try {
         body = await c.req.json();
       } catch {
         return c.json({ error: "expected a JSON body" }, 400);
       }
-      const { borrower, accessToken, publisherId } = body ?? {};
+      const { borrower, accessToken, publisherId, source } = body ?? {};
       if (typeof borrower !== "string" || !StrKey.isValidEd25519PublicKey(borrower)) {
         return c.json({ error: "borrower must be a Stellar account address (G…)" }, 400);
       }
       // Google's tokens run to hundreds of characters. A short string is not one, and scrubbing it out
       // of error messages would cut every word it appears in.
       if (typeof accessToken !== "string" || accessToken.length < 16 || accessToken.length > 4096) {
-        return c.json({ error: "accessToken must be a Google OAuth access token with adsense.readonly" }, 400);
+        return c.json({ error: "accessToken must be a Google OAuth access token with adsense.readonly (or admob.readonly for source admob)" }, 400);
       }
       if (publisherId !== undefined && (typeof publisherId !== "string" || !/^pub-\d{16}$/.test(publisherId))) {
         return c.json({ error: "publisherId, when given, must be pub- and 16 digits" }, 400);
       }
+      // AdSense unless asked, so a client written before AdMob (#95) is unchanged.
+      if (source !== undefined && source !== "adsense" && source !== "admob") {
+        return c.json({ error: 'source, when given, must be "adsense" or "admob"' }, 400);
+      }
       try {
         const job = jobs.submit(borrower, (onStep) =>
-          prover({ borrower, accessToken, publisherId }, onStep).catch((e: unknown) => {
+          prover({ borrower, accessToken, publisherId, ...(source === "admob" ? { source } : {}) }, onStep).catch((e: unknown) => {
             // Whatever failed, its message must not carry this job's token.
             if (e instanceof ProveError) throw new ProveError(e.code, e.message.split(accessToken).join("[redacted]"));
             throw new Error(String((e as Error)?.stack ?? e).split(accessToken).join("[redacted]"));

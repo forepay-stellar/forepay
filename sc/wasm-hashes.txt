@@ -15,10 +15,25 @@
 # The hash that matters for deployment is neither of these: it is the one the release
 # workflow produces, because StellarExpert matches the on-chain wasm against the attested
 # artifact. See docs/deployments.md.
+#
+# A DOC COMMENT ON A PUBLIC CONTRACT FUNCTION CHANGES THESE HASHES.
+#
+# soroban-sdk embeds the doc comments of `#[contractimpl]` functions in the wasm's
+# contract-spec metadata, so they are part of the deployed bytes. Measured here on
+# 2026-10-29 by building twice with nothing else changed:
+#
+#   with a doc comment on `advance_source`     0c5c70c9...acdd   (aarch64-apple-darwin)
+#   with that one comment removed              57f3ebce...04b3
+#
+# and `strings` finds the comment's text inside the wasm. So a "docs only" commit is not
+# docs-only for the artifact: it needs this row re-recorded, and on a released contract it
+# needs a new release and a new verification. It also means these comments are published
+# on chain and readable by anyone — which is a good property to have on purpose and a
+# surprising one to discover by accident.
 
 # triple                     stellar-cli  sha256
 # --- verified by CI on every push ---
-x86_64-unknown-linux-gnu     28.1.0       34692faae6a80f7c9bcf2eeaf213b25eb217e356e7b1e8453cafe482114b2ea1
+x86_64-unknown-linux-gnu     28.1.0       f4fd10d646307bd4f204a26be3b64c35141587b9e12aca0f41b48c049d3a5a36
 
 # @@UNVERIFIED@@ rows below this marker are reference only and are not checked
 aarch64-apple-darwin         27.0.0       2aefbf745ea1b8ac4faea4018b08679adcf233fd0e0590136e46dbbe9756ed25

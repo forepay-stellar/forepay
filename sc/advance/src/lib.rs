@@ -49,8 +49,26 @@ mod sizing;
 
 pub use claim::{CONTEXT_MESSAGE, PROVIDER};
 pub use sizing::{
-    ADVANCE_CAP_STROOPS, ADVANCE_DEN, ADVANCE_NUM, MIN_ADVANCE_STROOPS, STROOPS_PER_CENT,
+    ADVANCE_CAP_STROOPS, ADVANCE_DEN, ADVANCE_NUM, MICROS_PER_CENT, MIN_ADVANCE_STROOPS,
+    STROOPS_PER_CENT,
 };
+
+/// Which Google reporting product a claim was made against (#94).
+///
+/// Not a label: it selects the template, and the template pins the host. An AdMob claim
+/// is rebuilt against `admob.googleapis.com` bytes and can therefore never verify against
+/// the AdSense template, or the reverse. That is the property that makes a second source
+/// safe to add, and it lives in storage rather than in the caller's argument.
+///
+/// Append-only, like `DataKey`: a variant may be added, none may be removed or renamed.
+#[contracttype]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Source {
+    /// Websites. The original and only source through #93; dollars, in `revenueUsd`.
+    AdSense,
+    /// Apps. Micros, in `revenueMicros`, with the window inside a signed POST body.
+    AdMob,
+}
 
 /// Storage keys. Append-only: a new variant may be added, none may ever be removed,
 /// renamed or given a different payload type.
@@ -77,6 +95,26 @@ pub enum DataKey {
     /// One advance, keyed by the nullifier that funded it. Persistent: an advance that
     /// vanished when its TTL lapsed would erase a debt, which is not a rounding error.
     Advance(BytesN<32>),
+    /// The attestor's `owner` every claim must carry: the Reclaim app the relay proves
+    /// with, `0x…`, lowercase (#102). Absent is refused rather than guessed — see
+    /// `verify_claim`.
+    ClaimOwner,
+    /// The claim template for one revenue source (#94).
+    ///
+    /// `ParamsTemplate` above is the AdSense template as it was pinned before sources
+    /// existed. It is never written again and never removed: `template_of` reads this key
+    /// first and falls back to it, so a contract pinned under the old key keeps working
+    /// without a re-pin, and the dev contract did not have to be re-pinned to deploy this.
+    ParamsTemplateFor(Source),
+    /// That source's provider hash, as it appears in the signed context.
+    ProviderHashFor(Source),
+    /// The source an advance was taken against, beside the `Advance` rather than inside it.
+    ///
+    /// **Absent means `AdSense`.** `Advance` is a `#[contracttype]` struct, encoded as a
+    /// map with symbol keys, so adding a required field would change the type of the value
+    /// stored under an existing key and every advance already recorded would fail to
+    /// decode. Those entries represent debts. A parallel key leaves them untouched.
+    AdvanceSource(BytesN<32>),
 }
 
 /// An advance that has been paid out, and what is still owed on it.
@@ -207,15 +245,35 @@ pub enum Error {
     /// Reclaim's `verify_proof` refused the digest. Either the signature is not from a
     /// current witness, or one of the rebuilt fields differs from what was signed.
     VerifierRejected = 14,
+    /// No claim owner pinned, so the digest cannot be rebuilt (#102).
+    ///
+    /// Refused rather than defaulted. The owner a real attestor signs is the requesting
+    /// Reclaim app, and before #102 this contract rebuilt it as the borrower — a form no
+    /// real claim has ever carried, which made every real proof fail as `VerifierRejected`
+    /// with nothing pointing at the cause. Defaulting to the borrower when nothing is
+    /// pinned would keep that exact failure as the state a contract is in immediately
+    /// after an upgrade. A contract that cannot verify says so.
+    ClaimOwnerNotSet = 15,
+    /// `set_claim_owner` was given something that is not `0x` and 40 hex digits.
+    ///
+    /// Its own code rather than `ClaimMismatch`: #11 means the rebuilt claim disagrees
+    /// with what the attestor signed, and anyone who saw it here would go looking at the
+    /// template and the proof instead of at their own argument.
+    ClaimOwnerMalformed = 16,
 
     // --- 20-29: nullifier registry (#10) ---
     /// This publisher and window have already funded an advance.
     NullifierSpent = 20,
 
     // --- 30-39: sizing (#11) ---
-    /// `revenueUsd` is not a plain non-negative decimal, or carries more than two
-    /// decimal places. Refused rather than rounded: rounding would make the advance
-    /// depend on how we round, and anyone must be able to re-derive the figure.
+    /// The attested figure is not parseable in the form its source attests.
+    ///
+    /// For `AdSense`, `revenueUsd` is not a plain non-negative decimal, or carries more
+    /// than two decimal places. For `AdMob` (#94), `revenueMicros` is not a plain
+    /// non-negative integer. Refused rather than rounded or coerced: rounding would make
+    /// the advance depend on how we round, and anyone must be able to re-derive the
+    /// figure. One code for both, because the caller already knows which source it asked
+    /// for and the meaning is the same.
     RevenueUnparseable = 30,
     /// The sized advance is below `MIN_ADVANCE_STROOPS`. Refused so that a dust advance
     /// cannot burn the creator's nullifier for the period in exchange for nothing.
@@ -283,6 +341,13 @@ pub struct ClaimTemplateSet {
     #[topic]
     pub admin: Address,
     pub parts: u32,
+}
+
+#[contractevent]
+pub struct ClaimOwnerSet {
+    #[topic]
+    pub admin: Address,
+    pub owner: Bytes,
 }
 
 #[contractevent]
@@ -476,8 +541,12 @@ impl AdvanceContract {
     /// no string form for a date: `reports:generate` takes `startDate.year=2026&
     /// startDate.month=7&startDate.day=1`, unpadded, and one `"2026-07-01"` cannot fill
     /// three query parameters (#76).
+    /// `source` selects which template is written. The two are independent: pinning
+    /// AdMob cannot disturb AdSense, and an AdMob claim is rebuilt against
+    /// `admob.googleapis.com` bytes so it can never verify against the AdSense template.
     pub fn set_claim_template(
         env: Env,
+        source: Source,
         parts: Vec<Bytes>,
         provider_hash: Bytes,
     ) -> Result<(), Error> {
@@ -488,24 +557,69 @@ impl AdvanceContract {
         let n = parts.len();
         env.storage()
             .instance()
-            .set(&DataKey::ParamsTemplate, &parts);
+            .set(&DataKey::ParamsTemplateFor(source), &parts);
         env.storage()
             .instance()
-            .set(&DataKey::ProviderHash, &provider_hash);
+            .set(&DataKey::ProviderHashFor(source), &provider_hash);
         Self::bump(&env);
 
         ClaimTemplateSet { admin, parts: n }.publish(&env);
         Ok(())
     }
 
-    /// The pinned template, if one is set. Public so that anyone can check what this
-    /// contract will accept before sending a proof to it.
+    /// The pinned AdSense template, if one is set.
+    ///
+    /// Kept argument-free at its original name so anything already reading it keeps
+    /// working; `claim_template_for` is the general form.
     pub fn claim_template(env: Env) -> Option<Vec<Bytes>> {
-        env.storage().instance().get(&DataKey::ParamsTemplate)
+        Self::claim_template_for(env, Source::AdSense)
     }
 
     pub fn provider_hash(env: Env) -> Option<Bytes> {
-        env.storage().instance().get(&DataKey::ProviderHash)
+        Self::provider_hash_for(env, Source::AdSense)
+    }
+
+    /// That source's pinned template, if one is set. Public so that anyone can check what
+    /// this contract will accept before sending a proof to it.
+    pub fn claim_template_for(env: Env, source: Source) -> Option<Vec<Bytes>> {
+        Self::template_of(&env, &source)
+            .ok()
+            .map(|(parts, _)| parts)
+    }
+
+    pub fn provider_hash_for(env: Env, source: Source) -> Option<Bytes> {
+        Self::template_of(&env, &source).ok().map(|(_, hash)| hash)
+    }
+
+    /// Pin the attestor's `owner`: the Reclaim app id the relay proves with (#102).
+    ///
+    /// A real attestor signs `identifier \n owner \n timestamp \n epoch` with `owner` set
+    /// to the **requesting app's** address, not to anything in the claim. The contract
+    /// cannot read it from the claim, because it rebuilds the digest rather than trusting
+    /// one, so it has to be pinned like the template. Pinning it also refuses claims made
+    /// through any other Reclaim app.
+    ///
+    /// It carries no part of the borrower binding: that lives in `contextAddress`, inside
+    /// the identifier, and is unaffected.
+    ///
+    /// `owner` must be `0x` and 40 hex digits. It is stored lowercased, because Reclaim
+    /// lowercases it before signing.
+    pub fn set_claim_owner(env: Env, owner: Bytes) -> Result<(), Error> {
+        let admin = Self::require_admin(&env)?;
+        if !claim::is_eth_address(&owner) {
+            return Err(Error::ClaimOwnerMalformed);
+        }
+        let owner = claim::lowercase(&env, &owner);
+        env.storage().instance().set(&DataKey::ClaimOwner, &owner);
+        Self::bump(&env);
+
+        ClaimOwnerSet { admin, owner }.publish(&env);
+        Ok(())
+    }
+
+    /// The pinned owner, if one is set. Absent means the borrower (the rehearsal's form).
+    pub fn claim_owner(env: Env) -> Option<Bytes> {
+        env.storage().instance().get(&DataKey::ClaimOwner)
     }
 
     // -------------------------------------------------- verify a claim (#9)
@@ -522,6 +636,7 @@ impl AdvanceContract {
     /// and the digest changes with it.
     pub fn verify_claim(
         env: Env,
+        source: Source,
         borrower: Address,
         revenue_usd: String,
         pub_id: String,
@@ -532,16 +647,7 @@ impl AdvanceContract {
         signature: BytesN<64>,
         recovery_id: u32,
     ) -> Result<VerifiedClaim, Error> {
-        let parts: Vec<Bytes> = env
-            .storage()
-            .instance()
-            .get(&DataKey::ParamsTemplate)
-            .ok_or(Error::TemplateNotSet)?;
-        let provider_hash: Bytes = env
-            .storage()
-            .instance()
-            .get(&DataKey::ProviderHash)
-            .ok_or(Error::TemplateNotSet)?;
+        let (parts, provider_hash) = Self::template_of(&env, &source)?;
 
         // Freshness before any hashing: a stale proof should cost the caller a cheap
         // refusal, not a keccak over the whole request template.
@@ -563,20 +669,37 @@ impl AdvanceContract {
         // only form AdSense accepts (#76). `window_start` and `window_end` stay
         // `YYYY-MM-DD` in the interface and in the nullifier — this is a re-encoding on
         // the way into the template, not a change to what is being borrowed against.
-        let (sy, sm, sd) = claim::split_date(&env, &start_b).ok_or(Error::ClaimMismatch)?;
-        let (ey, em, ed) = claim::split_date(&env, &end_b).ok_or(Error::ClaimMismatch)?;
+        let start = claim::split_date(&env, &start_b).ok_or(Error::ClaimMismatch)?;
+        let end = claim::split_date(&env, &end_b).ok_or(Error::ClaimMismatch)?;
 
-        let parameters =
-            claim::rebuild_parameters(&parts, &[pub_id_b.clone(), sy, sm, sd, ey, em, ed])
-                .ok_or(Error::ClaimMismatch)?;
-        let context = claim::rebuild_context(&env, &borrower_b, &revenue_b, &provider_hash);
+        let values = Self::claim_values(&source, pub_id_b.clone(), start, end);
+        let parameters = claim::rebuild_parameters(&parts, &values).ok_or(Error::ClaimMismatch)?;
+        let context = claim::rebuild_context(
+            &env,
+            &borrower_b,
+            Self::revenue_key(&source),
+            &revenue_b,
+            &provider_hash,
+        );
 
         let identifier = claim::identifier(&env, &parameters, &context);
         let identifier_hex = claim::hex_prefixed(&identifier);
 
-        // The attestor's `owner` is the borrower's own address, lowercased, because that
-        // is what the relay put in the claim. Reclaim lowercases it before signing.
-        let owner = claim::lowercase(&env, &borrower_b);
+        // The attestor's `owner` is the Reclaim app that requested the proof, pinned by
+        // the admin (#102). Reclaim lowercases it before signing, so the pinned value is
+        // stored lowercased.
+        //
+        // Unpinned is refused, not defaulted. Before #102 this was rebuilt as the
+        // borrower — a form no real attestor claim has ever carried — and the symptom was
+        // a bare `VerifierRejected` that took a real proof to diagnose. Falling back to
+        // the borrower when nothing is pinned would keep that failure as the state every
+        // contract is in immediately after this upgrade, which is the one moment someone
+        // is most likely to be testing it.
+        let owner: Bytes = env
+            .storage()
+            .instance()
+            .get(&DataKey::ClaimOwner)
+            .ok_or(Error::ClaimOwnerNotSet)?;
         let digest = claim::message_digest(&env, &identifier_hex, &owner, timestamp_s, epoch);
 
         let verifier: Address = env
@@ -612,6 +735,7 @@ impl AdvanceContract {
     /// anything, rather than after.
     pub fn nullifier_for(
         env: Env,
+        source: Source,
         pub_id: String,
         window_start: String,
         window_end: String,
@@ -619,7 +743,7 @@ impl AdvanceContract {
         let pub_id = claim::string_bytes(&env, &pub_id).ok_or(Error::ClaimMismatch)?;
         let start = claim::string_bytes(&env, &window_start).ok_or(Error::ClaimMismatch)?;
         let end = claim::string_bytes(&env, &window_end).ok_or(Error::ClaimMismatch)?;
-        claim::nullifier_of(&env, &pub_id, &start, &end)
+        claim::nullifier_of(&env, &pub_id, &start, &end, Self::source_tag(&source))
             .try_into()
             .map_err(|_| Error::ClaimMismatch)
     }
@@ -654,6 +778,7 @@ impl AdvanceContract {
     /// transactions in the same ledger could both pass the check.
     pub fn verify_and_reserve(
         env: Env,
+        source: Source,
         borrower: Address,
         revenue_usd: String,
         pub_id: String,
@@ -670,6 +795,7 @@ impl AdvanceContract {
 
         let verified = Self::verify_claim(
             env.clone(),
+            source,
             borrower,
             revenue_usd,
             pub_id,
@@ -683,6 +809,7 @@ impl AdvanceContract {
 
         let nullifier = Self::nullifier_for(
             env.clone(),
+            source,
             verified.pub_id.clone(),
             verified.window_start.clone(),
             verified.window_end.clone(),
@@ -756,6 +883,24 @@ impl AdvanceContract {
         env.storage().persistent().get(&DataKey::Advance(nullifier))
     }
 
+    /// The source an advance was taken against. **Absent means `AdSense`** (#94).
+    ///
+    /// Returns the source rather than an `Option`, because absent is not missing data: it
+    /// is the answer for every advance recorded before a second source existed, and for
+    /// every AdSense advance since. A front end reading this gets the source from a
+    /// contract read rather than reconstructing it from event history (#66).
+    /// `unwrap_or` is safe here only because the entry is **persistent**. A persistent
+    /// entry whose TTL lapses is archived, not deleted, and the host makes the caller
+    /// restore it before the read — so an AdMob advance can never quietly read back as
+    /// AdSense once its TTL runs out. In `temporary` storage this same line would do
+    /// exactly that, silently, and relabel a debt. Same reasoning the nullifier rests on.
+    pub fn advance_source(env: Env, nullifier: BytesN<32>) -> Source {
+        env.storage()
+            .persistent()
+            .get(&DataKey::AdvanceSource(nullifier))
+            .unwrap_or(Source::AdSense)
+    }
+
     /// Prove revenue, size an advance, and receive USDC. The product, in one call.
     ///
     /// The order is the security property and does not change:
@@ -789,6 +934,7 @@ impl AdvanceContract {
     /// race and two transactions in one ledger could otherwise both pass the check.
     pub fn request_advance(
         env: Env,
+        source: Source,
         borrower: Address,
         revenue_usd: String,
         pub_id: String,
@@ -803,6 +949,7 @@ impl AdvanceContract {
 
         let verified = Self::verify_claim(
             env.clone(),
+            source,
             borrower,
             revenue_usd,
             pub_id,
@@ -814,7 +961,11 @@ impl AdvanceContract {
             recovery_id,
         )?;
 
-        let cents = sizing::parse_usd_cents(&env, &verified.revenue_usd)
+        // Dollars for AdSense, micros for AdMob. The figure arrives as the text the
+        // attestor signed, so the unit is fixed by the source and never inferred from
+        // the digits — `"123450000"` is a valid figure in both units and means two
+        // things four orders of magnitude apart.
+        let cents = Self::revenue_cents(&env, &source, &verified.revenue_usd)
             .ok_or(Error::RevenueUnparseable)?;
         let principal = sizing::advance_stroops(cents).ok_or(Error::RevenueUnparseable)?;
         if principal < sizing::MIN_ADVANCE_STROOPS {
@@ -823,6 +974,7 @@ impl AdvanceContract {
 
         let nullifier = Self::nullifier_for(
             env.clone(),
+            source,
             verified.pub_id.clone(),
             verified.window_start.clone(),
             verified.window_end.clone(),
@@ -876,6 +1028,19 @@ impl AdvanceContract {
         env.storage()
             .persistent()
             .extend_ttl(&adv_key, 120 * 17_280, 180 * 17_280);
+
+        // Beside the advance, not inside it. Written only for a source that is not
+        // AdSense, so absent reads as AdSense and the advances recorded before #94 — in
+        // the old shape, with no source anywhere — stay correct rather than merely
+        // decodable. Same forced asymmetry as the nullifier tag, so there is one rule to
+        // remember instead of two.
+        if !matches!(source, Source::AdSense) {
+            let src_key = DataKey::AdvanceSource(nullifier.clone());
+            env.storage().persistent().set(&src_key, &source);
+            env.storage()
+                .persistent()
+                .extend_ttl(&src_key, 120 * 17_280, 180 * 17_280);
+        }
 
         NullifierSpent {
             borrower: verified.borrower.clone(),
@@ -947,6 +1112,97 @@ impl AdvanceContract {
 
     // -------------------------------------------------------------- helpers
 
+    // ------------------------------------------------ per-source shape (#94)
+
+    /// The nullifier tag for a source, or `None` for an untagged nullifier space.
+    ///
+    /// **AdSense carries no tag, and that is forced rather than chosen.** Advances already
+    /// on chain are keyed on the untagged hash of `(pub_id, window_start, window_end)`;
+    /// tagging AdSense now would compute a different key for them and orphan records that
+    /// represent debts. Every source added after AdSense is tagged.
+    ///
+    /// A tag is needed at all because one Google account's AdSense and AdMob publisher
+    /// ids are the same `pub-` id — confirmed on a real account in #93. Untagged, an
+    /// AdMob proof would spend the AdSense nullifier for the same window.
+    ///
+    /// This is the only place the exception lives. Nothing else should branch on it.
+    fn source_tag(source: &Source) -> Option<&'static [u8]> {
+        match source {
+            Source::AdSense => None,
+            Source::AdMob => Some(b"admob"),
+        }
+    }
+
+    /// The key the figure is extracted under, inside the signed context.
+    ///
+    /// Signed, so it cannot be renamed afterwards. The two never share a name: see
+    /// `claim::rebuild_context` for why micros read as dollars is the dangerous direction.
+    fn revenue_key(source: &Source) -> &'static [u8] {
+        match source {
+            Source::AdSense => b"revenueUsd",
+            Source::AdMob => b"revenueMicros",
+        }
+    }
+
+    /// Parse the attested figure into cents, in the unit its source attests.
+    fn revenue_cents(env: &Env, source: &Source, revenue: &String) -> Option<i128> {
+        match source {
+            Source::AdSense => sizing::parse_usd_cents(env, revenue),
+            Source::AdMob => sizing::parse_micros_cents(env, revenue),
+        }
+    }
+
+    /// The seven values, in the order they appear in that source's signed `parameters`.
+    ///
+    /// `rebuild_parameters` interleaves positionally, so **the order is part of the
+    /// source's shape and lives here, not in the template** — the template is only the
+    /// literal segments between the values.
+    ///
+    /// AdSense carries `pub_id` in the URL path and the window in the query string after
+    /// it. AdMob puts the window inside `body`, and `body` sorts before `url` in the
+    /// canonical parameters (#93), so the window comes first and `pub_id` last.
+    ///
+    /// Getting this wrong does not fail safe into a wrong template: `rebuild_parameters`
+    /// would hash a different request, the identifier would not match what the attestor
+    /// signed, and it would surface as `ClaimMismatch` with nothing pointing at the cause.
+    /// `tools/pin_template.py --self-test` and `be/src/admob/request.test.ts` check the
+    /// same ordering independently, so no two of the three can be wrong together.
+    fn claim_values(
+        source: &Source,
+        pub_id: Bytes,
+        start: (Bytes, Bytes, Bytes),
+        end: (Bytes, Bytes, Bytes),
+    ) -> [Bytes; 7] {
+        let (sy, sm, sd) = start;
+        let (ey, em, ed) = end;
+        match source {
+            Source::AdSense => [pub_id, sy, sm, sd, ey, em, ed],
+            Source::AdMob => [sy, sm, sd, ey, em, ed, pub_id],
+        }
+    }
+
+    /// That source's template and provider hash.
+    ///
+    /// For `AdSense` it falls back to the pre-#94 singleton keys, so a contract pinned
+    /// before sources existed keeps verifying without being re-pinned. For any other
+    /// source there is no fallback: an unpinned source refuses.
+    fn template_of(env: &Env, source: &Source) -> Result<(Vec<Bytes>, Bytes), Error> {
+        let st = env.storage().instance();
+        let parts: Option<Vec<Bytes>> = st.get(&DataKey::ParamsTemplateFor(*source));
+        let hash: Option<Bytes> = st.get(&DataKey::ProviderHashFor(*source));
+        let (parts, hash) = match (parts, hash) {
+            (Some(p), Some(h)) => (p, h),
+            _ if matches!(source, Source::AdSense) => (
+                st.get(&DataKey::ParamsTemplate)
+                    .ok_or(Error::TemplateNotSet)?,
+                st.get(&DataKey::ProviderHash)
+                    .ok_or(Error::TemplateNotSet)?,
+            ),
+            _ => return Err(Error::TemplateNotSet),
+        };
+        Ok((parts, hash))
+    }
+
     fn require_admin(env: &Env) -> Result<Address, Error> {
         let admin: Address = env
             .storage()
@@ -975,6 +1231,8 @@ impl AdvanceContract {
 
 #[cfg(test)]
 mod test;
+#[cfg(test)]
+mod test_admob;
 #[cfg(test)]
 mod test_advance;
 #[cfg(test)]

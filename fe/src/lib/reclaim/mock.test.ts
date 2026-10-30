@@ -11,7 +11,7 @@ describe("mockProveRevenue", () => {
 
   it("waits for the login, reads, then returns the arguments request_advance takes", async () => {
     const stages: ProveStage[] = [];
-    const session = mockProveRevenue("GA6H", (s) => stages.push(s));
+    const session = mockProveRevenue("GA6H", "adsense", (s) => stages.push(s));
     expect(stages).toEqual(["waiting"]);
     await vi.runAllTimersAsync();
     const req = await session.result;
@@ -23,14 +23,14 @@ describe("mockProveRevenue", () => {
 
   it("returns the figure set for trying the other offer variants", async () => {
     window.localStorage.setItem("forepay.mock.revenue", "1240.00");
-    const session = mockProveRevenue("GA6H", () => {});
+    const session = mockProveRevenue("GA6H", "adsense", () => {});
     await vi.runAllTimersAsync();
     expect((await session.result).revenueUsd).toBe("1240.00");
   });
 
   it("can close the window instead of finishing", async () => {
     window.localStorage.setItem("forepay.mock.reclaim", "cancel");
-    const session = mockProveRevenue("GA6H", () => {});
+    const session = mockProveRevenue("GA6H", "adsense", () => {});
     const settled = session.result.catch((e) => e);
     await vi.runAllTimersAsync();
     expect(await settled).toBeInstanceOf(ReclaimCancelledError);
@@ -38,9 +38,16 @@ describe("mockProveRevenue", () => {
 
   it("goes back to waiting when the window is opened again", async () => {
     const stages: ProveStage[] = [];
-    const session = mockProveRevenue("GA6H", (s) => stages.push(s));
+    const session = mockProveRevenue("GA6H", "adsense", (s) => stages.push(s));
     session.reopen();
     expect(stages).toEqual(["waiting", "waiting"]);
     session.abandon();
+  });
+
+  it("answers AdMob the relay's way, micros beside the exact decimal", async () => {
+    window.localStorage.setItem("forepay.mock.revenue", "3.20");
+    const session = mockProveRevenue("GA6H", "admob", () => {});
+    await vi.runAllTimersAsync();
+    expect(await session.result).toMatchObject({ source: "admob", revenueMicros: "3200000", revenueUsd: "3.20" });
   });
 });

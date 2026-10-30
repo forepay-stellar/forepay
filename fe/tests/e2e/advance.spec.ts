@@ -55,9 +55,9 @@ test("prove, see the offer with its derivation, accept, and receive the USDC", a
   await page.getByRole("button", { name: "Prove my revenue" }).click();
 
   // The Reclaim session, then the check on Stellar
-  await expect(heading(page, "Log in to AdSense in the new window")).toBeVisible();
+  await expect(heading(page, "Sign in with Google in the new window")).toBeVisible();
   await expect(page.getByRole("button", { name: "Open the window again" })).toBeVisible();
-  await expect(heading(page, "Reading your revenue")).toBeVisible();
+  await expect(heading(page, "Reading your AdSense revenue")).toBeVisible();
   await expect(heading(page, "Checking your proof")).toBeVisible();
 
   // 2b: the contract's figure and how it was reached
@@ -272,10 +272,10 @@ test("an advance under 1 USDC is refused before anything is sent, and the proof 
   await expect(heading(page, "See how much you can get")).toBeVisible();
 });
 
-test("closing the AdSense window is named, and proving can start again", async ({ page }) => {
+test("closing the Google window is named, and proving can start again", async ({ page }) => {
   await connect(page, { account: true, trustline: true }, { "forepay.mock.reclaim": "cancel" });
   await page.getByRole("button", { name: "Prove my revenue" }).click();
-  await expect(heading(page, "You closed the AdSense window")).toBeVisible();
+  await expect(heading(page, "You closed the Google window")).toBeVisible();
   await expect(page.getByText("Nothing was read or saved. Start again when you are ready.")).toBeVisible();
   await page.evaluate(() => window.localStorage.removeItem("forepay.mock.reclaim"));
   await page.getByRole("button", { name: "Prove my revenue" }).click();
@@ -342,7 +342,7 @@ test("Open the window again keeps waiting for the AdSense login, then goes on", 
   await connect(page, { account: true, trustline: true });
   await page.getByRole("button", { name: "Prove my revenue" }).click();
   await page.getByRole("button", { name: "Open the window again" }).click();
-  await expect(heading(page, "Log in to AdSense in the new window")).toBeVisible();
+  await expect(heading(page, "Sign in with Google in the new window")).toBeVisible();
   await expect(page.getByRole("button", { name: "Accept 90.00 USDC" })).toBeVisible();
 });
 
@@ -374,7 +374,7 @@ test("a proof that expires while the offer is open is named at accept, and Prove
   await expect(heading(page, "Approve the advance")).toBeVisible();
   expect(chain.advance?.sent ?? 0).toBe(0);
   await page.getByRole("button", { name: "Prove again" }).click();
-  await expect(heading(page, "Log in to AdSense in the new window")).toBeVisible();
+  await expect(heading(page, "Sign in with Google in the new window")).toBeVisible();
 });
 
 test("a proof already used, found at accept, is named, and Back leaves the offer behind", async ({ page }) => {
