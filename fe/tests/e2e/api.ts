@@ -29,6 +29,7 @@ export function frameLedger(): Ledger {
     advances: [
       {
         nullifier: NULLIFIER,
+        source: "AdSense",
         borrower: E2E_ADDRESS,
         windowStart: "2026-07-01",
         windowEnd: "2026-09-30",

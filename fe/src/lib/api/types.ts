@@ -10,6 +10,11 @@
 export type AdvanceSummary = {
   /** 32 bytes as hex. `repay` takes it (ARCHITECTURE.md §10, question 1). */
   nullifier: string;
+  /**
+   * Where the revenue was earned (#97), read by #107 from the `request_advance` call. An API from before
+   * #107 sends none, and every advance it lists is AdSense's.
+   */
+  source: "AdSense" | "AdMob";
   borrower: string;
   /** The attested three-month window, `YYYY-MM-DD`. */
   windowStart: string;

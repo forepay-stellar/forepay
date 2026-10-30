@@ -34,8 +34,14 @@ async function fetchJson<T>(path: string): Promise<T> {
 /** Every advance this wallet has taken, newest first. */
 export async function getAdvances(borrower: string): Promise<AdvanceSummary[]> {
   if (usingMockApi) return mock.advances(borrower);
-  const rows = await fetchJson<Wire<AdvanceSummary>[]>(`/advances?borrower=${encodeURIComponent(borrower)}`);
-  return rows.map((r) => fromWire<AdvanceSummary>(r, ["revenueCents", "principal", "repaid", "openedAt"]));
+  const rows = await fetchJson<(Wire<AdvanceSummary> & { source?: string })[]>(
+    `/advances?borrower=${encodeURIComponent(borrower)}`,
+  );
+  return rows.map((r) => ({
+    ...fromWire<AdvanceSummary>(r, ["revenueCents", "principal", "repaid", "openedAt"]),
+    // Missing before #107, and those advances are all AdSense.
+    source: r.source === "AdMob" ? "AdMob" : "AdSense",
+  }));
 }
 
 /** Every advance and repayment for this wallet, newest first. */
@@ -76,6 +82,7 @@ const mock = {
     return [
       {
         nullifier: NULLIFIER,
+        source: "AdSense",
         borrower,
         windowStart: "2026-07-01",
         windowEnd: "2026-09-30",

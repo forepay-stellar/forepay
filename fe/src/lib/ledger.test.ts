@@ -17,6 +17,7 @@ const OPENED = 1_791_806_400n; // 12 Oct 2026
 function advance(over: Partial<AdvanceSummary> = {}): AdvanceSummary {
   return {
     nullifier: "aa",
+    source: "AdSense",
     borrower: "G",
     windowStart: "2026-07-01",
     windowEnd: "2026-09-30",

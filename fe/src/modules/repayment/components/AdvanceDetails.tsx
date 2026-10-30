@@ -26,21 +26,28 @@ export function AdvanceDetails({
 }) {
   const sized: ReactNode =
     terms === "loading" ? <SkeletonBlock className="h-4 w-28 rounded-[6px]" /> : sizingLabel(advance, terms);
-  const rows: { label: string; value: ReactNode }[] = [
-    { label: "Advanced", value: formatUsdc(advance.principal) },
+  const rows: { key: string; label: ReactNode; value: ReactNode }[] = [
+    { key: "advanced", label: "Advanced", value: formatUsdc(advance.principal) },
     {
-      label: `AdSense revenue, ${formatWindow(advance.windowStart, advance.windowEnd).short}`,
+      key: "revenue",
+      // When the label has to wrap, the window moves to the next line whole, never the year alone.
+      label: (
+        <>
+          {advance.source} revenue,{" "}
+          <span className="whitespace-nowrap">{formatWindow(advance.windowStart, advance.windowEnd).short}</span>
+        </>
+      ),
       value: formatUsdCents(advance.revenueCents),
     },
-    ...(sized ? [{ label: "How it was sized", value: sized }] : []),
-    { label: "Received on", value: formatLedgerTime(advance.openedAt) },
+    ...(sized ? [{ key: "sized", label: "How it was sized", value: sized }] : []),
+    { key: "received", label: "Received on", value: formatLedgerTime(advance.openedAt) },
   ];
   return (
     <section className={cn("flex w-full flex-col gap-5 rounded-card bg-surface p-6", className)}>
       <h2 className="text-card-title text-fg">Advance details</h2>
       <dl className="flex flex-col gap-3.5">
         {rows.map((r) => (
-          <div key={r.label} className="flex items-center justify-between gap-4 text-body">
+          <div key={r.key} className="flex items-center justify-between gap-4 text-body">
             <dt className="text-fg-muted">{r.label}</dt>
             <dd className="whitespace-nowrap font-medium text-fg">{r.value}</dd>
           </div>
