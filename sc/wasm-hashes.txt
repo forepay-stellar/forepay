@@ -36,4 +36,7 @@
 x86_64-unknown-linux-gnu     28.1.0       f4fd10d646307bd4f204a26be3b64c35141587b9e12aca0f41b48c049d3a5a36
 
 # @@UNVERIFIED@@ rows below this marker are reference only and are not checked
-aarch64-apple-darwin         27.0.0       2aefbf745ea1b8ac4faea4018b08679adcf233fd0e0590136e46dbbe9756ed25
+# Re-measured 2026-10-30 on main at 2ea1e15, the tree v0.5.0 is tagged from. The previous
+# value here (2aefbf74...6ed25) predated #103 and #106 and was stale: a reference row nobody
+# checks still gets read, so a wrong one is worse than none.
+aarch64-apple-darwin         27.0.0       0c5c70c9607676f1f69ff0bfa2cd6ec761b6aca2e555324b839c6a10dce1acdd
