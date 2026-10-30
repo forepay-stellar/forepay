@@ -9,7 +9,7 @@ import { ProveError } from "../adsense/account.js";
 import { recoverSigner } from "../adsense/audit.js";
 import { CONTEXT_MESSAGE } from "../adsense/request.js";
 import { createSignDataForClaim, messageDigest } from "../reclaim/claim-digest.js";
-import { ALICE, ATTESTOR, BOB, NOW, PUB, Q3, TOKEN, fakeGoogle, fakeZkFetch, report } from "./fake-reclaim.js";
+import { ALICE, ATTESTOR, BOB, NOW, PUB, Q3, TOKEN, admobReport, fakeAdmob, fakeGoogle, fakeZkFetch, report } from "./fake-reclaim.js";
 import { proveRevenue, toAdvanceRequest, type ProveDeps, type ProveStep } from "./prove.js";
 
 function deps(o: Partial<ProveDeps> = {}): ProveDeps {
@@ -115,4 +115,54 @@ test("a proof whose owner is not this relay's Reclaim app is refused by the audi
   const other = "0x6415200c713135e77157e1536d488df4f2bb7d04";
   assert.equal(await code(proveRevenue(deps({ owner: other }), { borrower: ALICE, accessToken: TOKEN })), "audit");
   await proveRevenue(deps({ owner: "0x96faf173bb7171a530b3e44f35f32d1307bda4fa" }), { borrower: ALICE, accessToken: TOKEN });
+});
+
+// AdMob (#95): the same pipeline, selected by `source`.
+
+function admobDeps(o: Partial<ProveDeps> = {}): ProveDeps {
+  return deps({ admob: fakeAdmob(), zkFetch: fakeZkFetch({ extracted: { revenueMicros: "12345678" } }), ...o });
+}
+
+test("source admob proves through AdMob, and the arguments carry the micros as signed", async () => {
+  const google = fakeGoogle();
+  const admob = fakeAdmob();
+  const proven = await proveRevenue(admobDeps({ google, admob }), { borrower: ALICE, accessToken: TOKEN, source: "admob" });
+  assert.equal(google.calls.length, 0);
+  assert.deepEqual(admob.calls.map((c) => c.url.split("/v1")[1]), ["/accounts", `/accounts/${PUB}/networkReport:generate`]);
+  const req = toAdvanceRequest(proven);
+  assert.equal(req.source, "admob");
+  assert.equal(req.revenueMicros, "12345678");
+  assert.equal(req.revenueUsd, "12.345678");
+  assert.equal(req.windowStart, "2026-07-01");
+});
+
+test("AdSense at zero stops before the attestor, as empty", async () => {
+  const zk = fakeZkFetch();
+  // What AdSense sent for an approved account with no earnings: no totals, no averages, no row count.
+  const { headers, startDate, endDate } = report(Q3);
+  const google = fakeGoogle({ report: { headers, startDate, endDate } });
+  assert.equal(await code(proveRevenue(deps({ google, zkFetch: zk }), { borrower: ALICE, accessToken: TOKEN })), "empty");
+  assert.equal(zk.calls.length, 0);
+});
+
+test("AdMob at zero stops before the attestor", async () => {
+  const zk = fakeZkFetch();
+  const admob = fakeAdmob({ report: admobReport(Q3) });
+  assert.equal(await code(proveRevenue(admobDeps({ admob, zkFetch: zk }), { borrower: ALICE, accessToken: TOKEN, source: "admob" })), "empty");
+  assert.equal(zk.calls.length, 0);
+});
+
+test("an AdMob proof whose owner is not this relay's Reclaim app is refused by the audit (#102)", async () => {
+  const other = "0x6415200c713135e77157e1536d488df4f2bb7d04";
+  assert.equal(await code(proveRevenue(admobDeps({ owner: other }), { borrower: ALICE, accessToken: TOKEN, source: "admob" })), "audit");
+});
+
+test("no AdMob account is the creator's to resolve", async () => {
+  const admob = fakeAdmob({ accounts: [] });
+  assert.equal(await code(proveRevenue(admobDeps({ admob }), { borrower: ALICE, accessToken: TOKEN, source: "admob" })), "account");
+});
+
+test("an AdMob proof extracted as revenueUsd is refused by the audit", async () => {
+  const zk = fakeZkFetch();
+  assert.equal(await code(proveRevenue(admobDeps({ zkFetch: zk }), { borrower: ALICE, accessToken: TOKEN, source: "admob" })), "audit");
 });

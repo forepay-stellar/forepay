@@ -19,6 +19,8 @@ export type ProveErrorCode =
   | "account"
   /** AdSense answered with a shape the provider does not match. Ours to fix. */
   | "provider"
+  /** The account earned nothing in the window: AdMob sends no row (#93), AdSense only headers and dates. */
+  | "empty"
   /** The attestor or zkFetch failed. Worth retrying. */
   | "prove"
   /** The proof came back but failed the audit. Ours to fix; nothing was returned. */
@@ -106,11 +108,20 @@ export function shapeOf(v: unknown): unknown {
  * in a second, with the response's structure (keys only, never values), instead of as
  * an opaque attestor failure minutes later.
  */
+/** A report for an account that earned nothing: its headers and dates, and no other key. */
+function isEmptyReport(live: unknown): boolean {
+  if (typeof live !== "object" || live === null || !("headers" in live)) return false;
+  return Object.keys(live).every((k) => k === "headers" || k === "startDate" || k === "endDate");
+}
+
 export async function checkLiveResponse(get: GoogleGet, accessToken: string, request: RevenueRequest): Promise<void> {
   const live = await get(request.url, accessToken);
   const pretty = JSON.stringify(live, null, 2);
   for (const m of request.secretOptions.responseMatches) {
     if (!new RegExp(m.value).test(pretty)) {
+      if (isEmptyReport(live)) {
+        throw new ProveError("empty", "AdSense reports no earnings for this window: the report has only its headers and dates, which is how AdSense says zero.");
+      }
       throw new ProveError(
         "provider",
         `the live response does not match ${m.value}\nResponse structure (values hidden):\n${JSON.stringify(shapeOf(live), null, 2)}`,
