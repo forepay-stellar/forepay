@@ -924,6 +924,20 @@ The node process stayed under 500 MB.
 > #107 (history after #94's leading `source`) is not on the host yet. It has to be there before #106's
 > `execute_upgrade`.
 
+> **Updated 2026-10-30 13:35 UTC: `feat/admob-relay` rebased onto `main` with #106, #107 and #104, and
+> redeployed, at `8097128`.** #107 is on the host (`requestArgs` in `be/src/chain/history.ts`, and
+> `354d9e0` is an ancestor), so step 1 of #106's upgrade order is done. The lockfile did not change.
+> Checked from outside after the restart:
+>
+> ```
+> GET /health                                   200 {"status":"ok"}
+> GET /config                                   recorded: true, relay: true, advance CCQFL2…I2HS
+> GET /ready                                    {"status":"ok","latestLedger":5468742}
+> GET /advances?borrower=GA2C…WWH2              200 []
+> POST /proofs, source "admob", fake token      202, then failed with code token
+> OPTIONS /proofs, Origin https://app.forepay.xyz   Access-Control-Allow-Origin: https://app.forepay.xyz
+> ```
+
 ---
 
 ## #76 executed, the dev template re-pinned, and a fee worth writing down (2026-10-25)
