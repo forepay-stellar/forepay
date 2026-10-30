@@ -16,8 +16,8 @@ function sorted(e: unknown): AdvanceFailure {
   if (e instanceof RelayNotReadyError) return { kind: "relayNotReady" };
   if (e instanceof RelayError) {
     const kinds: Partial<Record<RelayErrorCode, ProveFailure>> = {
-      token: "googleSignIn",
-      account: "noAdsense",
+      token: e.source === "admob" ? "googleSignInAdmob" : "googleSignIn",
+      account: e.source === "admob" ? "noAdmob" : "noAdsense",
       running: "proofRunning",
       gone: "proofGone",
       busy: "relayBusy",

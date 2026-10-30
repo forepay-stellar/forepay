@@ -1,6 +1,15 @@
 /** What a Reclaim session reports while it runs, and how it can end. Shared by the real seam and the mock. */
 import type { AdvanceRequest } from "@/lib/stellar/contract";
 
+/**
+ * Where the revenue comes from (#97): AdSense, ads on websites, or AdMob, ads in apps. The sign-in asks for
+ * the chosen one's read-only scope only, and the relay proves that one's report (docs/api.md, `source`).
+ */
+export type RevenueSource = "adsense" | "admob";
+
+/** The name each source goes by in the copy. */
+export const SOURCE_NAME: Record<RevenueSource, string> = { adsense: "AdSense", admob: "AdMob" };
+
 export type ProveStage =
   /** Google's sign-in window is open. The creator signs in to AdSense there, not on our page. */
   | "waiting"
@@ -35,7 +44,7 @@ export class RelayNotReadyError extends Error {
 /**
  * Why the relay could not make the proof, by whose move it is (docs/api.md):
  * - `token`: Google refused the sign-in, for example an expired one. Signing in again fixes it.
- * - `account`: no approved AdSense account behind that Google account.
+ * - `account`: no approved AdSense account (or no AdMob account) behind that Google account.
  * - `running`: a proof for this wallet is already running, started from a tab that no longer has it.
  * - `gone`: the proof this tab was waiting on is no longer on the relay (it restarted, or an hour passed).
  * - `busy`: the relay is proving for others and its queue is full.
@@ -64,6 +73,8 @@ export class RelayError extends Error {
   constructor(
     readonly code: RelayErrorCode,
     message: string,
+    /** The source being proved, so `token` and `account` name the right one. AdSense when unknown. */
+    readonly source: RevenueSource = "adsense",
   ) {
     super(message);
     this.name = "RelayError";

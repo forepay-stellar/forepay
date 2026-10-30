@@ -96,6 +96,14 @@ describe("contractFailureCopy", () => {
     }
   });
 
+  it("names AdMob, not AdSense, for an AdMob proof (#97)", () => {
+    for (const c of [10, 14, 30]) {
+      expect(contractFailureCopy(c, "AdMob").body).toMatch(/AdMob/);
+      expect(contractFailureCopy(c, "AdMob").body).not.toMatch(/AdSense/);
+      expect(contractFailureCopy(c).body).toMatch(/AdSense/);
+    }
+  });
+
   it("uses the Prove and accept board's words for the refusals it names", () => {
     expect(contractFailureCopy(20).title).toBe("This proof was already used");
     expect(contractFailureCopy(14).title).toBe("We could not confirm this proof");
@@ -125,6 +133,8 @@ describe("proveFailureCopy", () => {
     "relayNotReady",
     "googleSignIn",
     "noAdsense",
+    "googleSignInAdmob",
+    "noAdmob",
     "relayFailed",
     "relayBusy",
     "proofRunning",
@@ -144,7 +154,7 @@ describe("proveFailureCopy", () => {
   it("says nothing was charged only when that is true", () => {
     expect(proveFailureCopy("refused").body).toMatch(/Nothing was charged/);
     // The relay's failures happen before anything reaches Stellar.
-    for (const k of ["googleSignIn", "noAdsense", "relayFailed", "proofRunning", "proofGone", "relayUnreachable"] as const) {
+    for (const k of ["googleSignIn", "noAdsense", "googleSignInAdmob", "noAdmob", "relayFailed", "proofRunning", "proofGone", "relayUnreachable"] as const) {
       expect(proveFailureCopy(k).body).toMatch(/Nothing was charged/);
     }
     for (const k of ["relayBusy", "googleUnavailable", "popupBlocked"] as const) {

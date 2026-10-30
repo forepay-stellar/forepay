@@ -18,6 +18,10 @@ describe("proveFailure", () => {
     expect(proveFailure(new RelayError("googleUnavailable", "x"))).toEqual({ kind: "googleUnavailable" });
     expect(proveFailure(new RelayError("popupBlocked", "x"))).toEqual({ kind: "popupBlocked" });
     expect(proveFailure(new RelayError("busy", "x"))).toEqual({ kind: "relayBusy" });
+    // An AdMob proof names AdMob where the creator has to act on their Google account (#97).
+    expect(proveFailure(new RelayError("token", "x", "admob"))).toEqual({ kind: "googleSignInAdmob" });
+    expect(proveFailure(new RelayError("account", "x", "admob"))).toEqual({ kind: "noAdmob" });
+    expect(proveFailure(new RelayError("gone", "x", "admob"))).toEqual({ kind: "proofGone" });
     for (const code of ["provider", "prove", "audit", "internal"] as const) {
       expect(proveFailure(new RelayError(code, "x"))).toEqual({ kind: "relayFailed" });
     }

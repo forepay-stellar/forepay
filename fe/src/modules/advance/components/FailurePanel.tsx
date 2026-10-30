@@ -33,9 +33,12 @@ export function FailurePanel({
   beforeOffer,
   allowing,
   terms,
+  sourceName,
   onAction,
 }: {
   failure: AdvanceFailure;
+  /** Where the proof came from, `AdSense` or `AdMob`, for the contract's refusals that name it (#97). */
+  sourceName?: string;
   /** The contract's rate and minimum, from `sizing()`, for "not enough revenue". */
   terms?: Sizing;
   walletName: string;
@@ -66,7 +69,7 @@ export function FailurePanel({
   let copy;
 
   if ("code" in failure) {
-    copy = contractFailureCopy(failure.code);
+    copy = contractFailureCopy(failure.code, sourceName);
     switch (failure.code) {
       case 11:
       case 14:
@@ -132,6 +135,8 @@ export function FailurePanel({
       // The relay's failures (#17). Not on the board yet; "Prove again" with "Back", as its pairs are.
       case "googleSignIn":
       case "noAdsense":
+      case "googleSignInAdmob":
+      case "noAdmob":
       case "relayFailed":
       case "relayBusy":
       case "proofRunning":

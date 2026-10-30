@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { E2E_ADDRESS } from "../../src/lib/stellar/wallet-e2e";
 import { frameLedger, mockApi } from "./api";
-import { mockRpc } from "./rpc";
+import { mockRpc, type Chain } from "./rpc";
 
 // #17: proving through the relay, on the build whose NEXT_PUBLIC_RELAY_URL and Google client id are set
 // (the relay-* projects in playwright.config.ts). Google's sign-in is a stub on `window.google`, which
@@ -15,7 +15,7 @@ test.afterEach(async ({ page }) => {
 /** What Google's popup does when it opens: hand back a token, close, be blocked, or stay open. */
 type Popup = "ok" | "closed" | "blocked" | "open";
 
-type Gis = { mode: Popup; opened: number };
+type Gis = { mode: Popup; opened: number; scopes: string[] };
 declare global {
   interface Window {
     __gis: Gis;
@@ -25,7 +25,7 @@ declare global {
 /** A stand-in for Google Identity Services' token client, counting the popups it opens. */
 async function stubGoogle(page: Page, mode: Popup) {
   await page.addInitScript((m: Popup) => {
-    window.__gis = { mode: m, opened: 0 };
+    window.__gis = { mode: m, opened: 0, scopes: [] };
     type Config = { scope: string; callback: (r: object) => void; error_callback?: (e: object) => void };
     window.google = {
       accounts: {
@@ -33,6 +33,7 @@ async function stubGoogle(page: Page, mode: Popup) {
           initTokenClient: (c: Config) => ({
             requestAccessToken: () => {
               window.__gis.opened++;
+              window.__gis.scopes.push(c.scope);
               const now = window.__gis.mode;
               setTimeout(() => {
                 if (now === "ok") c.callback({ access_token: "ya29.e2e", scope: c.scope });
@@ -67,7 +68,7 @@ type Relay = {
   post: { status: number; body: object };
   jobs: Record<string, object[]>;
   hold?: boolean;
-  posts: { borrower: string; accessToken: string }[];
+  posts: { borrower: string; accessToken: string; source?: string }[];
 };
 
 function relayFor(jobs: Relay["jobs"] = { j1: [{ id: "j1", stage: "proving" }, done("j1")] }): Relay {
@@ -96,16 +97,18 @@ async function mockRelay(page: Page, relay: Relay) {
 }
 
 /** `popup` null leaves `window.google` unset, so the app loads Google's script itself (routed by the test). */
-async function connect(page: Page, relay: Relay, popup: Popup | null) {
+async function connect(page: Page, relay: Relay, popup: Popup | null): Promise<Chain> {
   if (popup) await stubGoogle(page, popup);
   await mockRelay(page, relay);
-  await mockRpc(page, { account: true, trustline: true });
+  const chain: Chain = { account: true, trustline: true };
+  await mockRpc(page, chain);
   await mockApi(page, frameLedger());
   await page.goto("/start");
   await page.getByRole("button", { name: "Get started" }).click();
   await page.getByRole("button", { name: "Connect wallet" }).click();
   await page.getByRole("dialog", { name: "Connect wallet" }).getByRole("button").first().click();
   await expect(page).toHaveURL(/\/advance$/);
+  return chain;
 }
 
 const heading = (page: Page, name: string) => page.getByRole("heading", { name, exact: true });
@@ -114,13 +117,15 @@ const proveAgain = (page: Page) => page.getByRole("button", { name: "Prove again
 
 test("signs in with Google, the relay proves, and the offer follows", async ({ page }) => {
   const relay = relayFor();
-  await connect(page, relay, "ok");
+  const chain = await connect(page, relay, "ok");
   await prove(page);
   await expect(heading(page, "Sign in with Google in the new window")).toBeVisible();
-  await expect(heading(page, "Reading your revenue")).toBeVisible();
+  await expect(heading(page, "Reading your AdSense revenue")).toBeVisible();
   await expect(page.getByText("This takes about a minute, longer when others are proving too.", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "Accept 90.00 USDC" })).toBeVisible();
   expect(relay.posts).toEqual([{ borrower: E2E_ADDRESS, accessToken: "ya29.e2e" }]);
+  // This build runs as against #94's contract (playwright.config.ts): the check led with the source.
+  expect(chain.sourced).toContainEqual({ fn: "request_advance", source: "AdSense" });
   expect(await opened(page)).toBe(1);
 });
 
@@ -173,7 +178,7 @@ test("leaving while the relay proves and coming back waits on the same job, with
   relay.hold = true;
   await connect(page, relay, "ok");
   await prove(page);
-  await expect(heading(page, "Reading your revenue")).toBeVisible();
+  await expect(heading(page, "Reading your AdSense revenue")).toBeVisible();
   // The top nav on desktop, the tab bar on a phone: whichever is shown.
   await page.getByRole("link", { name: "History", exact: true }).filter({ visible: true }).click();
   await expect(page).toHaveURL(/\/history$/);
@@ -248,7 +253,7 @@ test("coming back with a proof still running shows it at once, never 2a's button
   relay.hold = true;
   await connect(page, relay, "ok");
   await prove(page);
-  await expect(heading(page, "Reading your revenue")).toBeVisible();
+  await expect(heading(page, "Reading your AdSense revenue")).toBeVisible();
   await page.getByRole("link", { name: "History", exact: true }).filter({ visible: true }).click();
   await expect(page).toHaveURL(/\/history$/);
   // Watch every change to the page from here on: 2a's button must never be put on it.
@@ -260,7 +265,7 @@ test("coming back with a proof still running shows it at once, never 2a's button
     }).observe(document.body, { childList: true, subtree: true });
   });
   await page.getByRole("link", { name: "Advance", exact: true }).filter({ visible: true }).click();
-  await expect(heading(page, "Reading your revenue")).toBeVisible();
+  await expect(heading(page, "Reading your AdSense revenue")).toBeVisible();
   expect(await page.evaluate(() => (window as unknown as { __sawProve: boolean }).__sawProve)).toBe(false);
 });
 
@@ -288,4 +293,82 @@ test("Back after a kept job the relay no longer has returns to 2a", async ({ pag
   await page.getByRole("button", { name: "Back" }).click();
   await expect(page.getByRole("button", { name: "Prove my revenue" })).toBeVisible();
   expect(await opened(page)).toBe(0);
+});
+
+// #97: AdMob, chosen on 2a. The relay answers it as docs/api.md says: the signed micros beside the exact
+// decimal, and `source: "admob"` on the request.
+const ADMOB_SCOPE = "https://www.googleapis.com/auth/admob.readonly";
+
+function doneAdmob(id: string) {
+  const d = done(id);
+  return { ...d, request: { ...d.request, revenueUsd: "360.004567", source: "admob", revenueMicros: "360004567" } };
+}
+
+const chooseAdmob = (page: Page) => page.getByRole("radio", { name: /AdMob/ }).check();
+
+test("AdMob, chosen on 2a, asks Google for AdMob only, and the offer names it", async ({ page }) => {
+  const relay = relayFor({ j1: [{ id: "j1", stage: "proving" }, doneAdmob("j1")] });
+  const chain = await connect(page, relay, "ok");
+  const group = page.getByRole("group", { name: "Where you earn" });
+  await expect(group.getByRole("radio", { name: /AdSense/ })).toBeChecked();
+  await chooseAdmob(page);
+  // The highlighted tile is the chosen one, never the other. Polled: the colours ease over 150 ms.
+  const fill = (name: RegExp) => group.locator("label").filter({ hasText: name }).evaluate((l) => getComputedStyle(l).backgroundColor);
+  const BRAND_SUBTLE = "rgb(255, 243, 234)";
+  await expect.poll(() => fill(/AdMob/)).toBe(BRAND_SUBTLE);
+  await expect.poll(() => fill(/AdSense/)).not.toBe(BRAND_SUBTLE);
+  await expect(page.getByText("We read your AdMob revenue for the last three months", { exact: false })).toBeVisible();
+  await prove(page);
+  await expect(page.getByText("Pick the Google account that owns your AdMob, and allow Forepay to see your AdMob reports.", { exact: false })).toBeVisible();
+  // Sized from the micros truncated to cents: $360.00, so 90 USDC at 25%.
+  await expect(page.getByRole("button", { name: "Accept 90.00 USDC" })).toBeVisible();
+  await expect(page.getByText("you earned on AdMob from", { exact: false })).toBeVisible();
+  await expect(page.getByText("$360.00", { exact: true }).first()).toBeVisible();
+  expect(relay.posts).toEqual([{ borrower: E2E_ADDRESS, accessToken: "ya29.e2e", source: "admob" }]);
+  expect(await page.evaluate(() => window.__gis.scopes)).toEqual([ADMOB_SCOPE]);
+  // Accepted: 2d reads the advance back under its AdMob nullifier, sized from the micros like the offer.
+  await page.getByRole("button", { name: "Accept 90.00 USDC" }).click();
+  await expect(heading(page, "Advance received")).toBeVisible();
+  await expect(page.getByText("90.00 USDC", { exact: true })).toBeVisible();
+  expect(chain.sourced).toContainEqual({ fn: "request_advance", source: "AdMob" });
+  expect(chain.sourced).toContainEqual({ fn: "nullifier_for", source: "AdMob" });
+  expect(chain.sourced?.some((c) => c.source !== "AdMob")).toBe(false);
+});
+
+test("a Google account with no AdMob is named as AdMob, and Prove again stays on AdMob", async ({ page }) => {
+  const relay = relayFor({ j1: [{ id: "j1", stage: "failed", error: { code: "account", message: "no AdMob account" } }] });
+  await connect(page, relay, "ok");
+  await chooseAdmob(page);
+  await prove(page);
+  await expect(heading(page, "We could not use your AdMob account")).toBeVisible();
+  relay.post = { status: 202, body: { id: "j2", stage: "queued" } };
+  relay.jobs.j2 = [doneAdmob("j2")];
+  await proveAgain(page);
+  await expect(page.getByRole("button", { name: "Accept 90.00 USDC" })).toBeVisible();
+  expect(relay.posts.map((p) => p.source)).toEqual(["admob", "admob"]);
+});
+
+test("an AdMob proof resumed after leaving stays AdMob: its reading, its failure, Prove again and Back", async ({ page }) => {
+  const relay = relayFor({ j1: [{ id: "j1", stage: "failed", error: { code: "account", message: "no AdMob account" } }] });
+  relay.hold = true;
+  await connect(page, relay, "ok");
+  await chooseAdmob(page);
+  await prove(page);
+  await expect(heading(page, "Reading your AdMob revenue")).toBeVisible();
+  await page.getByRole("link", { name: "History", exact: true }).filter({ visible: true }).click();
+  await expect(page).toHaveURL(/\/history$/);
+  await page.getByRole("link", { name: "Advance", exact: true }).filter({ visible: true }).click();
+  // Back on a fresh mount, whose choice would start as AdSense: the kept job names AdMob.
+  await expect(heading(page, "Reading your AdMob revenue")).toBeVisible();
+  relay.hold = false;
+  await expect(heading(page, "We could not use your AdMob account")).toBeVisible();
+  relay.post = { status: 202, body: { id: "j2", stage: "queued" } };
+  relay.jobs.j2 = [{ id: "j2", stage: "failed", error: { code: "account", message: "no AdMob account" } }];
+  await proveAgain(page);
+  await expect.poll(() => relay.posts.length).toBe(2);
+  await expect(heading(page, "We could not use your AdMob account")).toBeVisible();
+  expect(relay.posts.map((p) => p.source)).toEqual(["admob", "admob"]);
+  expect(await page.evaluate(() => window.__gis.scopes)).toEqual([ADMOB_SCOPE, ADMOB_SCOPE]);
+  await page.getByRole("button", { name: "Back" }).click();
+  await expect(page.getByRole("radio", { name: /AdMob/ })).toBeChecked();
 });

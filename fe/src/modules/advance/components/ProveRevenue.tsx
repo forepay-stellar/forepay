@@ -2,14 +2,17 @@ import { Check, CircleAlert, EyeOff } from "lucide-react";
 import type { ReactNode } from "react";
 import { IlloProvingRevenue } from "@/components/illustrations/ProvingRevenue";
 import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/cn";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
+import { SOURCE_NAME, type RevenueSource } from "@/lib/reclaim";
 import type { Sizing } from "@/lib/stellar/contract";
 import { shareWords, usdcWords } from "../cap";
 import type { UsdcStatus } from "@/lib/stellar/trustline";
 
 /**
- * 2a Prove revenue. What will be read (AdSense revenue for the last three months, nothing else), what
- * will not, and the button that opens the Reclaim session. From a tablet up it adds the two lists and
+ * 2a Prove revenue. Where the revenue comes from (AdSense or AdMob, #97), what will be read (that
+ * revenue for the last three months, nothing else), what will not, and the button that opens Google's
+ * sign-in. From a tablet up it adds the two lists and
  * the wallet card; a phone keeps the card, the button and the rule.
  *
  * Section 08: on a tablet the side cards sit in a row under the Prove card; from 1024 they make the side
@@ -20,6 +23,8 @@ export function ProveRevenue({
   walletName,
   usdc,
   terms,
+  source,
+  onSource,
   onProve,
 }: {
   walletName: string;
@@ -30,8 +35,12 @@ export function ProveRevenue({
   terms?: Sizing | "loading";
   /** Read from the ledger. `undefined` while loading, `"error"` when the read failed. */
   usdc: UsdcStatus | "error" | undefined;
+  /** The source the press will prove. */
+  source: RevenueSource;
+  onSource: (source: RevenueSource) => void;
   onProve: () => void;
 }) {
+  const name = SOURCE_NAME[source];
   return (
     <div className="flex w-full flex-col gap-4 lg:flex-row">
       <section className="flex min-w-0 flex-1 flex-col gap-4 rounded-card bg-surface p-5 md:flex-row md:items-center md:gap-8 md:p-10">
@@ -41,8 +50,9 @@ export function ProveRevenue({
         <div className="@container flex min-w-0 flex-1 flex-col gap-4 md:gap-[18px]">
           <h2 className="text-card-title text-fg">See how much you can get</h2>
           <p className="text-body text-fg-muted">
-            Sign in with Google in a secure window. We read your AdSense revenue for the last three months and nothing else.
+            Sign in with Google in a secure window. We read your {name} revenue for the last three months and nothing else.
           </p>
+          <SourcePicker source={source} onSource={onSource} />
           {/* Side by side only where each list keeps its longest item ("Revenue from the last three
               complete months", about 360 in Body) on one line: two of them and the 24 gap. */}
           <div className="hidden flex-col gap-4 md:flex @[46.5rem]:flex-row @[46.5rem]:gap-6">
@@ -50,7 +60,7 @@ export function ProveRevenue({
               head="What we read"
               // Not named months (review S8): the window is not chain data before the advance. It is
               // what the #17 relay asks AdSense for, so 2a can name it once the relay exists.
-              items={["Revenue from the last three complete months", "Your AdSense publisher ID"]}
+              items={["Revenue from the last three complete months", `Your ${name} publisher ID`]}
               icon={<Check className="size-4 text-success" aria-hidden />}
             />
             <List
@@ -100,6 +110,50 @@ export function ProveRevenue({
         </section>
       </div>
     </div>
+  );
+}
+
+const SOURCES: { source: RevenueSource; detail: string }[] = [
+  { source: "adsense", detail: "Websites" },
+  { source: "admob", detail: "Apps" },
+];
+
+/**
+ * Where the revenue comes from (#97). Native radios, so the arrow keys move between the two and a screen
+ * reader names the group. Not on the board yet: a proposal for @AncungAulia, in the board's tile style.
+ */
+function SourcePicker({ source, onSource }: { source: RevenueSource; onSource: (source: RevenueSource) => void }) {
+  return (
+    <fieldset className="flex flex-col gap-2.5">
+      <legend className="mb-2.5 text-small font-medium text-fg-muted">Where you earn</legend>
+      {/* Side by side once each tile keeps "AdSense" beside its radio (about 19rem of card); stacked
+          on the narrowest phones (section 08). The details are one word, so neither tile wraps. */}
+      <div className="grid grid-cols-1 gap-2.5 @[19rem]:grid-cols-2">
+        {SOURCES.map((s) => (
+          <label
+            key={s.source}
+            className={cn(
+              "flex cursor-pointer items-start gap-2.5 rounded-tile border p-3.5 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-canvas",
+              source === s.source ? "border-brand bg-brand-subtle" : "border-line bg-surface",
+            )}
+          >
+            <input
+              type="radio"
+              name="revenue-source"
+              value={s.source}
+              checked={source === s.source}
+              onChange={() => onSource(s.source)}
+              // The tile's ring is the one focus indicator, as on Button.
+              className="mt-0.5 size-4 shrink-0 accent-brand outline-none"
+            />
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="text-body font-medium text-fg">{SOURCE_NAME[s.source]}</span>
+              <span className="text-small text-fg-muted">{s.detail}</span>
+            </span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }
 

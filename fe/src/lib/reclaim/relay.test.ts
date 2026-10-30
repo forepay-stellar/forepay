@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { relayProveRevenue, type JobStore, type SignIn } from "./relay";
-import { ReclaimCancelledError, RelayError, type ProveStage } from "./session";
+import { ADMOB_SCOPE, ADSENSE_SCOPE, googleSignIn, relayProveRevenue, type JobStore, type KeptJob, type SignIn } from "./relay";
+import { ReclaimCancelledError, RelayError, type ProveStage, type RevenueSource } from "./session";
 
 const BORROWER = "GA2CD6PMHMBTCFAQDO3R22BSZN5ZSVTAKVNOKXL2SONZBLGRAYIOWWH2";
 const REQUEST = {
@@ -29,11 +29,11 @@ function relay(polls: object[], post: { status: number; body: object } = { statu
 const signedIn: SignIn = async () => "ya29.token";
 
 /** A tab's job store, in memory. */
-function store(kept: { borrower: string; id: string } | null = null) {
+function store(kept: { borrower: string; id: string; source?: RevenueSource } | null = null) {
   const s = { kept };
   const jobs: JobStore = {
-    load: (b) => (s.kept?.borrower === b ? s.kept.id : null),
-    save: (borrower, id) => (s.kept = { borrower, id }),
+    load: (b) => (s.kept?.borrower === b ? { id: s.kept.id, source: s.kept.source ?? "adsense" } : null),
+    save: (borrower, job) => (s.kept = { borrower, ...job }),
     clear: () => (s.kept = null),
   };
   return Object.assign(s, { jobs });
@@ -110,14 +110,14 @@ describe("relayProveRevenue", () => {
 
   it("keeps the job id while proving and forgets it once the job ends", async () => {
     const t = store();
-    let seen: string | null = null;
+    let seen: KeptJob | null = null;
     const fetch = (async (_url: string, init?: RequestInit) => {
       if (init?.method === "POST") return new Response(JSON.stringify({ id: "j1", stage: "queued" }), { status: 202 });
       seen = t.jobs.load(BORROWER);
       return new Response(JSON.stringify({ id: "j1", stage: "done", request: REQUEST }));
     }) as unknown as typeof globalThis.fetch;
     await relayProveRevenue(BORROWER, () => {}, { relayUrl: "https://r", signIn: signedIn, fetch, sleep: noSleep, jobs: t.jobs }).result;
-    expect(seen).toBe("j1");
+    expect(seen).toEqual({ id: "j1", source: "adsense" });
     expect(t.kept).toBeNull();
   });
 
@@ -258,5 +258,68 @@ describe("relayProveRevenue", () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(polls).toBe(0);
     expect(settled).toBe(false);
+  });
+
+  it("proves AdMob when asked: its sign-in, `source` on POST /proofs, and the job kept with its source", async () => {
+    const ADMOB = { ...REQUEST, revenueUsd: "12.345678", source: "admob", revenueMicros: "12345678" };
+    const r = relay([{ id: "j1", stage: "done", request: ADMOB }]);
+    const asked: RevenueSource[] = [];
+    const t = store();
+    let kept: KeptJob | null = null;
+    const fetch = (async (url: string, init?: RequestInit) => {
+      if (init?.method !== "POST") kept = t.jobs.load(BORROWER);
+      return r.fetch(url, init);
+    }) as unknown as typeof globalThis.fetch;
+    const signIn: SignIn = async (source) => (asked.push(source), "ya29.token");
+    const req = await relayProveRevenue(BORROWER, () => {}, { relayUrl: "https://r", source: "admob", signIn, fetch, sleep: noSleep, jobs: t.jobs }).result;
+    expect(asked).toEqual(["admob"]);
+    expect(JSON.parse(String(r.calls[0].init?.body))).toEqual({ borrower: BORROWER, accessToken: "ya29.token", source: "admob" });
+    expect(kept).toEqual({ id: "j1", source: "admob" });
+    expect(req).toMatchObject({ source: "admob", revenueMicros: "12345678", revenueUsd: "12.345678" });
+  });
+
+  it("an AdSense proof sends no `source`, so a relay from before #97 reads the same request", async () => {
+    const r = relay([{ id: "j1", stage: "done", request: REQUEST }]);
+    await relayProveRevenue(BORROWER, () => {}, { relayUrl: "https://r", source: "adsense", signIn: signedIn, fetch: r.fetch, sleep: noSleep, jobs: store().jobs }).result;
+    expect(JSON.parse(String(r.calls[0].init?.body))).not.toHaveProperty("source");
+  });
+
+  it("a kept AdMob job resumes as AdMob, and its failures name AdMob", async () => {
+    const t = store({ borrower: BORROWER, id: "j1", source: "admob" });
+    const r = relay([{ id: "j1", stage: "failed", error: { code: "account", message: "This Google account has no AdMob account." } }]);
+    const e = await relayProveRevenue(BORROWER, () => {}, { relayUrl: "https://r", source: "adsense", signIn: signedIn, fetch: r.fetch, sleep: noSleep, jobs: t.jobs })
+      .result.catch((x) => x);
+    expect(e).toBeInstanceOf(RelayError);
+    expect((e as RelayError).code).toBe("account");
+    expect((e as RelayError).source).toBe("admob");
+  });
+});
+
+describe("googleSignIn", () => {
+  /** Google's token client, answering with the scopes the creator allowed. */
+  function gis(granted: string) {
+    const scopes: string[] = [];
+    window.google = {
+      accounts: {
+        oauth2: {
+          initTokenClient: (c) => {
+            scopes.push(c.scope);
+            return { requestAccessToken: () => c.callback({ access_token: "ya29.t", scope: granted }) };
+          },
+        },
+      },
+    };
+    return scopes;
+  }
+
+  it("asks for the chosen source's scope only", async () => {
+    const scopes = gis(ADMOB_SCOPE);
+    await expect(googleSignIn("id")("admob")).resolves.toBe("ya29.t");
+    expect(scopes).toEqual([ADMOB_SCOPE]);
+  });
+
+  it("treats a token without the chosen source's scope as the creator stopping", async () => {
+    gis(ADSENSE_SCOPE);
+    await expect(googleSignIn("id")("admob")).rejects.toBeInstanceOf(ReclaimCancelledError);
   });
 });

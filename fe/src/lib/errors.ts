@@ -139,17 +139,18 @@ export function isSignatureDeclined(e: unknown): boolean {
 /**
  * The advance contract's refusals (`docs/interface.md` §7), in the brief's words (§3, rule 4, and the
  * "Prove and accept / States and interactions" board, word for word). Shared by #20 and #21. Codes 1 to 6 are admin and upgrade errors a
- * creator can never cause, so they fall to the generic sentence.
+ * creator can never cause, so they fall to the generic sentence. `sourceName` is where the proof came
+ * from, `AdMob` for an AdMob proof (#97).
  */
-export function contractFailureCopy(code: number): FailureCopy {
+export function contractFailureCopy(code: number, sourceName = "AdSense"): FailureCopy {
   switch (code) {
     case 10:
-      return { title: "Advances are not open yet", body: "Forepay is not taking AdSense proofs yet. Try again later." };
+      return { title: "Advances are not open yet", body: `Forepay is not taking ${sourceName} proofs yet. Try again later.` };
     case 11:
     case 14:
       return {
         title: "We could not confirm this proof",
-        body: "The revenue could not be matched to Google's data. Try proving again. If it keeps happening, log out of AdSense and back in first.",
+        body: `The revenue could not be matched to Google's data. Try proving again. If it keeps happening, log out of ${sourceName} and back in first.`,
       };
     case 12:
       return {
@@ -169,7 +170,7 @@ export function contractFailureCopy(code: number): FailureCopy {
     case 30:
       return {
         title: "We could not read your revenue",
-        body: "The figure from AdSense was not a plain amount. Nothing was charged.",
+        body: `The figure from ${sourceName} was not a plain amount. Nothing was charged.`,
       };
     case 31:
       return {
@@ -212,6 +213,7 @@ export function contractFailureCopy(code: number): FailureCopy {
  * - `relayNotReady`: proofs are meant to come from the #17 relay, and this build cannot reach it.
  * - `googleSignIn`: Google refused the sign-in the relay was handed, for example an expired one.
  * - `noAdsense`: the Google account has no AdSense account, several, or one that is not approved (relay `account`).
+ * - `googleSignInAdmob`, `noAdmob`: the same two for an AdMob proof (#97).
  * - `relayFailed`: the relay could not make the proof, on its side. Nothing was charged.
  * - `relayBusy`: the relay is proving for others and its queue is full.
  * - `proofRunning`: a proof for this wallet is already running, started from a tab that lost it.
@@ -237,6 +239,8 @@ export type ProveFailure =
   | "relayNotReady"
   | "googleSignIn"
   | "noAdsense"
+  | "googleSignInAdmob"
+  | "noAdmob"
   | "relayFailed"
   | "relayBusy"
   | "proofRunning"
@@ -330,6 +334,16 @@ export function proveFailureCopy(kind: ProveFailure, walletName = "Freighter"): 
       return {
         title: "We could not use your AdSense account",
         body: "We could not find one approved AdSense account on this Google account. Sign in with the account that owns your AdSense, then try again. Nothing was charged.",
+      };
+    case "googleSignInAdmob":
+      return {
+        title: "Google did not let us read AdMob",
+        body: "Sign in again and allow Forepay to see your AdMob reports. Nothing was charged.",
+      };
+    case "noAdmob":
+      return {
+        title: "We could not use your AdMob account",
+        body: "We could not find one AdMob account on this Google account. Sign in with the account that owns your AdMob, then try again. Nothing was charged.",
       };
     case "relayFailed":
       return {
