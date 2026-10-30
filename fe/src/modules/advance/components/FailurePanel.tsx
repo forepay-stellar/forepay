@@ -127,6 +127,13 @@ export function FailurePanel({
         illustration = <IlloSessionCancelled data-illo="session-cancelled" />;
         actions = <Button onClick={a.onProve}>Prove my revenue</Button>;
         break;
+      // Proving again would read the same months, so only Back: from 2a the creator can pick the other
+      // source. The same picture and step as "Not enough revenue yet".
+      case "noRevenue":
+      case "noRevenueAdmob":
+        illustration = <IlloNoAdvanceYet data-illo="no-advance-yet" />;
+        actions = back;
+        break;
       case "proofGone":
         illustration = <IlloProofExpired data-illo="proof-expired" />;
         actions = <>{proveAgain}{back}</>;

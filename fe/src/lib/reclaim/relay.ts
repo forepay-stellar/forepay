@@ -184,7 +184,7 @@ export type RelayOptions = {
   sleep?: (ms: number) => Promise<void>;
 };
 
-const CODES: readonly RelayErrorCode[] = ["token", "account", "running", "busy", "unconfigured", "provider", "prove", "audit", "internal"];
+const CODES: readonly RelayErrorCode[] = ["token", "account", "empty", "running", "busy", "unconfigured", "provider", "prove", "audit", "internal"];
 
 class Abandoned extends Error {}
 

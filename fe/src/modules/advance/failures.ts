@@ -18,6 +18,7 @@ function sorted(e: unknown): AdvanceFailure {
     const kinds: Partial<Record<RelayErrorCode, ProveFailure>> = {
       token: e.source === "admob" ? "googleSignInAdmob" : "googleSignIn",
       account: e.source === "admob" ? "noAdmob" : "noAdsense",
+      empty: e.source === "admob" ? "noRevenueAdmob" : "noRevenue",
       running: "proofRunning",
       gone: "proofGone",
       busy: "relayBusy",

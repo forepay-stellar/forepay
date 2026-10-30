@@ -135,6 +135,8 @@ describe("proveFailureCopy", () => {
     "noAdsense",
     "googleSignInAdmob",
     "noAdmob",
+    "noRevenue",
+    "noRevenueAdmob",
     "relayFailed",
     "relayBusy",
     "proofRunning",
@@ -154,7 +156,7 @@ describe("proveFailureCopy", () => {
   it("says nothing was charged only when that is true", () => {
     expect(proveFailureCopy("refused").body).toMatch(/Nothing was charged/);
     // The relay's failures happen before anything reaches Stellar.
-    for (const k of ["googleSignIn", "noAdsense", "googleSignInAdmob", "noAdmob", "relayFailed", "proofRunning", "proofGone", "relayUnreachable"] as const) {
+    for (const k of ["googleSignIn", "noAdsense", "googleSignInAdmob", "noAdmob", "noRevenue", "noRevenueAdmob", "relayFailed", "proofRunning", "proofGone", "relayUnreachable"] as const) {
       expect(proveFailureCopy(k).body).toMatch(/Nothing was charged/);
     }
     for (const k of ["relayBusy", "googleUnavailable", "popupBlocked"] as const) {
