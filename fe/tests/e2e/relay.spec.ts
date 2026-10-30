@@ -145,6 +145,7 @@ test("an AdSense account that earned nothing is named, and only Back is offered"
   await prove(page);
   await expect(heading(page, "No AdSense revenue to prove")).toBeVisible();
   await expect(page.getByText("We found no AdSense revenue in the last three complete months", { exact: false })).toBeVisible();
+  await expect(page.getByText("If you earn with AdMob, go back and prove that instead.", { exact: false })).toBeVisible();
   await expect(page.locator('[data-illo="no-advance-yet"]')).toBeVisible();
   // Proving again would read the same months.
   await expect(page.getByRole("button", { name: "Prove again" })).toHaveCount(0);
@@ -369,6 +370,7 @@ test("an AdMob account that earned nothing is named as AdMob, and Back stays on 
   await prove(page);
   await expect(heading(page, "No AdMob revenue to prove")).toBeVisible();
   await expect(page.getByText("We found no AdMob revenue in the last three complete months", { exact: false })).toBeVisible();
+  await expect(page.getByText("If you earn with AdSense, go back and prove that instead.", { exact: false })).toBeVisible();
   await expect(page.locator('[data-illo="no-advance-yet"]')).toBeVisible();
   await expect(page.getByRole("button", { name: "Prove again" })).toHaveCount(0);
   await page.getByRole("button", { name: "Back" }).click();

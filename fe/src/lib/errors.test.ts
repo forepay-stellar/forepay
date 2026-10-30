@@ -171,6 +171,17 @@ describe("proveFailureCopy", () => {
     expect(new Set(all).size).toBe(kinds.length);
   });
 
+  it("points a creator with no revenue at the other source", () => {
+    expect(proveFailureCopy("noRevenue")).toEqual({
+      title: "No AdSense revenue to prove",
+      body: "We found no AdSense revenue in the last three complete months. If you earn with AdMob, go back and prove that instead. Nothing was charged.",
+    });
+    expect(proveFailureCopy("noRevenueAdmob")).toEqual({
+      title: "No AdMob revenue to prove",
+      body: "We found no AdMob revenue in the last three complete months. If you earn with AdSense, go back and prove that instead. Nothing was charged.",
+    });
+  });
+
   it("names the wallet that declined", () => {
     expect(proveFailureCopy("declined", "xBull").title).toBe("You declined in xBull");
   });
