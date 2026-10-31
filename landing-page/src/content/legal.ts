@@ -1,7 +1,7 @@
 // The privacy policy and terms of service (#85), needed to publish the Google consent screen (#86).
-// Every claim matches what be/ does today: the scope (be/src/adsense/request.ts), the token handling
+// Every claim matches what be/ does today: the scopes (be/src/adsense/request.ts, be/src/admob/request.ts), the token handling
 // and the one hour a proof job is kept (be/src/api/app.ts). Change the code and this together.
-// Same copy rules as the landing page, checked by legal.test.ts.
+// Same copy rules as the landing page, checked by legal.test.ts. AdMob was added for #98.
 
 // A paragraph is plain text, or a run of text with links and code in it.
 export type Inline = string | { text: string; href: string } | { code: string };
@@ -23,7 +23,8 @@ export type LegalDocument = {
 
 export const CONTACT_EMAIL = "m.ulinasidiki@gmail.com";
 export const ADSENSE_SCOPE = "https://www.googleapis.com/auth/adsense.readonly";
-const EFFECTIVE = "Effective 23 October 2026.";
+export const ADMOB_SCOPE = "https://www.googleapis.com/auth/admob.readonly";
+const EFFECTIVE = "Effective 27 October 2026.";
 const contact = { text: CONTACT_EMAIL, href: `mailto:${CONTACT_EMAIL}` };
 
 // Google's required statement, word for word.
@@ -37,22 +38,25 @@ export const privacy: LegalDocument = {
   title: "Privacy policy",
   effective: EFFECTIVE,
   intro: [
-    "Forepay is a demo on Stellar testnet. It shows how a creator could prove their AdSense revenue and get a USDC advance on it. No real money moves.",
+    "Forepay is a demo on Stellar testnet. It shows how a creator could prove their AdSense or AdMob revenue and get a USDC advance on it. No real money moves.",
     "This policy says what Forepay reads from your Google account, what happens to it, and what becomes public.",
   ],
   sections: [
     {
       heading: "What we ask Google for",
       items: [
-        ["One permission only, ", { code: ADSENSE_SCOPE }, ", which is read only access to your AdSense reports."],
-        "It cannot change anything in AdSense. It cannot read your Gmail, Drive, contacts or anything else in your Google account.",
+        "One permission only, for the service you choose to prove.",
+        ["For AdSense, ", { code: ADSENSE_SCOPE }, ", which is read only access to your AdSense reports."],
+        ["For AdMob, ", { code: ADMOB_SCOPE }, ", which is read only access to your AdMob reports."],
+        "It cannot change anything in AdSense or AdMob. It cannot read your Gmail, Drive, contacts or anything else in your Google account.",
         "You grant it in Google's own sign in window. Forepay never sees your Google password.",
       ],
     },
     {
       heading: "What we read with it",
       items: [
-        "The list of AdSense accounts your Google account can open, and the state of the one you use, which says whether it is approved.",
+        "For AdSense, the list of AdSense accounts your Google account can open, and the state of the one you use, which says whether it is approved.",
+        "For AdMob, the list of AdMob accounts your Google account can open.",
         "One report for that account, your estimated earnings in USD for the last three complete calendar months.",
       ],
     },
@@ -81,14 +85,14 @@ export const privacy: LegalDocument = {
         "To get an advance, you submit a proof to Stellar, a public blockchain. Forepay uses its testnet. The proof contains",
       ],
       items: [
-        "your AdSense publisher ID",
+        "your AdSense or AdMob publisher ID",
         "the three month date window",
-        "the revenue figure, to the cent",
+        "the revenue figure, to the cent for AdSense and to the millionth of a dollar for AdMob",
         "your Stellar address",
       ],
       after: [
         "Anything on the ledger is public and permanent. Nobody can delete it, not us and not anyone else.",
-        "Nothing else from the AdSense report is revealed. Not your account name, your sites or your daily figures.",
+        "Nothing else from the report is revealed. Not your account name, your sites, your apps or your daily figures.",
       ],
     },
     {
@@ -137,8 +141,8 @@ export const terms: LegalDocument = {
       ],
     },
     {
-      heading: "Your AdSense account",
-      paragraphs: ["Only sign in with an AdSense account that you own, or that you are authorised to use."],
+      heading: "Your AdSense or AdMob account",
+      paragraphs: ["Only sign in with an AdSense or AdMob account that you own, or that you are authorised to use."],
     },
     {
       heading: "What you publish",

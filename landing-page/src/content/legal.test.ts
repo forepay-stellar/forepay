@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ADSENSE_SCOPE, CONTACT_EMAIL, LIMITED_USE, privacy, terms, type Inline, type LegalDocument, type Paragraph } from "./legal";
+import { ADMOB_SCOPE, ADSENSE_SCOPE, CONTACT_EMAIL, LIMITED_USE, privacy, terms, type Inline, type LegalDocument, type Paragraph } from "./legal";
 import { landing } from "./landing";
 
 // Acronyms are the only all-caps words allowed (brief §3).
@@ -61,9 +61,11 @@ describe("privacy policy (#85)", () => {
     typeof p === "string" ? [] : p.flatMap((part) => (typeof part !== "string" && "code" in part ? [part.code] : [])),
   );
 
-  it("names the one scope, the same one be/ asks for", () => {
-    expect(scopes.filter((c) => c.startsWith("https://www.googleapis.com/auth/"))).toEqual([ADSENSE_SCOPE]);
+  it("names the two scopes, the same ones be/ asks for, and says only one is asked for", () => {
+    expect(scopes.filter((c) => c.startsWith("https://www.googleapis.com/auth/"))).toEqual([ADSENSE_SCOPE, ADMOB_SCOPE]);
     expect(ADSENSE_SCOPE).toBe("https://www.googleapis.com/auth/adsense.readonly");
+    expect(ADMOB_SCOPE).toBe("https://www.googleapis.com/auth/admob.readonly");
+    expect(body).toMatch(/One permission only, for the service you choose/);
   });
 
   it("carries Google's Limited Use statement word for word", () => {
