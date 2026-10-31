@@ -1185,3 +1185,87 @@ after the three transactions.
 6. Read back an `Advance` written by v0.4.0, proving `#[contracttype]` enum storage keys survive
    by name across the upgrade rather than by position.
 7. A real proof verifying on chain, which is what #5 and #102 are actually waiting for.
+
+## v0.5.0 executed on both contracts, claim owner and AdMob template pinned (2026-10-31)
+
+The upgrade proposed on 2026-10-30 was executed today. Every figure here was read back from
+the ledger after the transaction landed, not taken from a simulation.
+
+| Step | Contract | Transaction |
+| --- | --- | --- |
+| `execute_upgrade` | dev `CD25Q4TD…HQN4` | [`9000b17f…4b33eb`](https://stellar.expert/explorer/testnet/tx/9000b17f874f23d07d007af5630c4cf3b15e95d70396db1acf296e46704b33eb) |
+| `execute_upgrade` | production `CCQFL2Q6…I2HS` | [`8de3c144…116655`](https://stellar.expert/explorer/testnet/tx/8de3c1445e340ab74558a1d3604a768c64d89b25593605b4660fbe56af116655) |
+| `set_claim_owner` | dev | [`7402870d…ecc3a3`](https://stellar.expert/explorer/testnet/tx/7402870dd2400bc9ebd09e8b7ec80b98cc2fb35bb466370f75ab7cdd8decc3a3) |
+| `set_claim_owner` | production | [`0e5df000…c2e8c0`](https://stellar.expert/explorer/testnet/tx/0e5df000e4acbe3c95f0b5c5d0c64662d9c5c0475847981d365a32e789c2e8c0) |
+| `set_claim_template --source AdMob` | production | [`01cc1878…3d00a7`](https://stellar.expert/explorer/testnet/tx/01cc1878cade87ce9475625cf641c08203b55735bbf594240f1f68330d3d00a7) |
+| `set_claim_template --source AdMob` | dev | [`e9b1f0ed…cc9e43`](https://stellar.expert/explorer/testnet/tx/e9b1f0ed5af8156912c4200e26242b273d1d27535975603d325ac4bc1acc9e43) |
+
+State after, read from chain:
+
+| Read | production `CCQFL2Q6…I2HS` | dev `CD25Q4TD…HQN4` |
+| --- | --- | --- |
+| live wasm | `ff6a16e9…e4f22e` | `ff6a16e9…e4f22e` |
+| `pending_upgrade()` | `null` | `null` |
+| `admin()` | `GA2CD6PM…WWH2` | `GA2CD6PM…WWH2` |
+| `liquidity()` | `1050000000` (105 USDC) | `20000000` (2 USDC) |
+| `claim_owner()` | `0x6415200c…bb7d04` | `0x6415200c…bb7d04` |
+| `claim_template_for AdSense` | `null` | 8 parts, `078604d2…d0d3aa` |
+| `claim_template_for AdMob` | 8 parts | 8 parts |
+| `provider_hash_for AdMob` | `0x5d9a2fc4…238006` | `0x5d9a2fc4…238006` |
+
+### The timelock was measured, not assumed
+
+On 2026-10-30 at 14:24 UTC the simulated `execute_upgrade` returned `Error(Contract, #4)`
+`TimelockNotElapsed`. On 2026-10-31 at 14:21 UTC the same call returned `Success` with
+`UpgradeExecuted` carrying `ff6a16e9…e4f22e`. `executable_at` was 1793454550 (production) and
+1793454560 (dev); the calls ran 26 minutes past the first. `UPGRADE_DELAY_SECONDS` is a constant
+in the contract, not an admin-settable value, so nothing but time moved it.
+
+### Step 6 of the plan above, replaced by a stronger test
+
+The plan said to read back an `Advance` written by v0.4.0. **There was none to read:** the
+2026-10-29 rehearsal repaid in full, which removes the entry, each run uses a fresh `pub_id`,
+and production had never paid one because its `claim_template()` was `null`. The test that was
+available instead is better, because it covers both directions:
+
+1. **An entry written by v0.4.0 survives the upgrade.** Dev's AdSense template and provider hash
+   were pinned under v0.4.0. Before the upgrade they hashed to `078604d2…d0d3aa` (8 parts, 570
+   bytes) and `b4813b68…c9e213`; after the upgrade, byte-identical. `claim_template_for
+   --source AdSense` returns that same value, so the new per-source accessor resolves onto the
+   entry v0.4.0 wrote rather than to an empty new key.
+2. **A new source's entry does not disturb it.** AdMob was then pinned on the same dev contract.
+   `claim_template()` and `provider_hash()` still hash to `078604d2…d0d3aa` and
+   `b4813b68…c9e213`. Production gives the complement: AdMob is pinned there while
+   `claim_template()` and `claim_template_for AdSense` both read `null`.
+
+That is #94's premise — `#[contracttype]` enum storage keys encode by name, so a new `DataKey`
+variant cannot shift an existing entry — observed on chain rather than reasoned about.
+
+### The fee, because #76 is why this step was gated
+
+`set_claim_template --source AdMob` simulated at `minResourceFee` **3,368,292 stroops =
+0.3368 XLM**. The deployer's balance fell from 30382.3545096 to 30382.0619099 XLM, so the actual
+cost was **0.2926 XLM**. #76's 21,370 XLM was rent on a TTL extension, not on template bytes;
+979 bytes of parts cost a third of an XLM.
+
+### The eight AdMob parts were re-derived, not copied
+
+The parts came from @Lin1er's real proof, posted on #102. They were re-derived independently
+from `tools/fixtures/admob-claim.json` through `split_parts` and compared: all 8 identical,
+lengths 65/11/9/24/11/9/825/25. The parts are the literal segments of the request shape and do
+not depend on which proof produced them, which is why that comparison is meaningful.
+
+**`provider_hash` is the one value with no independent check.** `0x5d9a2fc4a5dc937ea6e0ad7153
+9419ec47138cd8728d46a9b94b026b78238006` appears nowhere in this repo — the AdMob fixture carries
+a `0xcdcd…` placeholder, and the only hash on record is AdSense's `0x569b9323…` in
+`tools/rehearsal.py`. It rests on the signed context of a real proof. If it is wrong the failure
+is `ClaimMismatch`: loud, no funds moved, and `set_claim_template` can be run again.
+
+### Still open
+
+- The front end needs `NEXT_PUBLIC_CONTRACT_TAKES_SOURCE=1` on `forepay-vue5` **and a rebuild**
+  (step 3 above). Until then the live app fails at accept, as @Nabil-Aufa predicted on #106.
+  Production's `claim_template()` was `null` before today, so nothing that worked yesterday
+  stopped working.
+- AdSense (#61, #5) cannot be pinned: there is no proof to derive from. See #77.
+- `renounce_upgradeability` has not been called, and must not be until a real proof verifies.
