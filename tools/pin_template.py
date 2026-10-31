@@ -60,10 +60,12 @@ def unpadded(digits: str) -> str:
 # quotes arrive escaped.
 SOURCES = {
     "adsense": {
+        "variant": "AdSense",
         "pub_first": True,
         "after": ["/", "=", "=", "=", "=", "=", "="],
     },
     "admob": {
+        "variant": "AdMob",
         "pub_first": False,
         "after": [
             '\\"startDate\\":{\\"year\\":', '\\"month\\":', '\\"day\\":',
@@ -243,16 +245,21 @@ def main() -> int:
 
     if a.command or a.contract:
         contract = a.contract or "<CONTRACT_ID>"
+        variant = SOURCES[a.source]["variant"]
         parts_json = json.dumps([p.encode().hex() for p in parts], separators=(",", ":"))
         print(
             "\nTo pin it — runs as the admin, and nothing on this line is a secret:\n\n"
             f"  stellar contract invoke --network testnet --source-account forepay-probe \\\n"
             f"    --id {contract} -- set_claim_template \\\n"
+            f"    --source {variant} \\\n"
             f"    --parts '{parts_json}' \\\n"
             f"    --provider_hash {ph.encode().hex()}\n\n"
             "The parts are hex because the CLI takes Bytes that way. They are the UTF-8 of the\n"
-            "segments printed above — read them before running this.\n\n"
-            "Afterwards: read `claim_template()` back, then run `python3 tools/rehearsal.py`."
+            "segments printed above — read them before running this. `--source` is the contract's\n"
+            "`Source` variant: v0.5.0 takes it first and refuses the call without it (#94).\n"
+            "Simulate it with `--send=no` first and read the fee.\n\n"
+            f"Afterwards: read `claim_template_for --source {variant}` back, then run\n"
+            "`python3 tools/rehearsal.py`."
         )
     return 0
 
