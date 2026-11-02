@@ -1223,10 +1223,19 @@ in the contract, not an admin-settable value, so nothing but time moved it.
 
 ### Step 6 of the plan above, replaced by a stronger test
 
-The plan said to read back an `Advance` written by v0.4.0. **There was none to read:** the
-2026-10-29 rehearsal repaid in full, which removes the entry, each run uses a fresh `pub_id`,
+The plan said to read back an `Advance` written by v0.4.0. **There was none to read:**
+`advance()` answered `null` for all three candidate nullifiers from the 2026-10-29 rehearsal,
 and production had never paid one because its `claim_template()` was `null`. The test that was
 available instead is better, because it covers both directions:
+
+> **Correction, 2026-11-02.** The reason first written here — "the rehearsal repaid in full,
+> which removes the entry" — is wrong. `repay` ends in
+> `env.storage().persistent().set(&key, &advance)` and never removes; the only `.remove()`
+> calls in the contract are for `DataKey::PendingUpgrade`. The live AdMob advance below proves
+> it: it was repaid in full on 2026-10-31, and `advance(583f992c…cb1f77)` still returns the
+> record with `repaid` equal to `principal`. Why those three rehearsal nullifiers read `null`
+> is **still unknown** — dev shows no advance events at all in the RPC retention window — and
+> is left stated as unknown rather than given a second guess.
 
 1. **An entry written by v0.4.0 survives the upgrade.** Dev's AdSense template and provider hash
    were pinned under v0.4.0. Before the upgrade they hashed to `078604d2…d0d3aa` (8 parts, 570
@@ -1269,3 +1278,54 @@ is `ClaimMismatch`: loud, no funds moved, and `set_claim_template` can be run ag
   stopped working.
 - AdSense (#61, #5) cannot be pinned: there is no proof to derive from. See #77.
 - `renounce_upgradeability` has not been called, and must not be until a real proof verifies.
+
+## The first real advance: AdMob, on production (2026-10-31)
+
+A real Reclaim-attested AdMob proof was verified on chain and paid out **16 minutes after the
+AdMob template was pinned**, and repaid 30 seconds later. Nobody on the team recorded it at the
+time; it was found on 2026-11-02 by reading the contract's events.
+
+| | |
+| --- | --- |
+| Advance | [`478b6121…faf227`](https://stellar.expert/explorer/testnet/tx/478b61218e2b5f9dd85b9eecf348d927198d55a55229437dc001dc116bfaf227) — 2026-10-31 14:42:05 UTC |
+| Repayment | [`e141ff03…424d8f`](https://stellar.expert/explorer/testnet/tx/e141ff0349f4d0a235d214498f044e27c4d4b6e2cbf531f713866c2419424d8f) — 2026-10-31 14:42:35 UTC |
+| Contract | production `CCQFL2Q66DHFAZU2KPRWNHU4FTZJW75N5XLNXECFFGMW3PROIXJPI2HS` |
+| Borrower | `GBGVB5J2BMSKX44CS5NCNTIRLDSORMRUGV3SGB2L4GOCYEDXTZXPSSFE` |
+| Nullifier | `583f992c97f6ae5a05cb007833e6f789ef1fc716566113fa326d8dafc0cb1f77` |
+
+Events, read from the ledger: `nullifier_spent`, then `advance_disbursed` with
+`revenue_cents` `5935` and `principal` `148375000`, then `repaid` with `outstanding` `0`.
+
+`advance(583f992c…cb1f77)` reads back:
+
+| Field | Value |
+| --- | --- |
+| `pub_id` | `pub-5312741313348090` |
+| `window_start` / `window_end` | `2026-07-01` / `2026-09-30` |
+| `revenue_cents` | `5935` — $59.35 proven |
+| `principal` | `148375000` — 14.8375 USDC, 25% of the proven revenue |
+| `repaid` | `148375000`, outstanding 0 |
+| `advance_source(nullifier)` | **`AdMob`** |
+
+### What this closes, and what it does not
+
+**#102 is closed by this.** Its bug was that `request_advance` rebuilt the EIP-191 digest with
+the borrower as the attestor's `owner`, when the attestor signs for the requesting Reclaim app
+id. The pinned `claim_owner` is `0x6415200c713135e77157e1536d488df4f2bb7d04`, and a signature
+from Reclaim's production attestor verified against it on chain. That is the gate, and it is a
+real signature rather than the probe witness `tools/rehearsal.py` uses.
+
+**#94 is proven end to end.** `advance_source` returns `AdMob` for this nullifier, so the
+`Source` argument travelled from the front end through the relay into persistent storage and
+reads back by name. The template it verified against was pinned under the AdMob key while the
+AdSense key stayed `null`.
+
+**#5 is not closed.** It asks for one real **AdSense** proof. This is AdMob. The pipeline,
+the digest construction, the owner gate and the sizing are all now proven with a real attestor,
+but the AdSense half still has no proof to verify, for the reason on #77: the only `READY`
+account earned zero in the window, and `be/src/adsense/account.ts` refuses before the attestor
+is called.
+
+`liquidity()` is back to `1050000000` — 105 USDC — because the advance was repaid in full. The
+contract is in the same state it would be in if nothing had happened, which is exactly why this
+went unnoticed for two days.
